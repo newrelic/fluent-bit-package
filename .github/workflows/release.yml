@@ -38,12 +38,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: nrfb-linux-amd64.tar.gz
-        path: artifact/nrfb-linux-amd64.tar.gz
+        path: artifact
     
     
   arm64_job:
 
-    name: Build aarch64
+    name: Build arm64
     runs-on:  ubuntu-16.04
 
     steps:
@@ -58,7 +58,7 @@ jobs:
     - name: Download and compile FB for linuxARM
       uses: uraimo/run-on-arch-action@v2.0.5
       with:
-        arch: aarch64
+        arch: arm64
         distro: ubuntu16.04
         githubToken: ${{ secrets.GITHUB_TOKEN }}
         env: |
@@ -86,18 +86,18 @@ jobs:
           cmake ..
           make
           pushd bin
-          tar -czf ../../../artifact/nrfb-aarch64.tar.gz fluent-bit
+          tar -czf ../../../artifact/nrfb-linux-arm64.tar.gz fluent-bit
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: nrfb-aarch64.tar.gz
-        path: artifact/nrfb-aarch64.tar.gz
+        name: nrfb-linux-arm64.tar.gz
+        path: artifact
 
   
   arm32_job:
 
-    name: Build armv7
+    name: Build arm32
     runs-on: ubuntu-16.04
 
     steps:
@@ -141,15 +141,14 @@ jobs:
           make
           pushd bin
 
-          tar -czf ../../../artifact/nrfb-armv7.tar.gz fluent-bit
+          tar -czf ../../../artifact/nrfb-linux-arm32.tar.gz fluent-bit
 
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: nrfb-armv7.tar.gz
-        path: artifact/nrfb-armv7.tar.gz
-
+        name: nrfb-linux-arm32.tar.gz
+        path: artifact
   
   win32:
 
@@ -174,13 +173,13 @@ jobs:
         FLUENT_BIT_RELEASE=$(cut -d. -f1-2 <<< "${FB_WIN_VERSION}")
         wget "http://fluentbit.io/releases/${FLUENT_BIT_RELEASE}/td-agent-bit-${FB_WIN_VERSION}-win32".zip
         unzip td-agent-bit-${FB_WIN_VERSION}-win32.zip
-        zip -r $GITHUB_WORKSPACE/artifact/nrfb-win32.zip td-agent-bit-${FB_WIN_VERSION}-win32/bin   
+        zip -r $GITHUB_WORKSPACE/artifact/nrfb-windows-386.zip td-agent-bit-${FB_WIN_VERSION}-win32/bin   
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: nrfb-win32.zip
-        path: artifact/nrfb-win32.zip    
+        name: nrfb-windows-386.zip
+        path: artifact
 
   win64:
 
@@ -205,13 +204,13 @@ jobs:
         FLUENT_BIT_RELEASE=$(cut -d. -f1-2 <<< "${FB_WIN_VERSION}")
         wget "http://fluentbit.io/releases/${FLUENT_BIT_RELEASE}/td-agent-bit-${FB_WIN_VERSION}-win64".zip
         unzip td-agent-bit-${FB_WIN_VERSION}-win64.zip
-        zip -r $GITHUB_WORKSPACE/artifact/nrfb-win64.zip td-agent-bit-${FB_WIN_VERSION}-win64/bin   
+        zip -r $GITHUB_WORKSPACE/artifact/nrfb-windows-amd64.zip td-agent-bit-${FB_WIN_VERSION}-win64/bin   
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: nrfb-win64.zip
-        path: artifact/nrfb-win64.zip    
+        name: nrfb-windows-amd64.zip
+        path: artifact/
 
   publish:
 
@@ -261,8 +260,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./nrfb-linux-amd64.tar.gz/nrfb-linux-amd64.tar.gz
-        asset_name: fb-linux-${{env.FB_LINUX_VERSION}}-amd64.tar.gz
+        asset_path: ./nrfb-linux-amd64.tar.gz
+        asset_name: fb-linux-amd64.tar.gz
         asset_content_type: application/gzip
 
     - name: Upload arm64 Package 
@@ -271,8 +270,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./nrfb-aarch64.tar.gz/nrfb-aarch64.tar.gz
-        asset_name: fb-linux-${{env.FB_LINUX_VERSION}}-aarch64.tar.gz
+        asset_path: ./nrfb-linux-arm64.tar.gz
+        asset_name: fb-linux-arm32.tar.gz
         asset_content_type: application/gzip    
 
     - name: Upload arm32 Package 
@@ -281,8 +280,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./nrfb-armv7.tar.gz/nrfb-armv7.tar.gz
-        asset_name: fb-linux-${{env.FB_LINUX_VERSION}}-armv7.tar.gz
+        asset_path: ./nrfb-arm32.tar.gz
+        asset_name: fb-linux-arm32.tar.gz
         asset_content_type: application/gzip  
 
     - name: Upload win32 Package 
@@ -291,8 +290,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./nrfb-win32.zip/nrfb-win32.zip  
-        asset_name: fb-${{env.FB_WIN_VERSION}}-win32.zip
+        asset_path: ./nrfb-windows-386.zip  
+        asset_name: fb-windows-386.zip
         asset_content_type: application/zip     
               
     - name: Upload win64 Package 
@@ -301,6 +300,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./nrfb-win64.zip/nrfb-win64.zip  
-        asset_name: fb-${{env.FB_WIN_VERSION}}-win64.zip
+        asset_path: ./nrfb-windows-386.zip
+        asset_name: fb-windows-386.zip
         asset_content_type: application/zip                  
