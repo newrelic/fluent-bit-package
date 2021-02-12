@@ -248,6 +248,10 @@ jobs:
       with:
         tag_name: ${{ env.NRFB_ARTIFACT_VERSION }}
         release_name: nrfb v${{ env.NRFB_ARTIFACT_VERSION }}
+        body: |
+          Included into this Release
+          - FluentBit Linux Version: ${{ env.FB_LINUX_VERSION }}
+          - FluentBit Windows Version: v${{ env.FB_WIN_VERSION}}
         draft: false
         prerelease: false
 
