@@ -24,6 +24,20 @@ jobs:
       run: |  
         mkdir -p target/fb/tmp
         mkdir -p $GITHUB_WORKSPACE/artifact
+        apt-get update && \
+          apt-get install -y --no-install-recommends \
+          build-essential \
+          cmake \
+          make \
+          wget \
+          flex \
+          libasl-dev \
+          libsasl2-dev \
+          pkg-config \
+          libsystemd-dev \
+          zlib1g-dev \
+          ca-certificates \
+          bison
         pushd target/fb/tmp
         wget https://github.com/fluent/fluent-bit/archive/"${FB_LINUX_VERSION}".tar.gz
         mkdir -p $FB_LINUX_VERSION
