@@ -38,6 +38,7 @@ jobs:
           zlib1g-dev \
           ca-certificates \
           bison
+        apt-get upgrade cmake
         pushd target/fb/tmp
         wget https://github.com/fluent/fluent-bit/archive/"${FB_LINUX_VERSION}".tar.gz
         mkdir -p $FB_LINUX_VERSION
