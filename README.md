@@ -1,6 +1,6 @@
 [![New Relic Experimental header](https://github.com/newrelic/open-source-office/raw/master/examples/categories/images/Experimental.png)](https://github.com/newrelic/open-source-office/blob/master/examples/categories/index.md#category-new-relic-experimental)
 
-# Fluent Bit Binaries for New Relic
+# Fluent Bit Binaries for New Relic Infra Agent
 
 A public repo that takes care of downloading the FluentBit source, compiling it and uploading the resulting artifact to be released with the NewRelic [infra-agent](https://github.com/newrelic/infrastructure-agent)
 
