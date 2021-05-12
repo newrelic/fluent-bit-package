@@ -32,7 +32,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.LOGGING_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.LOGGING_AWS_SECRET_ACCESS_KEY_STAGING }}
           AWS_ROLE_ARN: ${{ secrets.LOGGING_AWS_ROLE_ARN_STAGING }}
-          AWS_ROLE_SESSION_NAME: ${{ secrets.LOGGING_AWS_SECRET_ACCESS_KEY_STAGING }}
+          AWS_ROLE_SESSION_NAME: ${{ secrets.LOGGING_AWS_ROLE_SESSION_NAME_STAGING }}
         with:
           tag: ${{env.TAG}}
           app_name: "td-agent-bit"
