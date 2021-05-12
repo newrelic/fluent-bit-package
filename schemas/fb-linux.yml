@@ -2,7 +2,7 @@
 - src: "{app_name}_{version}_debian-{os_version}_{arch}.deb"
   arch:
     - amd64
-    - arm64
+#    - arm64
   uploads:
     - type: apt
       src_repo: "http://download.newrelic.com/infrastructure_agent/linux/apt"
@@ -25,7 +25,7 @@
 - src: "{app_name}_{version}_ubuntu-{os_version}_{arch}.deb"
   arch:
     - amd64
-    - arm64
+#    - arm64
   uploads:
     - type: apt
       src_repo: "http://download.newrelic.com/infrastructure_agent/linux/apt"
@@ -37,7 +37,7 @@
 - src: "{app_name}-{version}-1.centos-{os_version}.{arch}.rpm"
   arch:
     - x86_64
-    - arm64
+#    - arm64
   uploads:
     - type: yum
       dest: "{dest_prefix}linux/yum/el/{os_version}/{arch}/"
@@ -48,7 +48,7 @@
 - src: "{app_name}-{version}-1.amazonlinux-{os_version}.{arch}.rpm"
   arch:
     - x86_64
-    - arm64
+#    - arm64
   uploads:
     - type: yum
       dest: "{dest_prefix}linux/yum/amazonlinux/{os_version}/{arch}/"
