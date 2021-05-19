@@ -18,16 +18,9 @@ jobs:
     name: Publish linux artifacts into s3 test bucket
     runs-on: ubuntu-20.04
 
-    strategy:
-      max-parallel: 1
-      matrix:
-        assetsType:
-          - "deb"
-          - "rpm"
-
     steps:
       - name: Publish ${{ matrix.assetsType }} to S3 action
-        uses: newrelic/infrastructure-publish-action@v1.0.4
+        uses: newrelic/infrastructure-publish-action@v1.0.7
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.LOGGING_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.LOGGING_AWS_SECRET_ACCESS_KEY_STAGING }}
