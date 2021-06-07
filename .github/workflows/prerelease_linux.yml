@@ -2,7 +2,7 @@ name: Prerelease Linux pipeline
 
 on:
   push:
-    branches: main
+    branches: tempToBeReplacedByMain
 
 env:
   TAG: 1.7.4
