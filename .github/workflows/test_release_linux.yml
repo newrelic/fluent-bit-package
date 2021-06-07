@@ -6,13 +6,12 @@ on:
       - '*'
       - '!master'
 env:
-  TAG: 1.7.4
+  TAG: ${{ github.event.release.tag_name }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
   AWS_S3_BUCKET_NAME: "nr-downloads-logging-testing"
   AWS_S3_LOCK_BUCKET_NAME: "logging-ci-lock-testing"
   AWS_REGION: "us-east-1"
-  DOCKER_PUBLISH: false
 
 jobs:
   publishing-to-s3:
@@ -21,7 +20,7 @@ jobs:
 
     steps:
       - name: Publish assets to S3 action
-        uses: newrelic/infrastructure-publish-action@v1.0.7
+        uses: newrelic/infrastructure-publish-action@v1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.LOGGING_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.LOGGING_AWS_SECRET_ACCESS_KEY_STAGING }}
