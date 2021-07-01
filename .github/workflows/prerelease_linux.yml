@@ -9,6 +9,7 @@ on:
 
 env:
   TAG: ${{ github.event.release.tag_name }}
+  GPG_MAIL: 'infrastructure-eng@newrelic.com'
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
   AWS_S3_BUCKET_NAME: "nr-downloads-ohai-staging"
@@ -16,6 +17,19 @@ env:
   AWS_REGION: "us-east-1"
 
 jobs:
+  sign:
+    name: Sign
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Sign artifacts
+        run: |
+          apt update
+          apt install -y gpg rpm debsigs
+          bash scripts/sign.sh
+
   publishing-to-s3:
     name: Publish linux artifacts into s3 test bucket
     runs-on: ubuntu-20.04
