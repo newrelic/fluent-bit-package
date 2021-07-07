@@ -2,20 +2,23 @@
 
 # Fluent Bit Binaries for New Relic Infra Agent
 
-A public repo that takes care of downloading the FluentBit source, compiling it and uploading the resulting artifact to be released with the NewRelic [infra-agent](https://github.com/newrelic/infrastructure-agent)
+A public repo that takes care of downloading the FluentBit source, sign it and uploading the resulting artifact to be released with the New Relic [infra-agent](https://github.com/newrelic/infrastructure-agent)
 
-
-#WARNING
-Temporary disabled. We release packages starting from `1.7.4` was manually generated and signed. We have an internal Jira ticket for it (LOGGING-5264)
-
-[DEPRECATED]
 > ## Getting Started
 >
-> These artifacts are aimed to be used with the infra-agent. In order to install, follow the infra-agent [documentation](https://docs.newrelic.com/docs/logs/enable-log-management-new-relic/enable-log-monitoring-new-relic/forward-your-logs-using-infrastructure-agent/)
+> These assets are aimed to be used with the infra-agent. In order to install, follow the infra-agent [documentation](https://docs.newrelic.com/docs/logs/enable-log-management-new-relic/enable-log-monitoring-new-relic/forward-your-logs-using-infrastructure-agent/)
 >
 > ## Building
 >
-> Update the `nr_fb_version` file with the desired version. The GitHubActions will trigger the build pipeline.
+> Assets are being generated after a new pre-release is created and same version number.
+> 
+> ### Linux packages
+> For `.rpm` and `.deb` artifacts are downloaded from fluent-bit and are signed by New Relic to be published in public repository.
+> 
+> ### Windows artifacts
+> About `.zip` artifacts are downloaded from fluent-bit release public git hub repository and uploaded as a release asset to be downloaded and embedded in the infra-agent.
+> 
+> More information about New Relic support systems, see our [docs](https://docs.newrelic.com/docs/logs/enable-log-management-new-relic/enable-log-monitoring-new-relic/forward-your-logs-using-infrastructure-agent/#requirements).
 >
 ## Latest Deployments
 
