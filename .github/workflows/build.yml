@@ -1,14 +1,11 @@
 name: Download Assets
 
 on:
-  push:
-    branches:
+  release:
+    types:
+      - prereleased
+    tags:
       - '*'
-#  release:
-#    types:
-#      - prereleased
-#    tags:
-#      - '*'
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
