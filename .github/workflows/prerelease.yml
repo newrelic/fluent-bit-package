@@ -1,4 +1,4 @@
-name: Prerelease Linux pipeline
+name: Prerelease pipeline
 
 on:
   release:
