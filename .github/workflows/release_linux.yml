@@ -17,19 +17,6 @@ env:
   AWS_REGION: "us-east-1"
 
 jobs:
-  sign:
-    name: Sign
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Sign artifacts
-        run: |
-          apt update
-          apt install -y gpg rpm debsigs
-          bash scripts/sign.sh
-
   publishing-to-s3:
     name: Publish linux artifacts into s3 test bucket
     runs-on: ubuntu-20.04

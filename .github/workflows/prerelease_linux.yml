@@ -1,11 +1,10 @@
 name: Prerelease Linux pipeline
 
 on:
-  release:
+  workflow_run:
+    workflows: [ 'Download Assets' ]
     types:
-      - prereleased
-    tags:
-      - '*'
+      - completed
 
 env:
   TAG: ${{ github.event.release.tag_name }}
@@ -17,23 +16,9 @@ env:
   AWS_REGION: "us-east-1"
 
 jobs:
-  sign:
-    name: Sign
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Sign artifacts
-        run: |
-          apt update
-          apt install -y gpg rpm debsigs
-          bash scripts/sign.sh
-
   publishing-to-s3:
     name: Publish linux artifacts into s3 test bucket
     runs-on: ubuntu-20.04
-
     steps:
       - name: Publish assets to S3 action
         uses: newrelic/infrastructure-publish-action@v1
