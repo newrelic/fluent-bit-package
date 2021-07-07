@@ -3,7 +3,7 @@ name: Download Assets
 on:
   push:
     branches:
-      - *
+      - '*'
 #  release:
 #    types:
 #      - prereleased
