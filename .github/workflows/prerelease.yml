@@ -32,9 +32,9 @@ jobs:
           - x86_64/x86_64/amazonlinux/2
           - aarch64/arm64/amazonlinux/2
           - x86_64/x86_64/centos/7
-          - aarch64/arm64/centos/7
+          #- aarch64/arm64/centos/7 https://github.com/fluent/fluent-bit/issues/3584
           - x86_64/x86_64/centos/8
-          - aarch64/arm64/centos/8
+          #- aarch64/arm64/centos/8 https://github.com/fluent/fluent-bit/issues/3584
 
     steps:
       - name: Check out repository
