@@ -70,7 +70,7 @@ jobs:
       - name: Sign artifacts
         run: |
           sudo apt-get install -y debsigs
-          bash ./script/sign.sh
+          bash ./scripts/sign.sh
 
       - uses: actions/upload-artifact@v2
         with:
@@ -132,7 +132,7 @@ jobs:
       - name: Sign artifacts
         run: |
           sudo apt-get install -y debsigs
-          bash ./script/sign.sh
+          bash ./scripts/sign.sh
 
       - uses: actions/upload-artifact@v2
         with:
@@ -203,4 +203,4 @@ jobs:
           type: ${{ matrix.distro }}
 
       - name: Upload asset
-        run: bash ./script/upload_assets_gh.sh
+        run: bash ./scripts/upload_assets_gh.sh
