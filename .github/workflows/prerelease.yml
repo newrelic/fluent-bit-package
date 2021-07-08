@@ -32,9 +32,9 @@ jobs:
           - x86_64/x86_64/amazonlinux/2
           - aarch64/arm64/amazonlinux/2
           - x86_64/x86_64/centos/7
-          - aarch64/arm64/centos/7
+          #- aarch64/arm64/centos/7 https://github.com/fluent/fluent-bit/issues/3584
           - x86_64/x86_64/centos/8
-          - aarch64/arm64/centos/8
+          #- aarch64/arm64/centos/8 https://github.com/fluent/fluent-bit/issues/3584
 
     steps:
       - name: Check out repository
@@ -171,7 +171,7 @@ jobs:
           FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.version }}")
           wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/td-agent-bit-${{ env.version }}-${{ env.app }}".zip
           unzip td-agent-bit-${{ env.version }}-${{ env.app }}.zip
-          zip -r -j ~/packages/nrfb-windows-${{ env.arch }}.zip td-agent-bit-${{ env.version }}-${{ env.app }}/bin
+          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip td-agent-bit-${{ env.version }}-${{ env.app }}/bin
         env:
           version: ${{ env.VERSION }}
           app: ${{ steps.app.outputs.version }}
