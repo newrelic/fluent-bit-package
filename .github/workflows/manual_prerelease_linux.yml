@@ -1,11 +1,11 @@
-name: Prerelease pipeline
+name: Run Manually a prerelease for Linux pipeline
 
 on:
-  release:
-    types:
-      - prereleased
-    tags:
-      - '*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag for the packing versioning.'
+        required: true
 
 env:
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
@@ -15,7 +15,7 @@ env:
   AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock-staging"
   AWS_REGION: "us-east-1"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  VERSION: ${{ github.event.release.tag_name }}
+  VERSION: ${{ github.event.inputs.tag_name }}
 
 jobs:
   rpm:
