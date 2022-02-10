@@ -13,7 +13,7 @@ on:
           - fb-sles
 
 env:
-  TAG: ${{ github.event.release.tag_name }}
+  TAG: ${{ github.event.inputs.tag }}
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
@@ -35,7 +35,7 @@ jobs:
           AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
           AWS_ROLE_SESSION_NAME: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
         with:
-          tag: ${{env.TAG}}
+          version: ${{env.TAG}}
           app_name: "td-agent-bit"
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
