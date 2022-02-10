@@ -7,7 +7,7 @@ on:
         description: 'Tag to pre-release'
         required: true
       schema:
-        description: 'Schema to be released'
+        description: 'Schema to be pre-released'
         required: true
         options:
           - fb-sles
