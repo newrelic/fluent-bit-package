@@ -1,0 +1,8 @@
+- src: "{app_name}-{version}-1.sles{os_version}.{arch}.rpm"
+  arch:
+    - x86_64
+  uploads:
+    - type: zypp
+      dest: "{dest_prefix}linux/zypp/sles/{os_version}/{arch}/"
+      os_version:
+        - 12.5
