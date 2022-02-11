@@ -20,8 +20,6 @@ env:
   AWS_S3_BUCKET_NAME: "nr-downloads-ohai-staging"
   AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock-staging"
   AWS_REGION: "us-east-1"
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  VERSION: ${{ github.event.release.tag_name }}
 
 jobs:
   publishing-to-s3-linux:
