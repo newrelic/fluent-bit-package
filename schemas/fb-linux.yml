@@ -10,7 +10,6 @@
       os_version:
         - bullseye
         - buster
-        - stretch
 
 - src: "{app_name}_{version}_ubuntu-{os_version}_{arch}.deb"
   arch:

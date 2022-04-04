@@ -92,8 +92,6 @@ jobs:
           - arm64/debian/bullseye
           - amd64/debian/buster
           - arm64/debian/buster
-          - amd64/debian/stretch
-          - arm64/debian/stretch
           - amd64/ubuntu/bionic
           - arm64/ubuntu/bionic
           - amd64/ubuntu/focal
