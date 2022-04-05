@@ -1,0 +1,9 @@
+- src: "{app_name}-{version}-1.amazonlinux-{os_version}.{arch}.rpm"
+  arch:
+    - x86_64
+    - arm64
+  uploads:
+    - type: yum
+      dest: "{dest_prefix}linux/yum/amazonlinux/{os_version}/{arch}/"
+      os_version:
+        - 2
