@@ -1,4 +1,4 @@
-- src: "{app_name}-{version}-1.amazonlinux-{os_version}.{arch}.rpm"
+- src: "{app_name}-{tag}-1.amazonlinux-{os_version}.{arch}.rpm"
   arch:
     - x86_64
     - arm64

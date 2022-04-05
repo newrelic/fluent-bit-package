@@ -1,4 +1,4 @@
-- src: "{app_name}_{version}_debian-{os_version}_{arch}.deb"
+- src: "{app_name}_{tag}_debian-{os_version}_{arch}.deb"
   arch:
     - amd64
     - arm64
