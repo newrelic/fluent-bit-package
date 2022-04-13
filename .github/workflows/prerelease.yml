@@ -166,9 +166,9 @@ jobs:
       - name: Download FB for windows & create artifact
         run: |
           FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.version }}")
-          wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/td-agent-bit-${{ env.version }}-${{ env.app }}".zip
-          unzip td-agent-bit-${{ env.version }}-${{ env.app }}.zip
-          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip td-agent-bit-${{ env.version }}-${{ env.app }}/bin
+          wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/fluent-bit-${{ env.version }}-${{ env.app }}".zip
+          unzip fluent-bit-${{ env.version }}-${{ env.app }}.zip
+          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip fluent-bit-${{ env.version }}-${{ env.app }}/bin
         env:
           version: ${{ env.VERSION }}
           app: ${{ steps.app.outputs.version }}
@@ -176,7 +176,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: td-agent-bit_${{ env.version }}_zip
+          name: fluent-bit_${{ env.version }}_zip
           path: ~/packages/
         env:
           version: ${{ env.VERSION }}
