@@ -176,7 +176,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: fluent-bit_${{ env.version }}_zip
+          name: td-agent-bit_${{ env.version }}_zip
           path: ~/packages/
         env:
           version: ${{ env.VERSION }}
