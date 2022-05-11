@@ -1,0 +1,40 @@
+name: Sign package from release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
+      package:
+        description: 'Package file name'
+        required: true
+
+env:
+  TAG: ${{ github.event.inputs.tag }}
+  PACKAGE: ${{ github.event.inputs.package }}
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Get artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.package }}
+          path: packages
+
+      - name: Sign artifacts
+        run: |
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.package }}
+          path: packages/
+        env:
+          version: ${{ env.VERSION }}
