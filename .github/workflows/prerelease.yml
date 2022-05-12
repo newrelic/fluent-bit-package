@@ -168,7 +168,7 @@ jobs:
           FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.version }}")
           wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/fluent-bit-${{ env.version }}-${{ env.app }}".zip
           unzip fluent-bit-${{ env.version }}-${{ env.app }}.zip
-          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip fluent-bit-${{ env.version }}-${{ env.app }}/bin
+          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip fluent-bit-${{ env.version }}-${{ env.app }}/bin/fluent-bit.exe fluent-bit-${{ env.version }}-${{ env.app }}/bin/fluent-bit.dll
         env:
           version: ${{ env.VERSION }}
           app: ${{ steps.app.outputs.version }}
