@@ -131,26 +131,25 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: fluent-bit_${{ env.VERSION }}_zip
-          path: packages/
+          path: ~/packages/
 
   upload-assets:
     runs-on: ubuntu-20.04
     needs: [ rpm, deb, zip ]
     strategy:
       matrix:
-        distro: [ rpm, deb, zip ]
+        type: [ rpm, deb, zip ]
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
       - name: Create working directory
-        run: mkdir -p packages
+        run: mkdir -p ~/packages
 
       - uses: actions/download-artifact@v2
-        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
-          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ env.type }}
-          path: packages/${{ matrix.packages.distro }}/${{ matrix.packages.version }}
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ matrix.type }}
+          path: ~/packages/${{ matrix.type }}
 
       - name: Upload asset
-        run: bash ./scripts/upload_assets_gh.sh
+        run: ls ~/packages && bash ./scripts/upload_assets_gh.sh
