@@ -21,57 +21,36 @@ env:
 jobs:
   rpm:
     runs-on: ubuntu-20.04
-
     strategy:
       matrix:
         packages:
-          ### compose for:
-          ### ${FB_ARCH/NR_ARCH/DISTRO}
-          ### FB_ARCH: to be used in url to download FB packages
-          ### NR_ARCH: to be used in our own package name once we downloaded FB packages
-          ### note: for centos/8 there is no package, FB is using centos/7 but we want to distribute by version
-          - x86_64/x86_64/amazonlinux/2
-          - aarch64/arm64/amazonlinux/2
-          - x86_64/x86_64/centos/7
-          - aarch64/arm64/centos/7
-          - x86_64/x86_64/centos/8
-          - aarch64/arm64/centos/8
-          - x86_64/x86_64/centos/9
-          - aarch64/arm64/centos/9
+          - { arch: x86_64, distro: amazonlinux, version: 2, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: aarch64, distro: amazonlinux, version: 2, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: x86_64, distro: amazonlinux, version: 2022, available-flavors: [fluent-bit] }
+          - { arch: aarch64, distro: amazonlinux, version: 2022, available-flavors: [fluent-bit] }
+          - { arch: x86_64, distro: centos, version: 7, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: aarch64, distro: centos, version: 7, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: x86_64, distro: centos, version: 8, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: aarch64, distro: centos, version: 8, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: x86_64, distro: centos, version: 9, available-flavors: [fluent-bit] }
+          - { arch: aarch64, distro: centos, version: 9, available-flavors: [fluent-bit] }
+
+    env:
+      # We want to use arm64 arch name instead aarch64 for the package we generate
+      nr-arch: ${{ matrix.packages.arch == 'aarch64' && 'arm64' || matrix.packages.arch }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Extract FB values from Matrix
-        id: fb
-        run: echo "::set-output name=arch::$(echo ${{ env.distro }} | cut -d/ -f1)" &&
-          echo "::set-output name=distro::$(echo ${{ env.distro }} | cut -d/ -f3- | sed 's:8:7:g')"
-        env:
-          distro: ${{ matrix.packages }}
-
-      - name: Extract NR values from Matrix
-        id: nr
-        run: echo "::set-output name=arch::$(echo ${{ env.distro }} | cut -d/ -f2)" &&
-          echo "::set-output name=distro::$(echo ${{ env.distro }} | cut -d/ -f3- | sed 's:/:\-:g')"
-        env:
-          distro: ${{ matrix.packages }}
-
       - name: Create working directory
-        run: mkdir -p packages/${{ env.version }}/${{ env.distro }}
-        env:
-          version: ${{ env.VERSION }}
-          distro: ${{ steps.fb.outputs.distro }}
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
+        run: mkdir -p packages/${{ env.VERSION }}/${{ matrix.packages.distro }}/${{ matrix.packages.version }}
 
       - name: Download and Rename binaries
-        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/${{ env.fb-arch }}/${{ env.FB_PACKAGE_NAME }}-${{ env.version }}-1.${{ env.fb-arch }}.rpm
-          -o packages/${{ env.version }}/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}-${{ env.version }}-1.${{ env.nr-distro }}.${{ env.nr-arch }}.rpm
-        env:
-          fb-arch: ${{ steps.fb.outputs.arch }}
-          fb-distro: ${{ steps.fb.outputs.distro }}
-          nr-arch: ${{ steps.nr.outputs.arch }}
-          nr-distro: ${{ steps.nr.outputs.distro }}
-          version: ${{ env.VERSION }}
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
+        run: curl https://packages.fluentbit.io/${{ matrix.packages.distro }}/${{ matrix.packages.version }}/${{ matrix.packages.arch }}/${{ env.FB_PACKAGE_NAME }}-${{ env.VERSION }}-1.${{ matrix.packages.arch }}.rpm
+          -o packages/${{ env.VERSION }}/${{ matrix.packages.distro }}/${{ env.FB_PACKAGE_NAME }}-${{ env.VERSION }}-1.${{ matrix.packages.distro }}-${{ matrix.packages.version }}.${{ env.nr-arch }}.rpm
 
       - name: Sign artifacts
         run: |
@@ -79,11 +58,10 @@ jobs:
           bash ./scripts/sign.sh
 
       - uses: actions/upload-artifact@v2
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
-          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_rpm
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_rpm
           path: packages/
-        env:
-          version: ${{ env.VERSION }}
 
   deb:
     runs-on: ubuntu-20.04
@@ -91,50 +69,31 @@ jobs:
     strategy:
       matrix:
         packages:
-          - amd64/debian/bullseye
-          - arm64/debian/bullseye
-          - amd64/debian/buster
-          - arm64/debian/buster
-          - amd64/debian/bookworm
-          - arm64/debian/bookworm
-          - amd64/ubuntu/bionic
-          - arm64/ubuntu/bionic
-          - amd64/ubuntu/focal
-          - arm64/ubuntu/focal
-          - amd64/ubuntu/jammy
-          - arm64/ubuntu/jammy
+          - { arch: amd64, distro: debian, version: bullseye, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: arm64, distro: debian, version: bullseye, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: amd64, distro: debian, version: buster, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: arm64, distro: debian, version: buster, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: amd64, distro: debian, version: bookworm, available-flavors: [fluent-bit] }
+          - { arch: arm64, distro: debian, version: bookworm, available-flavors: [fluent-bit] }
+          - { arch: amd64, distro: ubuntu, version: bionic, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: arm64, distro: ubuntu, version: bionic, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: amd64, distro: ubuntu, version: focal, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: arm64, distro: ubuntu, version: focal, available-flavors: [td-agent-bit, fluent-bit] }
+          - { arch: amd64, distro: ubuntu, version: jammy, available-flavors: [fluent-bit] }
+          - { arch: arm64, distro: ubuntu, version: jammy, available-flavors: [fluent-bit] }
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Extract ARCH value from Matrix
-        id: arch
-        run: echo "::set-output name=value::$(echo ${{ env.distro }} | cut -d/ -f1)"
-        env:
-          distro: ${{ matrix.packages }}
-
-      - name: Extract NR values from Matrix
-        id: distros
-        run: echo "::set-output name=nr::$(echo ${{ env.distro }} | cut -d/ -f2- | sed 's:/:\-:g')" &&
-          echo "::set-output name=fb::$(echo ${{ env.distro }} | cut -d/ -f2-)"
-        env:
-          distro: ${{ matrix.packages }}
-
       - name: Create working directory
-        run: mkdir -p packages/${{ env.version }}/${{ env.distro }}
-        env:
-          version: ${{ env.VERSION }}
-          distro: ${{ steps.distros.outputs.fb }}
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
+        run: mkdir -p packages/${{ env.VERSION }}/${{ matrix.packages.distro }}/${{ matrix.packages.version }}
 
       - name: Download and Rename binaries
-        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.arch }}.deb
-          -o packages/${{ env.version }}/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.nr-distro }}_${{ env.arch }}.deb
-        env:
-          fb-distro: ${{ steps.distros.outputs.fb }}
-          nr-distro: ${{ steps.distros.outputs.nr }}
-          arch: ${{ steps.arch.outputs.value }}
-          version: ${{ env.VERSION }}
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
+        run: curl https://packages.fluentbit.io/${{ matrix.packages.distro }}/${{ matrix.packages.version }}/${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ matrix.packages.arch }}.deb
+          -o packages/${{ env.VERSION }}/${{ matrix.packages.distro }}/${{ matrix.packages.version }}/${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ matrix.packages.distro }}-${{ matrix.packages.version }}_${{ matrix.packages.arch }}.deb
 
       - name: Sign artifacts
         run: |
@@ -142,19 +101,18 @@ jobs:
           bash ./scripts/sign.sh
 
       - uses: actions/upload-artifact@v2
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
-          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_deb
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_deb
           path: packages/
-        env:
-          version: ${{ env.VERSION }}
 
   zip:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         packages:
-          - 386/win32
-          - amd64/win64
+          - { arch: 386, version: win32 }
+          - { arch: amd64, version: win64 }
 
     steps:
       - name: Check out repository
@@ -163,30 +121,17 @@ jobs:
       - name: Create working directory
         run: mkdir -p ~/packages
 
-      - name: Extract values from Matrix
-        id: app
-        run: echo "::set-output name=arch::$(echo ${{ env.packages }} | cut -d/ -f1)" &&
-          echo "::set-output name=version::$(echo ${{ env.packages }} | cut -d/ -f2)"
-        env:
-          packages: ${{ matrix.packages }}
-
       - name: Download FB for windows & create artifact
         run: |
-          FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.version }}")
-          wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/fluent-bit-${{ env.version }}-${{ env.app }}".zip
-          unzip fluent-bit-${{ env.version }}-${{ env.app }}.zip
-          zip -r -j ~/packages/fb-windows-${{ env.arch }}.zip fluent-bit-${{ env.version }}-${{ env.app }}/bin/fluent-bit.exe fluent-bit-${{ env.version }}-${{ env.app }}/bin/fluent-bit.dll
-        env:
-          version: ${{ env.VERSION }}
-          app: ${{ steps.app.outputs.version }}
-          arch: ${{ steps.app.outputs.arch }}
+          FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.VERSION }}")
+          wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}".zip
+          unzip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}.zip
+          zip -r -j ~/packages/fb-windows-${{ matrix.packages.arch }}.zip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.exe fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.dll
 
       - uses: actions/upload-artifact@v2
         with:
-          name: fluent-bit_${{ env.version }}_zip
+          name: fluent-bit_${{ env.VERSION }}_zip
           path: ~/packages/
-        env:
-          version: ${{ env.VERSION }}
 
   upload-assets:
     runs-on: ubuntu-20.04
@@ -202,12 +147,10 @@ jobs:
         run: mkdir -p ~/packages
 
       - uses: actions/download-artifact@v2
+        if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
-          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.type }}
-          path: packages/${{ env.type }}
-        env:
-          version: ${{ env.VERSION }}
-          type: ${{ matrix.distro }}
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ env.type }}
+          path: packages/${{ matrix.packages.distro }}/${{ matrix.packages.version }}
 
       - name: Upload asset
         run: bash ./scripts/upload_assets_gh.sh
