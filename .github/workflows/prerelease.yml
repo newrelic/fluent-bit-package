@@ -27,7 +27,7 @@ jobs:
           - { arch: x86_64, distro: amazonlinux, version: 2, available-flavors: [td-agent-bit, fluent-bit] }
           - { arch: aarch64, distro: amazonlinux, version: 2, available-flavors: [td-agent-bit, fluent-bit] }
           - { arch: x86_64, distro: amazonlinux, version: 2022, available-flavors: [fluent-bit] }
-          - { arch: aarch64, distro: amazonlinux, version: 2022, available-flavors: [fluent-bit] }
+          # - { arch: aarch64, distro: amazonlinux, version: 2022, available-flavors: [fluent-bit] }
           - { arch: x86_64, distro: centos, version: 7, available-flavors: [td-agent-bit, fluent-bit] }
           - { arch: aarch64, distro: centos, version: 7, available-flavors: [td-agent-bit, fluent-bit] }
           - { arch: x86_64, distro: centos, version: 8, available-flavors: [td-agent-bit, fluent-bit] }
