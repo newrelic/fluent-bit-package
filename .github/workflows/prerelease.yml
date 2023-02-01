@@ -36,6 +36,8 @@ jobs:
           - aarch64/arm64/centos/7
           - x86_64/x86_64/centos/8
           - aarch64/arm64/centos/8
+          - x86_64/x86_64/centos/9
+          - aarch64/arm64/centos/9
 
     steps:
       - name: Check out repository
@@ -93,10 +95,14 @@ jobs:
           - arm64/debian/bullseye
           - amd64/debian/buster
           - arm64/debian/buster
+          - amd64/debian/bookworm
+          - arm64/debian/bookworm
           - amd64/ubuntu/bionic
           - arm64/ubuntu/bionic
           - amd64/ubuntu/focal
           - arm64/ubuntu/focal
+          - amd64/ubuntu/jammy
+          - arm64/ubuntu/jammy
 
     steps:
       - name: Check out repository
@@ -122,7 +128,7 @@ jobs:
           distro: ${{ steps.distros.outputs.fb }}
 
       - name: Download and Rename binaries
-        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/pool/main/t/${{ env.FB_PACKAGE_NAME }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.arch }}.deb
+        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.arch }}.deb
           -o packages/${{ env.version }}/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.nr-distro }}_${{ env.arch }}.deb
         env:
           fb-distro: ${{ steps.distros.outputs.fb }}
