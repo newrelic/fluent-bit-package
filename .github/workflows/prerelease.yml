@@ -16,6 +16,7 @@ env:
   AWS_REGION: "us-east-1"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   VERSION: ${{ github.event.release.tag_name }}
+  FB_PACKAGE_NAME: ${{ startsWith(github.event.release.tag_name, "1") && "td-agent-bit" || "fluent-bit" }}
 
 jobs:
   rpm:
@@ -61,8 +62,8 @@ jobs:
           distro: ${{ steps.fb.outputs.distro }}
 
       - name: Download and Rename binaries
-        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/${{ env.fb-arch }}/fluent-bit-${{ env.version }}-1.${{ env.fb-arch }}.rpm
-          -o packages/${{ env.version }}/${{ env.fb-distro }}/fluent-bit-${{ env.version }}-1.${{ env.nr-distro }}.${{ env.nr-arch }}.rpm
+        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/${{ env.fb-arch }}/${{ env.FB_PACKAGE_NAME }}-${{ env.version }}-1.${{ env.fb-arch }}.rpm
+          -o packages/${{ env.version }}/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}-${{ env.version }}-1.${{ env.nr-distro }}.${{ env.nr-arch }}.rpm
         env:
           fb-arch: ${{ steps.fb.outputs.arch }}
           fb-distro: ${{ steps.fb.outputs.distro }}
@@ -77,7 +78,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: fluent-bit_${{ env.version }}_rpm
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_rpm
           path: packages/
         env:
           version: ${{ env.VERSION }}
@@ -121,8 +122,8 @@ jobs:
           distro: ${{ steps.distros.outputs.fb }}
 
       - name: Download and Rename binaries
-        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/pool/main/t/fluent-bit/fluent-bit_${{ env.version }}_${{ env.arch }}.deb
-          -o packages/${{ env.version }}/${{ env.fb-distro }}/fluent-bit_${{ env.version }}_${{ env.nr-distro }}_${{ env.arch }}.deb
+        run: curl https://packages.fluentbit.io/${{ env.fb-distro }}/pool/main/t/${{ env.FB_PACKAGE_NAME }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.arch }}.deb
+          -o packages/${{ env.version }}/${{ env.fb-distro }}/${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.nr-distro }}_${{ env.arch }}.deb
         env:
           fb-distro: ${{ steps.distros.outputs.fb }}
           nr-distro: ${{ steps.distros.outputs.nr }}
@@ -136,7 +137,7 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: fluent-bit_${{ env.version }}_deb
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_deb
           path: packages/
         env:
           version: ${{ env.VERSION }}
@@ -196,7 +197,7 @@ jobs:
 
       - uses: actions/download-artifact@v2
         with:
-          name: fluent-bit_${{ env.version }}_${{ env.type }}
+          name: ${{ env.FB_PACKAGE_NAME }}_${{ env.version }}_${{ env.type }}
           path: packages/${{ env.type }}
         env:
           version: ${{ env.VERSION }}
