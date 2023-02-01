@@ -16,7 +16,7 @@ env:
   AWS_REGION: "us-east-1"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   VERSION: ${{ github.event.release.tag_name }}
-  FB_PACKAGE_NAME: ${{ startsWith(github.event.release.tag_name, "1") && "td-agent-bit" || "fluent-bit" }}
+  FB_PACKAGE_NAME: ${{ startsWith(github.event.release.tag_name, '1') && 'td-agent-bit' || 'fluent-bit' }}
 
 jobs:
   rpm:
