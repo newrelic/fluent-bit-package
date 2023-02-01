@@ -24,7 +24,7 @@ env:
   AWS_S3_BUCKET_NAME: "nr-downloads-main"
   AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock"
   AWS_REGION: "us-east-1"
-  FB_PACKAGE_NAME: ${{ startsWith(github.event.release.tag_name, "1") && "td-agent-bit" || "fluent-bit" }}
+  FB_PACKAGE_NAME: ${{ startsWith(github.event.release.tag_name, '1') && 'td-agent-bit' || 'fluent-bit' }}
 
 jobs:
   publishing-to-s3-linux:
