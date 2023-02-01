@@ -1,13 +1,13 @@
-name: Staged release publish for Linux
+name: Staged pre-release publish for Linux
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release'
+        description: 'Tag to pre-release'
         required: true
       schema:
-        description: 'Schema to be released'
+        description: 'Schema to be pre-released'
         required: true
         options:
           - fb-amazonlinux
@@ -21,26 +21,26 @@ env:
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-  AWS_S3_BUCKET_NAME: "nr-downloads-main"
-  AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock"
+  AWS_S3_BUCKET_NAME: "nr-downloads-ohai-staging"
+  AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock-staging"
   AWS_REGION: "us-east-1"
 
 jobs:
   publishing-to-s3-linux:
-    name: Publish linux artifacts into s3 production bucket
+    name: Publish linux artifacts into s3 staging bucket
     runs-on: ubuntu-20.04
 
     steps:
       - name: Publish ${{ github.event.inputs.schema }} to S3 action
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
-          AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
-          AWS_ROLE_SESSION_NAME: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+          AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          AWS_ROLE_SESSION_NAME: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
         with:
           tag: ${{env.TAG}}
-          app_name: "td-agent-bit"
+          app_name: "fluent-bit"
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
           schema_url: "https://raw.githubusercontent.com/newrelic/fluent-bit-package/main/schemas/${{ github.event.inputs.schema }}.yml"
@@ -48,7 +48,7 @@ jobs:
           aws_secret_access_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws_s3_bucket_name: ${{ env.AWS_S3_BUCKET_NAME }}
           aws_s3_lock_bucket_name: ${{ env.AWS_S3_LOCK_BUCKET_NAME }}
-          access_point_host: "production"
+          access_point_host: "staging"
           run_id: ${{ github.run_id }}
           aws_region: ${{ env.AWS_REGION }}
           aws_role_session_name: ${{ env.AWS_ROLE_SESSION_NAME }}

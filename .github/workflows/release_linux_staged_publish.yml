@@ -1,14 +1,23 @@
-name: Release for Linux pipeline
+name: Staged release publish for Linux
 
 on:
-  release:
-    types:
-      - released
-    tags:
-      - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+      schema:
+        description: 'Schema to be released'
+        required: true
+        options:
+          - fb-amazonlinux
+          - fb-centos
+          - fb-debian
+          - fb-sles
+          - fb-ubuntu
 
 env:
-  TAG: ${{ github.event.release.tag_name }}
+  TAG: ${{ github.event.inputs.tag }}
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
@@ -17,12 +26,12 @@ env:
   AWS_REGION: "us-east-1"
 
 jobs:
-  publishing-to-s3:
-    name: Publish linux artifacts into s3 test bucket
+  publishing-to-s3-linux:
+    name: Publish linux artifacts into s3 production bucket
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Publish assets to S3 action
+      - name: Publish ${{ github.event.inputs.schema }} to S3 action
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
@@ -34,7 +43,7 @@ jobs:
           app_name: "fluent-bit"
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
-          schema_url: "https://raw.githubusercontent.com/newrelic/fluent-bit-package/main/schemas/fb-linux.yml"
+          schema_url: "https://raw.githubusercontent.com/newrelic/fluent-bit-package/main/schemas/${{ github.event.inputs.schema }}.yml"
           aws_access_key_id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws_s3_bucket_name: ${{ env.AWS_S3_BUCKET_NAME }}
