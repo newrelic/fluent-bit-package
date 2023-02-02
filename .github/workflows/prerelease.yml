@@ -119,19 +119,19 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Create working directory
-        run: mkdir -p ~/packages
+        run: mkdir -p packages
 
       - name: Download FB for windows & create artifact
         run: |
           FB_MAJOR_MINOR_VERSION=$(cut -d. -f1-2 <<< "${{ env.VERSION }}")
           wget "http://fluentbit.io/releases/${FB_MAJOR_MINOR_VERSION}/fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}".zip
           unzip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}.zip
-          zip -r -j ~/packages/fb-windows-${{ matrix.packages.arch }}.zip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.exe fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.dll
+          zip -r -j packages/fb-windows-${{ matrix.packages.arch }}.zip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.exe fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.dll
 
       - uses: actions/upload-artifact@v2
         with:
           name: fluent-bit_${{ env.VERSION }}_zip
-          path: ~/packages/
+          path: packages/
 
   upload-assets:
     runs-on: ubuntu-20.04
@@ -144,12 +144,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Create working directory
-        run: mkdir -p ~/packages
+        run: mkdir -p packages
 
       - uses: actions/download-artifact@v2
         with:
           name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ matrix.type }}
-          path: ~/packages/${{ matrix.type }}
+          path: packages/${{ matrix.type }}
 
       - name: Upload asset
-        run: ls ~/packages && bash ./scripts/upload_assets_gh.sh
+        run: bash ./scripts/upload_assets_gh.sh
