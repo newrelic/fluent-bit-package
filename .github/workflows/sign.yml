@@ -39,7 +39,7 @@ jobs:
           file: ${{ github.event.inputs.package }}
           regex: ${{ github.event.inputs.regex == 'true' }}
           version: tags/${{ github.event.inputs.tag }}
-          target: packages/${{ github.event.inputs.package }}
+          target: packages/
 
       - name: Sign package
         run: |
