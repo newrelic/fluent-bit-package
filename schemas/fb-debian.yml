@@ -9,3 +9,4 @@
       os_version:
         - bullseye
         - buster
+        - bookworm

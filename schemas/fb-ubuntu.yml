@@ -9,3 +9,4 @@
       os_version:
         - bionic
         - focal
+        - jammy
