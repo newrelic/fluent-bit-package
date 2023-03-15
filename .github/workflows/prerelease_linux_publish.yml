@@ -21,17 +21,18 @@ jobs:
   publishing-to-s3:
     name: Publish linux artifacts into s3 test bucket
     runs-on: ubuntu-20.04
-    
+
     steps:
       - name: Publish assets to S3 action
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
+          TAG: ${{ github.event.inputs.tag }}
           AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
           AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
           AWS_ROLE_SESSION_NAME: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
         with:
-          tag: ${{env.VERSION}}
+          tag: ${{env.TAG}}
           app_name: ${{env.FB_PACKAGE_NAME}}
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
