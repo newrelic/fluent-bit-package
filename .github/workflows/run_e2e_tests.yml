@@ -1,0 +1,45 @@
+name: run_e2e_tests HW workflow
+
+on:
+  # To be able to launch it from pull_request.yml programmatically
+  workflow_call:
+    inputs:
+      gh_release_name:
+        description: GitHub release name containing Fluent Bit packages
+        required: false
+        default: latest
+        type: string
+      infra_agent_version:
+        description: Infrastructure Agent version
+        required: true
+        default: latest
+        type: string
+  # To be able to launch it from the Actions UI, on-demand
+  workflow_dispatch:
+    inputs:
+      gh_release_name:
+        description: GitHub release name containing Fluent Bit packages
+        required: false
+        default: latest
+        type: string
+      infra_agent_version:
+        description: Infrastructure Agent version
+        required: true
+        default: latest
+        type: string
+
+# So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
+# be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
+# as in the pull_request.yml since this workflow can also be run on-demand from the UI, and potentially by the infrastructure-agent
+# CI/CD pipeline.
+concurrency: e2e-workflow-${{ inputs.gh_release_name }}
+
+jobs:
+  e2e_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run E2E tests
+        run: |
+          # TODO
+          echo "TODO: Stubbed step. gh_release_name: ${{ inputs.gh_release_name }}, infra_agent_version: ${{ inputs.infra_agent_version }}"

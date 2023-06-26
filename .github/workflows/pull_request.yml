@@ -1,0 +1,66 @@
+name: Pull Request Workflow
+
+on: [pull_request]
+
+# So that only one PR workflow will be run simultaneously. This ensures that there will not be multiple runners accessing
+# the same Terraform state at the same time.
+concurrency: pr-workflow-${{ github.event.pull_request.number }}
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  PRE_RELEASE_NAME: tmp-pr-${{ github.event.pull_request.number }}
+
+jobs:
+  # This is a workaround required to pass environment variables to the run_e2e_tests workflow
+  # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
+  envSetup:
+    name: Setup dynamic environment variables
+    runs-on: ubuntu-latest
+    outputs:
+      PRE_RELEASE_NAME: ${{ steps.set_vars.outputs.PRE_RELEASE_NAME }}
+    steps:
+      - name: Make dynamically-generated env variables available to be passed down to reusable workflows
+        id: set_vars
+        run: |
+          echo "PRE_RELEASE_NAME=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prepare pre-release
+        run: |
+          pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
+
+          if [[ $pre_release_exists == "true" ]]; then
+            echo "Clearing files in pre-release $PRE_RELEASE_NAME"
+
+            packages=$(gh release view $PRE_RELEASE_NAME --json assets -q ".assets[].name")
+            for package in $packages; do
+              echo "  Deleting: $package"
+              gh release delete-asset $PRE_RELEASE_NAME "$package" -y
+            done
+          else
+            pre_release_tag=$PRE_RELEASE_NAME
+            pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
+            pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
+
+            echo "Creating pre-release: $pre_release_tag"
+            gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
+          fi
+
+      - name: Compiles Binaries and Uploads to Pre-release
+        run: |
+          # TODO
+          echo "TODO: Stubbed step"
+
+  run_e2e_tests:
+    needs: [envSetup, build]
+    uses: ./.github/workflows/run_e2e_tests.yml
+    with:
+      gh_release_name: ${{ needs.envSetup.outputs.PRE_RELEASE_NAME }}
+      infra_agent_version: latest
