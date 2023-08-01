@@ -1,0 +1,8 @@
+osDistro: debian
+osVersion: buster
+ec2User: admin
+packages:
+  - arch: amd64
+    ami: ami-07d02ee1eeb0c996c
+  - arch: arm64
+    ami: ami-08b2293fdd2deba2a

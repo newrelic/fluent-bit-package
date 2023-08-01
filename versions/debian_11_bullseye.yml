@@ -1,0 +1,8 @@
+osDistro: debian
+osVersion: bullseye
+ec2User: admin
+packages:
+  - arch: amd64
+    ami: ami-052465340e6b59fc0
+  - arch: arm64
+    ami: ami-0ffd2fd6f1a81e491

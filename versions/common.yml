@@ -1,0 +1,18 @@
+fbVersion: 2.0.8
+ec2User: ec2-user
+
+#  This file, together with each distro file are processed and merged incrementally to
+#  build all the information required to download and test each package. Each package ends
+#  up having the following information fields which are later accessed by the GH workflows:
+#
+#  {
+#    "fbVersion": "2.0.8",
+#    "ec2User": "admin",
+#    "osDistro": "debian",
+#    "osVersion": "bookworm",
+#    "arch": "amd64",
+#    "ami": "ami-08ca7cb88210133e5",
+#    "packageUrl": "https://packages.fluentbit.io/debian/bookworm/fluent-bit_2.1.0_amd64.deb",
+#    "targetPackageName": "fluent-bit_2.1.0_debian-bookworm_amd64.deb",
+#    "nrPackageUrl": "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/apt/pool/main/f/fluent-bit/fluent-bit_2.0.8_debian-bookworm_amd64.deb"
+#  }
