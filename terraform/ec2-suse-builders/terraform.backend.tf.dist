@@ -1,0 +1,10 @@
+#########################################
+# State Backend
+#########################################
+terraform {
+  backend "s3" {
+    bucket = "logging-e2e-testing-tf"
+    key    = "suse-builders-pr-PR_NUMBER"
+    region = "us-east-2"
+  }
+}
