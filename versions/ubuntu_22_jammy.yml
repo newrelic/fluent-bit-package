@@ -1,0 +1,8 @@
+osDistro: ubuntu
+osVersion: jammy
+ec2User: ubuntu
+packages:
+  - arch: amd64
+    ami: ami-00874d747dde814fa
+  - arch: arm64
+    ami: ami-0a84a722790d914a9

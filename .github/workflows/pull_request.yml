@@ -9,6 +9,10 @@ concurrency: pr-workflow-${{ github.event.pull_request.number }}
 env:
   GH_TOKEN: ${{ github.token }}
   PRE_RELEASE_NAME: tmp-pr-${{ github.event.pull_request.number }}
+  # Used to re-sign Linux artifacts
+  GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
+  GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
 jobs:
   # This is a workaround required to pass environment variables to the run_e2e_tests workflow
@@ -24,7 +28,93 @@ jobs:
         run: |
           echo "PRE_RELEASE_NAME=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
 
-  build:
+  # Generates strategy matrices that can be used by other jobs to run the build or testing of all supported packages
+  prepare_matrices:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      # Linux and Windows matrices are not used at the moment. Leaving them here as an example as we'll need to deal
+      # with separate matrices when building the SuSe packages.
+      linux_matrix: ${{ steps.set-matrix.outputs.linux_matrix }}
+      windows_matrix: ${{ steps.set-matrix.outputs.windows_matrix }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: | 
+          cd versions
+          npm install
+
+      - name: Compute matrix
+        id: set-matrix
+        run: |
+          cd versions
+          # Compute whole matrix
+          matrix=$( node strategyMatrix.js )
+          
+          # Compute matrix per OS type (leaving it for reference for when implementing SuSe)
+          linux_matrix=$( echo $matrix | jq 'map(select(.osDistro != "windows-server"))' -c )
+          windows_matrix=$( echo $matrix | jq 'map(select(.osDistro == "windows-server"))' -c )
+          
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "linux_matrix=$linux_matrix" >> "$GITHUB_OUTPUT"
+          echo "windows_matrix=$windows_matrix" >> "$GITHUB_OUTPUT"
+
+  # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
+  # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
+  # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
+  download_official_packages:
+    needs: [prepare_matrices]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{fromJson(needs.prepare_matrices.outputs.matrix)}}
+    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Attempt downloading package from New Relic repository
+        id: download_package_from_nr
+        run: |
+          mkdir -p packages
+          if wget --directory-prefix=packages "${{ matrix.nrPackageUrl }}"; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download, rename and resign Linux package
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
+        run: |
+          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Download and re-zip Windows package
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'windows-server' }}
+        run: |
+          wget ${{ matrix.packageUrl }}
+          unzip fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}.zip
+          zip -r -j packages/${{ matrix.targetPackageName }} \
+               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
+               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
+
+        # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
+        # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
+        # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
+        # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
+      - uses: actions/upload-artifact@v2
+        with:
+          # Artifacts are pushed to *shared network folders* that have this name and that contain
+          # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
+          name: ${{ matrix.targetPackageName }}
+          path: packages/${{ matrix.targetPackageName }}
+
+  # Re-creates the GH prerelease on each commit and pushes all Fluent Bit packages there
+  prepare_prerelease:
+    needs: [ download_official_packages ]
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'
 
@@ -32,34 +122,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Prepare pre-release
-        run: |
+      - name: (Re)create pre-release
+        run: | 
           pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
-
           if [[ $pre_release_exists == "true" ]]; then
-            echo "Clearing files in pre-release $PRE_RELEASE_NAME"
-
-            packages=$(gh release view $PRE_RELEASE_NAME --json assets -q ".assets[].name")
-            for package in $packages; do
-              echo "  Deleting: $package"
-              gh release delete-asset $PRE_RELEASE_NAME "$package" -y
-            done
-          else
-            pre_release_tag=$PRE_RELEASE_NAME
-            pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
-            pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
-
-            echo "Creating pre-release: $pre_release_tag"
-            gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
+            gh release delete ${{ env.PRE_RELEASE_NAME }} -y --cleanup-tag
           fi
+          
+          pre_release_tag=$PRE_RELEASE_NAME
+          pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
+          pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
 
-      - name: Compiles Binaries and Uploads to Pre-release
-        run: |
-          # TODO
-          echo "TODO: Stubbed step"
+          echo "Creating pre-release: $pre_release_tag"
+          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
 
+      - name: Download all artifacts from shared filesystem
+        uses: actions/download-artifact@v3
+        with:
+          path: packages
+
+      - name: Push all artifacts to pre-release
+        run:
+          # To understand the need for /*/*, see comment in "upload artifacts" step above
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/*
+
+  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
-    needs: [envSetup, build]
+    needs: [ envSetup, prepare_prerelease]
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
       gh_release_name: ${{ needs.envSetup.outputs.PRE_RELEASE_NAME }}

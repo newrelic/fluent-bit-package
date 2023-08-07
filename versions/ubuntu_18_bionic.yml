@@ -1,0 +1,8 @@
+osDistro: ubuntu
+osVersion: bionic
+ec2User: ubuntu
+packages:
+  - arch: amd64
+    ami: ami-0263e4deb427da90e
+  - arch: arm64
+    ami: ami-0a5ec5786500eaf19

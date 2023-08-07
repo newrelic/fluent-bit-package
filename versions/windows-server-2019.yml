@@ -1,0 +1,8 @@
+osDistro: windows-server
+osVersion: 2019
+ec2User: Administrator
+packages:
+  - arch: win64
+    ami: ami-024614f01f42eeb66
+  - arch: win32
+    ami: ami-024614f01f42eeb66
