@@ -112,6 +112,28 @@ jobs:
           name: ${{ matrix.targetPackageName }}
           path: packages/${{ matrix.targetPackageName }}
 
+  spin_up_suse:
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
+  build_suse_packages:
+    needs: spin_up_suse
+    runs-on: ubuntu-latest
+
+    steps:
+      # This is where the real compilation will actually happen
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+  tear_down_suse:
+    needs: build_suse_packages
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
   # Re-creates the GH prerelease on each commit and pushes all Fluent Bit packages there
   prepare_prerelease:
     needs: [ download_official_packages ]
