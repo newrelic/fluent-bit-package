@@ -1,1 +1,2 @@
-PyYAML==5.4.1
+# Need to stick with 5.3.1 for now: https://github.com/yaml/pyyaml/issues/724
+PyYAML==5.3.1
