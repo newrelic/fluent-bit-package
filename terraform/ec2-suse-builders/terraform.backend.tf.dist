@@ -3,8 +3,9 @@
 #########################################
 terraform {
   backend "s3" {
-    bucket = "logging-e2e-testing-tf"
-    key    = "suse-builders-pr-PR_NUMBER"
-    region = "us-east-2"
+    encrypt = true
+    bucket  = "logging-e2e-testing-tf"
+    key     = "suse-builders-pr-PR_NUMBER"
+    region  = "us-east-2"
   }
 }

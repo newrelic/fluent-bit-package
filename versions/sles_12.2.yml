@@ -1,0 +1,6 @@
+osDistro: sles
+osVersion: 12.2
+packages:
+  - arch: x86_64
+    # It suses the one from SLES 12.3 since there is none available for 12.2
+    ami: ami-03ce00a6a270d98ef
