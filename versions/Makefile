@@ -4,4 +4,4 @@
 .PHONY: generateMatrix
 generateMatrix:
 	pip3 install -r requirements.txt
-	python strategyMatrix.py
+	python3 strategyMatrix.py
