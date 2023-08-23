@@ -3,6 +3,5 @@
 # Terraform-applies
 .PHONY: generateMatrix
 generateMatrix:
-	pip3 install pipenv
-	pipenv install
-	pipenv run python strategyMatrix.py
+	pip3 install -r requirements.txt
+	python strategyMatrix.py
