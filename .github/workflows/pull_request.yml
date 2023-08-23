@@ -32,33 +32,27 @@ jobs:
   prepare_matrices:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrices.outputs.matrix }}
       # Linux and Windows matrices are not used at the moment. Leaving them here as an example as we'll need to deal
       # with separate matrices when building the SuSe packages.
-      linux_matrix: ${{ steps.set-matrix.outputs.linux_matrix }}
-      windows_matrix: ${{ steps.set-matrix.outputs.windows_matrix }}
+      linux_matrix: ${{ steps.set-matrices.outputs.linux_matrix }}
+      windows_matrix: ${{ steps.set-matrices.outputs.windows_matrix }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install dependencies
-        run: | 
-          cd versions
-          npm install
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-      - name: Compute matrix
-        id: set-matrix
+      - name: Compute matrices
+        id: set-matrices
         run: |
-          cd versions
-          # Compute whole matrix
-          matrix=$( node strategyMatrix.js )
+          make versions
           
-          # Compute matrix per OS type (leaving it for reference for when implementing SuSe)
-          linux_matrix=$( echo $matrix | jq 'map(select(.osDistro != "windows-server"))' -c )
-          windows_matrix=$( echo $matrix | jq 'map(select(.osDistro == "windows-server"))' -c )
-          
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "linux_matrix=$linux_matrix" >> "$GITHUB_OUTPUT"
-          echo "windows_matrix=$windows_matrix" >> "$GITHUB_OUTPUT"
+          echo "matrix=$( cat versions/strategyMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "linux_matrix=$( cat versions/linuxMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
 
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
