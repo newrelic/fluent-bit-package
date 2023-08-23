@@ -3,3 +3,4 @@
 versions/node_modules
 terraform/*/terraform.backend.tf
 aws_logs_*.txt
+versions/*.json
