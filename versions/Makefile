@@ -1,8 +1,7 @@
-.DEFAULT_GOAL := generateMatrix
+.DEFAULT_GOAL := generateMatrices
 
-# Terraform-applies
-.PHONY: generateMatrix
-generateMatrix:
+.PHONY: generateMatrices
+generateMatrices:
 	pip3 install -r requirements.txt
 	python3 strategyMatrix.py > strategyMatrix.json
 	cat strategyMatrix.json | jq 'map(select(.osDistro != "windows-server"))' -c > linuxMatrix.json
