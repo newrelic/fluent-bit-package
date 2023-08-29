@@ -32,11 +32,7 @@ jobs:
   prepare_matrices:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrices.outputs.matrix }}
-      # Linux and Windows matrices are not used at the moment. Leaving them here as an example as we'll need to deal
-      # with separate matrices when building the SuSe packages.
-      linux_matrix: ${{ steps.set-matrices.outputs.linux_matrix }}
-      windows_matrix: ${{ steps.set-matrices.outputs.windows_matrix }}
+      linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
     steps:
       - uses: actions/checkout@v2
 
@@ -50,9 +46,7 @@ jobs:
         run: |
           make versions
           
-          echo "matrix=$( cat versions/strategyMatrix.json )" >> "$GITHUB_OUTPUT"
-          echo "linux_matrix=$( cat versions/linuxMatrix.json )" >> "$GITHUB_OUTPUT"
-          echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
 
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
@@ -63,7 +57,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        include: ${{fromJson(needs.prepare_matrices.outputs.matrix)}}
+        include: ${{ fromJson(needs.prepare_matrices.outputs.linux_and_windows_matrix) }}
     name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
     steps:
       - name: Check out repository
@@ -130,9 +124,9 @@ jobs:
 
   # Re-creates the GH prerelease on each commit and pushes all Fluent Bit packages there
   prepare_prerelease:
+    if: github.event.action != 'closed'
     needs: [ download_official_packages ]
     runs-on: ubuntu-latest
-    if: github.event.action != 'closed'
 
     steps:
       - name: Checkout code

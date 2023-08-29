@@ -64,6 +64,7 @@ This script file takes care of computing the following attributes for each suppo
 """
 
 DEB_DISTROS = ['debian', 'ubuntu']
+RPM_DISTROS = ['amazonlinux', 'centos']
 WINDOWS_DISTRO = 'windows-server'
 
 def deb_package_details(pkg):
@@ -82,6 +83,14 @@ def rpm_package_details(pkg):
         'targetPackageName': f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm",
         'nrPackageUrl': 
 f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/{rpm_os_family_remap[pkg['osDistro']]}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm"
+    }
+
+def sles_package_details(pkg):
+    return {
+        # SLES packages are not officially available in Fluent Bit repos (we compile them ourselves), so no 'packageUrl' is available for them.
+        'targetPackageName': f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm",
+        'nrPackageUrl':
+            f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
     }
 
 def windows_package_details(data):
@@ -104,8 +113,10 @@ def add_package_details(package_data):
         package_details = windows_package_details(package_data)
     elif os_distro in DEB_DISTROS:
         package_details = deb_package_details(package_data)
-    else:
+    elif os_distro in RPM_DISTROS:
         package_details = rpm_package_details(package_data)
+    else:
+        package_details = sles_package_details(package_data)
 
     return {**package_data, **package_details}
 
