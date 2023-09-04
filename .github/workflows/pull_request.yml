@@ -107,6 +107,7 @@ jobs:
     secrets: inherit
 
   build_suse_packages:
+    needs: spin_up_suse
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
