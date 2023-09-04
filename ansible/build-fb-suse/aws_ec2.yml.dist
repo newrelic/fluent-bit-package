@@ -1,0 +1,26 @@
+# Configuration reference:
+# - https://docs.ansible.com/ansible/latest/collections/amazon/aws/docsite/aws_ec2_guide.html
+# - https://docs.ansible.com/ansible/latest/collections/amazon/aws/aws_ec2_inventory.html
+
+plugin: aws_ec2
+regions:
+    - us-east-2
+hostnames:
+    # This is how each host will be displayed when executing the Ansible playbook.
+    - tag:Name
+filters:
+    tag:pr_number: PR_NUMBER
+    tag:os_distro: sles
+    tag:name_suffix: fluentbit-builder
+groups:
+    suse_12: "tags.os_version.startswith('12')"
+    suse_15: "tags.os_version.startswith('15')"
+compose:
+    # This is how the Ansible SSM plugin will connect to each host. We cannot use the hostname (tag:Name) directly because
+    # it contains "." characters, which are not allowed by the SSM plugin.
+    ansible_host: instance_id
+    # Host variables that are strings (not variables) need to be wrapped with two sets of quotes.
+    # See https://docs.ansible.com/ansible/latest/plugins/inventory.html#using-inventory-plugins for details.
+    ansible_connection: '"community.aws.aws_ssm"'
+    ansible_aws_ssm_bucket_name: '"jsubirats-temp-ansible-removeme"'
+    ansible_aws_ssm_region: '"us-east-2"'

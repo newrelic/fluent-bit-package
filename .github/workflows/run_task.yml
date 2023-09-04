@@ -32,7 +32,7 @@ jobs:
           echo "GIT_BRANCH=$GIT_BRANCH" >> "$GITHUB_ENV"
 
       - name: Launch Fargate task
-        uses: jsubirat/fargate-runner-action@allow_passing_task_security_group
+        uses: newrelic/fargate-runner-action@main
         with:
           aws_region: us-east-2
           container_make_target: ${{ inputs.container_make_target }}

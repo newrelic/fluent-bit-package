@@ -107,13 +107,10 @@ jobs:
     secrets: inherit
 
   build_suse_packages:
-    needs: spin_up_suse
-    runs-on: ubuntu-latest
-
-    steps:
-      # This is where the real compilation will actually happen
-      - name: Checkout code
-        uses: actions/checkout@v3
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
 
   tear_down_suse:
     needs: build_suse_packages
