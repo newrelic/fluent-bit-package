@@ -123,7 +123,7 @@ jobs:
   # Re-creates the GH prerelease on each commit and pushes all Fluent Bit packages there
   prepare_prerelease:
     if: github.event.action != 'closed'
-    needs: [ download_official_packages ]
+    needs: [ download_official_packages, build_suse_packages ]
     runs-on: ubuntu-latest
 
     steps:
