@@ -2,8 +2,19 @@
   hosts: localhost
   vars:
     pr_number: PR_NUMBER
+    suse_packages_dir: /tmp/fluent-bit-suse-packages
   roles:
     - andrewrothstein.gh
   tasks:
+    - name: List packages to be uploaded
+      find:
+        paths: "{{ suse_packages_dir }}"
+        recurse: yes
+      register: directory_contents
+
+    - name: Display package list
+      debug:
+        var: directory_contents.files
+
     - name: Upload generated artifacts to release
-      command: "gh release upload tmp-pr-{{ pr_number }} /tmp/fluent-bit-suse-packages/*"
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ suse_packages_dir }}/*"
