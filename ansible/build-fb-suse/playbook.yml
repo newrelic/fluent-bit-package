@@ -119,4 +119,4 @@
       fetch:
         src: "{{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
         dest: "/tmp/fluent-bit-suse-packages/"
-        flat: yes
+        flat: true
