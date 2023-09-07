@@ -18,4 +18,4 @@
 
     - name: Upload generated artifacts to release
       command: "gh release upload --clobber tmp-pr-{{ pr_number }} {{ item.path }}/*"
-      with_items: "{{ directory_contents.files }}"
+      loop: "{{ directory_contents.files }}"
