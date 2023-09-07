@@ -37,7 +37,7 @@ jobs:
           aws_region: us-east-2
           container_make_target: ${{ inputs.container_make_target }}
           ecs_cluster_name: infra-agent-fb-e2e-testing
-          task_definition_name: infra-agent-fb-e2e-testing-td
+          task_definition_name: infra-agent-fb-e2e-testing
           cloud_watch_logs_group_name: infra-agent-fb-e2e-testing
           # The log stream name must follow the {cloudwatch_log_prefix}/{container_name}
           # that was used to create the ECS infrastructure. "ecs" is the default cloudwatch_log_prefix
