@@ -28,92 +28,92 @@
     - name: Wait for connection to be available
       wait_for_connection:
 
-#    - name: Install dependencies
-#      community.general.zypper:
-#        name: "{{ item }}"
-#        state: present
-#        oldpackage: true
-#        force_resolution: true
-#      loop:
-#        - git
-#        - flex
-#        - wget
-#        - libyaml-devel
-#        - libopenssl-devel
-#        - systemd-devel
-#        - gcc
-#        - gcc-c++
-#        - rpmbuild
-#        - "{{ cpp_with_version }}"
-#      become: true
-#      register: install_status
-#      until: install_status is success
-#      # Retry up to 2.5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
-#      delay: 15
-#      retries: 10
-#
-#    - name: Download and extract Bison {{ bison_version }}
-#      unarchive:
-#        src: http://ftp.gnu.org/gnu/bison/bison-{{ bison_version }}.tar.gz
-#        dest: "{{ home_path }}"
-#        remote_src: yes
-#        creates: "{{ bison_path }}"
-#
-#    - name: Configure Bison {{ bison_version }}
-#      command:
-#        cmd: ./configure
-#        chdir: "{{ bison_path }}"
-#        creates: "{{ bison_path }}/Makefile"
-#
-#    - name: Build Bison {{ bison_version }}
-#      make:
-#        chdir: "{{ bison_path }}"
-#
-#    - name: Install Bison {{ bison_version }}
-#      make:
-#        chdir: "{{ bison_path }}"
-#        target: install
-#      become: true
-#
-#    - name: Create symbolic link for Bison {{ bison_version }} in /usr/bin
-#      file:
-#        src: /usr/local/bin/bison
-#        dest: /usr/bin/bison
-#        state: link
-#      become: true
-#
-#    - name: Download and extract Cmake {{ cmake_version }}
-#      unarchive:
-#        src: "https://github.com/Kitware/CMake/releases/download/v{{ cmake_version }}/cmake-{{ cmake_version }}-linux-x86_64.tar.gz"
-#        dest: "{{ home_path }}"
-#        remote_src: yes
-#        creates: "{{ cmake_path }}"
-#
-#    - name: Checkout Fluent Bit {{ fluent_bit_version }}
-#      git:
-#        repo: 'https://github.com/fluent/fluent-bit.git'
-#        dest: "{{ fluent_bit_path }}"
-#        version: "v{{ fluent_bit_version }}"
-#
-#    - name: Configure Fluent Bit {{ fluent_bit_version }}
-#      command:
-#        cmd: "{{ cmake_path }}/bin/cmake -DCMAKE_INSTALL_PREFIX=/opt/fluent-bit/ -DCMAKE_INSTALL_SYSCONFDIR=/etc/ .."
-#        chdir: "{{ fluent_bit_path }}/build"
-#        creates: "{{ fluent_bit_path }}/Makefile"
-#
-#    - name: Build Fluent Bit {{ fluent_bit_version }}
-#      make:
-#        chdir: "{{ fluent_bit_path }}/build"
-#
-#    - name: Create SUSE RPM package for Fluent Bit {{ fluent_bit_version }}
-#      command:
-#        cmd: "{{ cmake_path }}/bin/cpack -G RPM"
-#        chdir: "{{ fluent_bit_path }}/build"
-#        creates: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
-#
-#    - name: Rename binary for the specific OS type, version and arch
-#      # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
-#      command: "cp {{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
+    - name: Install dependencies
+      community.general.zypper:
+        name: "{{ item }}"
+        state: present
+        oldpackage: true
+        force_resolution: true
+      loop:
+        - git
+        - flex
+        - wget
+        - libyaml-devel
+        - libopenssl-devel
+        - systemd-devel
+        - gcc
+        - gcc-c++
+        - rpmbuild
+        - "{{ cpp_with_version }}"
+      become: true
+      register: install_status
+      until: install_status is success
+      # Retry up to 2.5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
+      delay: 15
+      retries: 10
+
+    - name: Download and extract Bison {{ bison_version }}
+      unarchive:
+        src: http://ftp.gnu.org/gnu/bison/bison-{{ bison_version }}.tar.gz
+        dest: "{{ home_path }}"
+        remote_src: yes
+        creates: "{{ bison_path }}"
+
+    - name: Configure Bison {{ bison_version }}
+      command:
+        cmd: ./configure
+        chdir: "{{ bison_path }}"
+        creates: "{{ bison_path }}/Makefile"
+
+    - name: Build Bison {{ bison_version }}
+      make:
+        chdir: "{{ bison_path }}"
+
+    - name: Install Bison {{ bison_version }}
+      make:
+        chdir: "{{ bison_path }}"
+        target: install
+      become: true
+
+    - name: Create symbolic link for Bison {{ bison_version }} in /usr/bin
+      file:
+        src: /usr/local/bin/bison
+        dest: /usr/bin/bison
+        state: link
+      become: true
+
+    - name: Download and extract Cmake {{ cmake_version }}
+      unarchive:
+        src: "https://github.com/Kitware/CMake/releases/download/v{{ cmake_version }}/cmake-{{ cmake_version }}-linux-x86_64.tar.gz"
+        dest: "{{ home_path }}"
+        remote_src: yes
+        creates: "{{ cmake_path }}"
+
+    - name: Checkout Fluent Bit {{ fluent_bit_version }}
+      git:
+        repo: 'https://github.com/fluent/fluent-bit.git'
+        dest: "{{ fluent_bit_path }}"
+        version: "v{{ fluent_bit_version }}"
+
+    - name: Configure Fluent Bit {{ fluent_bit_version }}
+      command:
+        cmd: "{{ cmake_path }}/bin/cmake -DCMAKE_INSTALL_PREFIX=/opt/fluent-bit/ -DCMAKE_INSTALL_SYSCONFDIR=/etc/ .."
+        chdir: "{{ fluent_bit_path }}/build"
+        creates: "{{ fluent_bit_path }}/Makefile"
+
+    - name: Build Fluent Bit {{ fluent_bit_version }}
+      make:
+        chdir: "{{ fluent_bit_path }}/build"
+
+    - name: Create SUSE RPM package for Fluent Bit {{ fluent_bit_version }}
+      command:
+        cmd: "{{ cmake_path }}/bin/cpack -G RPM"
+        chdir: "{{ fluent_bit_path }}/build"
+        creates: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
+
+    - name: Rename binary for the specific OS type, version and arch
+      # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
+      command: "cp {{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
 
     - name: Download generated Fluent Bit RPM package
       fetch:
