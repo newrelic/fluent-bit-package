@@ -46,6 +46,11 @@
         - rpmbuild
         - "{{ cpp_with_version }}"
       become: true
+      register: install_status
+      until: install_status is success
+      # Retry up to 2.5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
+      delay: 15
+      retries: 10
 
     - name: Download and extract Bison {{ bison_version }}
       unarchive:
@@ -106,8 +111,12 @@
         chdir: "{{ fluent_bit_path }}/build"
         creates: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
 
+    - name: Rename binary for the specific OS type, version and arch
+      # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
+      command: "cp {{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
+
     - name: Download generated Fluent Bit RPM package
       fetch:
-        src: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
-        dest: "/tmp/fluent-bit-suse-packages/{{ fluent_bit_package_name }}"
+        src: "{{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
+        dest: "/tmp/fluent-bit-suse-packages/"
         flat: yes
