@@ -18,7 +18,8 @@ $(addsuffix -clean,$(TARGETS)):
 	$(MAKE) -C $(patsubst %-clean,%,$@) clean
 
 local:
-	docker run -it --platform=linux/amd64 -v $(shell pwd)/tools/local_testing_entrypoint.sh:/entrypoint.sh \
+	docker run -it --platform=linux/amd64 \
+        -v $(shell pwd)/tools/local_testing_entrypoint.sh:/entrypoint.sh \
 		-v $(shell pwd):/srv/fluent-bit-package \
 		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \

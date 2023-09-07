@@ -19,7 +19,7 @@ terraform/backend: checks
 	@if [ ! -d "./${TERRAFORM_PROJECT}" ]; then \
   		echo "Terraform project ${TERRAFORM_PROJECT} does not exist"; \
 	fi
-	@echo "Creating Terraform state file in ./${TERRAFORM_PROJECT}/terraform.backend.tf from template in ./${TERRAFORM_PROJECT}/terraform.backend.tf.dist"
+	@echo "Creating Terraform backend file in ./${TERRAFORM_PROJECT}/terraform.backend.tf from template in ./${TERRAFORM_PROJECT}/terraform.backend.tf.dist"
 	@sed "s/PR_NUMBER/${PR_NUMBER}/g" "./${TERRAFORM_PROJECT}/terraform.backend.tf.dist" > "./${TERRAFORM_PROJECT}/terraform.backend.tf"
 
 # Exports environment variables that are accessed by the launched Terraform project
