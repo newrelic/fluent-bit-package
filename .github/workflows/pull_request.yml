@@ -100,14 +100,14 @@ jobs:
           name: ${{ matrix.targetPackageName }}
           path: packages/${{ matrix.targetPackageName }}
 
-  spin_up_suse:
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
-    secrets: inherit
+#  spin_up_suse:
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+#    secrets: inherit
 
   build_suse_packages:
-    needs: spin_up_suse
+    # needs: spin_up_suse
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
