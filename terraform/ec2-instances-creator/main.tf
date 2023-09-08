@@ -37,7 +37,7 @@ EOF
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
 
-  for_each = { for pkg in local.instance_matrix : "pr-${var.pr_number}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.name_suffix}" => pkg }
+  for_each = { for pkg in local.instance_matrix : "pr-${var.pr_number}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
 
   name = each.key
 
