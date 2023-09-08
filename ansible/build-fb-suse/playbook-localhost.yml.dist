@@ -13,5 +13,5 @@
       register: directory_contents
 
     - name: Upload generated artifacts to release
-      command: "gh release upload --clobber tmp-pr-{{ pr_number }} {{ item.path }}"
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ item.path }}"
       loop: "{{ directory_contents.files }}"
