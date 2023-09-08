@@ -164,7 +164,7 @@ jobs:
       - name: Fetch package from GitHub pre-release
         run: |
           mkdir -p packages
-          gh release download tag --pattern ${{ matrix.targetPackageName }} --dir packages
+          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
 
       - name: Sign package
         run: |

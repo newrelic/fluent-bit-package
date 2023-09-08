@@ -50,6 +50,9 @@ module "ec2_instance" {
 
   user_data = each.value.osDistro == "windows-server" ? local.windows_data_boot_script_for_ssm : local.linux_user_data_boot_script_for_ssm
 
+  # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
+  # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the
+  # Ansible playbooks as variables.
   tags = merge(local.default_tags, {
     pr_number = var.pr_number
     os_distro = each.value.osDistro
