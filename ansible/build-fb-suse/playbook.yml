@@ -106,6 +106,8 @@
         chdir: "{{ fluent_bit_path }}/build"
       # Sometimes, SSM may experience timeouts due to how long this command takes. Retrying will proceed with the compilation
       # more or less where it left off, thanks to how "make" operates, so next attempts are more prone to succeed without timeout.
+      register: compilation_status
+      until: compilation_status is success
       delay: 15
       retries: 5
 
