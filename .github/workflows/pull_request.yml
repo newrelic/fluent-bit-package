@@ -149,7 +149,7 @@ jobs:
     secrets: inherit
 
   sign_suse_packages:
-    needs: build_suse_packages
+    needs: [setup_environment, build_suse_packages]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
