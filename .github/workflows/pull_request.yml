@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
+      sles_matrix: ${{ steps.set_vars.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
     steps:
       - name: Checkout code
@@ -57,6 +58,7 @@ jobs:
         run: |
           make versions
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
 
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
@@ -149,12 +151,29 @@ jobs:
   sign_suse_packages:
     needs: build_suse_packages
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
+    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
 
     steps:
-      - name: Sign STUB
-        run:
-          echo "TODO"
+      - name: Check out repository
+        uses: actions/checkout@v3
 
+      - name: Fetch package from GitHub pre-release
+        run:
+          mkdir -p packages
+          gh release download tag --pattern ${{ matrix.targetPackageName }} --dir packages
+
+      - name: Sign package
+        run: |
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Upload signed asset
+        run:
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
