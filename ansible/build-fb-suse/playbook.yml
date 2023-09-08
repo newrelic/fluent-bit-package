@@ -119,7 +119,10 @@
 
     - name: Rename binary for the specific OS type, version and arch
       # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
-      command: "cp {{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
+      command:
+        cmd: "cp fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_package_name }}"
+        chdir: "{{ fluent_bit_path }}/build"
+        creates: "{{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
 
     - name: Download generated Fluent Bit RPM package
       fetch:
