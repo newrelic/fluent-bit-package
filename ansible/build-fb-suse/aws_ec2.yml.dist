@@ -12,7 +12,7 @@ hostnames:
 filters:
     tag:pr_number: PR_NUMBER
     tag:os_distro: sles
-    tag:name_suffix: fluentbit-builder
+    tag:instance_type: fluentbit-builder
 groups:
     suse_12: "tags.os_version.startswith('12')"
     suse_15: "tags.os_version.startswith('15')"

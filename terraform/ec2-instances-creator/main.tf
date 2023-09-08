@@ -59,6 +59,6 @@ module "ec2_instance" {
     os_version = each.value.osVersion
     arch = each.value.arch
     fb_version = each.value.fbVersion
-    name_suffix = var.name_suffix
+    instance_type = var.instance_type
   })
 }
