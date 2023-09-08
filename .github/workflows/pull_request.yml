@@ -173,7 +173,7 @@ jobs:
 
       - name: Upload signed asset
         run:
-          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
