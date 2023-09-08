@@ -104,6 +104,10 @@
     - name: Build Fluent Bit {{ fluent_bit_version }}
       make:
         chdir: "{{ fluent_bit_path }}/build"
+      # Sometimes, SSM may experience timeouts due to how long this command takes. Retrying will proceed with the compilation
+      # more or less where it left off, thanks to how "make" operates, so next attempts are more prone to succeed without timeout.
+      delay: 15
+      retries: 5
 
     - name: Create SUSE RPM package for Fluent Bit {{ fluent_bit_version }}
       command:
