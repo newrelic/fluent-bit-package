@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
-      sles_matrix: ${{ steps.set_vars.outputs.sles_matrix }}
+      sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
     steps:
       - name: Checkout code
