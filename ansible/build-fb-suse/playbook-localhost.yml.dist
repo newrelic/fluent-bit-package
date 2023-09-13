@@ -1,0 +1,17 @@
+- name: Publish SUSE packages to GH pre-release
+  hosts: localhost
+  vars:
+    pr_number: PR_NUMBER
+    suse_packages_dir: /tmp/fluent-bit-suse-packages
+  roles:
+    - andrewrothstein.gh
+  tasks:
+    - name: List packages to be uploaded
+      find:
+        paths: "{{ suse_packages_dir }}"
+        recurse: yes
+      register: directory_contents
+
+    - name: Upload generated artifacts to release
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ item.path }}"
+      loop: "{{ directory_contents.files }}"

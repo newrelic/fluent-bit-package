@@ -8,4 +8,5 @@ module "suse-fb-builder-instances" {
 
   instance_matrix_file = local.suse_matrix_path
   pr_number = var.pr_number
+  instance_type = "fluentbit-builder"
 }

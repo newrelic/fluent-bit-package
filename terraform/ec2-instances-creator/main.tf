@@ -2,7 +2,6 @@ locals {
   # Available fields in each element:
   #  {
   #    "fbVersion": "2.0.7",
-  #    "ec2User": "centos",
   #    "osDistro": "centos",
   #    "osVersion": 9,
   #    "arch": "x86_64",
@@ -38,7 +37,7 @@ EOF
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
 
-  for_each = { for pkg in local.instance_matrix : "pr-${var.pr_number}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-builder" => pkg }
+  for_each = { for pkg in local.instance_matrix : "pr-${var.pr_number}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
 
   name = each.key
 
@@ -51,5 +50,24 @@ module "ec2_instance" {
 
   user_data = each.value.osDistro == "windows-server" ? local.windows_data_boot_script_for_ssm : local.linux_user_data_boot_script_for_ssm
 
-  tags = local.default_tags
+  # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
+  # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the
+  # Ansible playbooks as variables.
+  tags = merge(local.default_tags, {
+    pr_number = var.pr_number
+    os_distro = each.value.osDistro
+    os_version = each.value.osVersion
+    arch = each.value.arch
+    fb_version = each.value.fbVersion
+    instance_type = var.instance_type
+  })
+
+  volume_tags = merge(local.default_tags, {
+    pr_number = var.pr_number
+    os_distro = each.value.osDistro
+    os_version = each.value.osVersion
+    arch = each.value.arch
+    fb_version = each.value.fbVersion
+    instance_type = var.instance_type
+  })
 }
