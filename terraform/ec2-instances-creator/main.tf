@@ -61,4 +61,13 @@ module "ec2_instance" {
     fb_version = each.value.fbVersion
     instance_type = var.instance_type
   })
+
+  volume_tags = merge(local.default_tags, {
+    pr_number = var.pr_number
+    os_distro = each.value.osDistro
+    os_version = each.value.osVersion
+    arch = each.value.arch
+    fb_version = each.value.fbVersion
+    instance_type = var.instance_type
+  })
 }

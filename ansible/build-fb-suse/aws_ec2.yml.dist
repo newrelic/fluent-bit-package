@@ -10,6 +10,11 @@ hostnames:
     # This is how each host will be displayed when executing the Ansible playbook.
     - tag:Name
 filters:
+    # Mandatory tags
+    tag:product: logging
+    tag:owning_team: logging
+    tag:project: fluent-bit-packaging-and-testing
+    # Select instances to run this playbook on
     tag:pr_number: PR_NUMBER
     tag:os_distro: sles
     tag:instance_type: fluentbit-builder
