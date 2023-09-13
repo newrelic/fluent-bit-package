@@ -15,12 +15,10 @@ the following values:
 
     ---common.yml
     fbVersion: 2.0.8
-    ec2User: ec2-user
 
     ---centos_9.yml
     osDistro: centos
     osVersion: 9
-    ec2User: centos      // Overrides value from "common.yml
     fbVersion: 2.0.7     // Overrides value from "common.yml"
     packages:
       - arch: x86_64
@@ -33,7 +31,6 @@ This results in the following JSON objects in the resulting strategy matrix (rep
 
 {
     "fbVersion": "2.0.7",
-    "ec2User": "centos",
     "osDistro": "centos",
     "osVersion": 9,
     "arch": "x86_64",
@@ -44,7 +41,6 @@ This results in the following JSON objects in the resulting strategy matrix (rep
   },
   {
     "fbVersion": "2.0.6",
-    "ec2User": "centos",
     "osDistro": "centos",
     "osVersion": 9,
     "arch": "aarch64",

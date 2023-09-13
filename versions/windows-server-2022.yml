@@ -1,6 +1,5 @@
 osDistro: windows-server
 osVersion: 2022
-ec2User: Administrator
 packages:
   - arch: win64
     ami: ami-0c2b0d3fb02824d92
