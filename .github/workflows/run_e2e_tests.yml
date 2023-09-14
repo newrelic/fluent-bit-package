@@ -35,13 +35,15 @@ on:
 concurrency: e2e-workflow-${{ inputs.gh_release_name }}
 
 jobs:
-  spin_up_test_runner_instances:
+  spin_up_test_executor_instances:
+    name: Spin up test executor instances
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
 
-  tear_down_test_runner_instances:
+  tear_down_test_executor_instances:
+    name: Tear down test executor instances
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
