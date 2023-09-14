@@ -2,7 +2,6 @@ locals {
   suse_matrix_path = "../../versions/slesMatrix.json"
 }
 
-
 module "suse-fb-builder-instances" {
   source = "../ec2-instances-creator"
 

@@ -35,6 +35,18 @@ on:
 concurrency: e2e-workflow-${{ inputs.gh_release_name }}
 
 jobs:
+#  spin_up_test_runner_instances:
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
+#    secrets: inherit
+#
+#  tear_down_test_runner_instances:
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
+#    secrets: inherit
+
   e2e_tests:
     runs-on: ubuntu-latest
 
@@ -42,4 +54,4 @@ jobs:
       - name: Run E2E tests
         run: |
           # TODO
-          echo "TODO: Stubbed step. gh_release_name: ${{ inputs.gh_release_name }}, infra_agent_version: ${{ inputs.infra_agent_version }}"
+          echo "TODO: Stubbed step. gh_release_name: ${{ inputs.gh_release_name }}, infra_agent_version: ${{ inputs.infra_agent_version }}, PR_NUMBER=${{ github.event.pull_request.number }}"
