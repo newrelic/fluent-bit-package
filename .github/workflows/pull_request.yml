@@ -64,8 +64,6 @@ jobs:
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
   # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
   download_official_packages:
-    # TODO Re-enable
-    if: false
     needs: [setup_environment]
     runs-on: ubuntu-latest
     strategy:
@@ -115,8 +113,6 @@ jobs:
           path: packages/${{ matrix.targetPackageName }}
 
   upload_official_packages_to_prerelease:
-    # TODO Re-enable
-    if: false
     needs: [ download_official_packages ]
     runs-on: ubuntu-latest
 
@@ -132,8 +128,6 @@ jobs:
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
   spin_up_suse:
-    # TODO Re-enable
-    if: false
     needs: setup_environment
     uses: ./.github/workflows/run_task.yml
     with:
@@ -141,8 +135,6 @@ jobs:
     secrets: inherit
 
   build_suse_packages:
-    # TODO Re-enable
-    if: false
     needs: spin_up_suse
     uses: ./.github/workflows/run_task.yml
     with:
@@ -150,8 +142,6 @@ jobs:
     secrets: inherit
 
   tear_down_suse:
-    # TODO Re-enable
-    if: false
     needs: build_suse_packages
     uses: ./.github/workflows/run_task.yml
     with:
@@ -159,8 +149,6 @@ jobs:
     secrets: inherit
 
   sign_suse_packages:
-    # TODO Re-enable
-    if: false
     needs: [setup_environment, build_suse_packages]
     runs-on: ubuntu-latest
     strategy:
@@ -189,9 +177,7 @@ jobs:
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
-    # TODO Re-enable
-    needs: [ setup_environment ]
-    # needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease]
+    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease]
     name: Run E2E tests
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
