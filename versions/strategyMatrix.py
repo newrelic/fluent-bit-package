@@ -75,7 +75,7 @@ def rpm_package_details(pkg):
     rpm_target_arch_remap = {'aarch64': 'arm64', 'x86_64': 'x86_64'}
     rpm_os_family_remap = {'amazonlinux': 'amazonlinux', 'centos': 'el'}
     return {
-        'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
+        'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
         'targetPackageName': f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm",
         'nrPackageUrl': 
 f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/{rpm_os_family_remap[pkg['osDistro']]}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm"
