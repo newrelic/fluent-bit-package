@@ -1,6 +1,5 @@
 osDistro: debian
 osVersion: bookworm
-ec2User: admin
 packages:
   - arch: amd64
     ami: ami-08ca7cb88210133e5

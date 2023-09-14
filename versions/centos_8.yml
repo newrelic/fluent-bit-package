@@ -1,6 +1,5 @@
 osDistro: centos
 osVersion: 8
-ec2User: centos
 packages:
   - arch: x86_64
     ami: ami-0c07df890a618c98a

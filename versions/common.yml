@@ -1,5 +1,4 @@
 fbVersion: 2.0.8
-ec2User: ec2-user
 
 #  This file, together with each distro file are processed and merged incrementally to
 #  build all the information required to download and test each package. Each package ends
@@ -7,7 +6,6 @@ ec2User: ec2-user
 #
 #  {
 #    "fbVersion": "2.0.8",
-#    "ec2User": "admin",
 #    "osDistro": "debian",
 #    "osVersion": "bookworm",
 #    "arch": "amd64",
