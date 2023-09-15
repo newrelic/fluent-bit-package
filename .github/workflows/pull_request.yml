@@ -178,7 +178,9 @@ jobs:
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
     needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease]
+    name: Run E2E tests
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
+    secrets: inherit

@@ -2,6 +2,6 @@ osDistro: amazonlinux
 osVersion: 2
 packages:
   - arch: x86_64
-    ami: ami-0dfcb1ef8550277af
+    ami: ami-05e1405c57ab23683
   - arch: aarch64
-    ami: ami-0cd7323ab3e63805f
+    ami: ami-08d8cbe09f0a01184

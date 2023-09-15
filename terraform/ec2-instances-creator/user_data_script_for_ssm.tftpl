@@ -1,0 +1,15 @@
+#!/bin/bash
+
+%{if os_distro == "centos"}
+sudo %{if os_version == 7}yum%{else}dnf%{endif} install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_%{if arch == "x86_64"}amd64%{else}arm64%{endif}/amazon-ssm-agent.rpm
+%{endif}
+
+%{if os_distro == "debian"}
+mkdir -p /tmp/ssm
+cd /tmp/ssm
+wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_${arch}/amazon-ssm-agent.deb
+sudo dpkg -i amazon-ssm-agent.deb
+%{endif}
+
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent

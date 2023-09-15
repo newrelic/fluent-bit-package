@@ -1,0 +1,11 @@
+#########################################
+# State Backend
+#########################################
+terraform {
+  backend "s3" {
+    encrypt = true
+    bucket  = "logging-e2e-testing-tf"
+    key     = "test-executors-pr-PR_NUMBER"
+    region  = "us-east-2"
+  }
+}

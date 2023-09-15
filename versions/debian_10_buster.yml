@@ -2,6 +2,6 @@ osDistro: debian
 osVersion: buster
 packages:
   - arch: amd64
-    ami: ami-07d02ee1eeb0c996c
+    ami: ami-05bf29fabdee3e5d2
   - arch: arm64
-    ami: ami-08b2293fdd2deba2a
+    ami: ami-03e6e856fa72db174
