@@ -1,12 +1,12 @@
 {
-  "name": "fluent-bit-test-suite",
+  "name": "test-suite",
   "version": "1.0.0",
   "description": "Validates fluent bit end-to-end with several configurations",
   "scripts": {
     "test": "jest --verbose fluent-bit-tests.test.js"
   },
   "author": "logging-team@newrelic.com",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "devDependencies": {
     "axios": "^1.3.2",
     "axios-retry": "^3.4.0",

@@ -1,5 +1,5 @@
 {
-  "name": "test-version",
+  "name": "controller-scripts",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -7,7 +7,7 @@
     "html:report": "for dir in $(ls reports);do junit2html ./reports/$dir/report.xml --out ./reports/$dir/report.html;done"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.89.0",
     "@aws-sdk/client-lambda": "^3.87.0",
