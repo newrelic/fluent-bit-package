@@ -1,0 +1,30 @@
+{
+  "name": "controller-scripts",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "node index.js",
+    "html:report": "for dir in $(ls reports);do junit2html ./reports/$dir/report.xml --out ./reports/$dir/report.html;done"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@aws-sdk/client-ec2": "^3.89.0",
+    "@aws-sdk/client-lambda": "^3.87.0",
+    "@aws-sdk/credential-providers": "^3.87.0",
+    "aws-sdk": "^2.1133.0",
+    "cli-progress": "^3.11.0",
+    "cli-select": "^1.1.2",
+    "dayjs": "^1.11.2",
+    "envsub": "^4.1.0",
+    "node-ssh": "^13.0.1",
+    "prompts": "^2.4.2",
+    "winston": "^3.7.2",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@naturalcycles/junit-lib": "^1.2.0",
+    "@types/ssh2": "^1.11.7",
+    "junit-report-merger": "^6.0.2"
+  }
+}
