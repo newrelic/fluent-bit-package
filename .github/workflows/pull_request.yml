@@ -47,7 +47,7 @@ jobs:
 
           echo "Creating pre-release: $pre_release_tag"
           # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
-          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes" --draft false
+          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
 
       - name: Install python
         uses: actions/setup-python@v4
