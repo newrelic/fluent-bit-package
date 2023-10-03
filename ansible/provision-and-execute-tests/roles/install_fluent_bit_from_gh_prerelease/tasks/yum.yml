@@ -1,0 +1,7 @@
+- name: Install Fluent Bit package
+  ansible.builtin.yum:
+    name: "{{ fb_package_url }}"
+    # We want our package to overwrite the one that comes with the Infra Agent, even if it implies downgrading it
+    allow_downgrade: true
+    state: present
+  become: true

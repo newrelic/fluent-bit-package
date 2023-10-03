@@ -1,0 +1,1 @@
+fb_package_url: "https://github.com/newrelic/fluent-bit-package/releases/download/{{ gh_prerelease_tag }}/{{ fb_package_name }}"

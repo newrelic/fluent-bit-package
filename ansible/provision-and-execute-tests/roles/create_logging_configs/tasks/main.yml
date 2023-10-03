@@ -1,0 +1,7 @@
+- name: Configure YML files in logging.d folder (Linux)
+  include_tasks: linux.yml
+  when: ansible_system == 'Linux'
+
+- name: Configure YML files in logging.d folder (Windows)
+  include_tasks: windows.yml
+  when: ansible_system != 'Linux'

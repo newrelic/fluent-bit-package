@@ -1,0 +1,15 @@
+---
+- name: Check mandatory variables
+  assert:
+    that:
+      - gh_prerelease_tag is defined
+      - fb_package_name is defined
+
+- name: Install (replace) Fluent Bit package
+  include_tasks: "{{ ansible_pkg_mgr }}.yml"
+
+- name: Restart newrelic-infra service to pick up new Fluent Bit binary
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: restarted
+  become: true

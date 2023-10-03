@@ -1,0 +1,6 @@
+# SUSE 12 contains Python 2.7 and 3.4. Ansible requires a minimum of Python 2.7 or 3.5 to work.
+# Due to this issue (https://github.com/ansible/ansible/issues/77840#issuecomment-1252321964),
+# it tries Python 3 only, and when gathering the facts from the remote SUSE server it
+# discovers it is running a too old Python 3 (3.4 < 3.5) version. We need to instruct it to
+# explicitly use Python 2.7 for it to work.
+ansible_python_interpreter: /usr/bin/python

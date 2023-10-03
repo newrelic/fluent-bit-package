@@ -46,7 +46,8 @@ jobs:
           pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
 
           echo "Creating pre-release: $pre_release_tag"
-          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
+          # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
+          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes --draft false
 
       - name: Install python
         uses: actions/setup-python@v4
