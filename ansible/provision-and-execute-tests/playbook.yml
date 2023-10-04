@@ -109,6 +109,7 @@
       vars:
         fb_package_name: "{{ fluent_bit_package_name }}"
         gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
+      when: pr_number is not regex('^local-.*')
 
     - name: Install NVM
       win_chocolatey:
