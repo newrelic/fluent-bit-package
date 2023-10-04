@@ -1,0 +1,25 @@
+- name: Check mandatory variables
+  assert:
+    that:
+      - monitored_file is defined
+      - monitored_syslog_rfc_5424_tcp_port is defined
+      - monitored_syslog_rfc_5424_udp_port is defined
+      - monitored_tcp_port is defined
+      - monitored_systemd_unit is defined
+
+- name: Create configuration directory
+  ansible.builtin.file:
+    path: "{{ logging_d_config_path }}"
+    state: directory
+  become: true
+
+- name: Configure log forwarding from {{ item }}
+  template:
+    src: "{{ item }}.yml.j2"
+    dest: "{{ logging_d_config_path }}/{{ item }}.yml"
+  become: true
+  loop:
+    - file
+    - syslog
+    - systemd
+    - tcp

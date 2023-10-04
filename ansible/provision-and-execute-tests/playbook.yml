@@ -1,0 +1,59 @@
+
+- name: Provision test executor instances and execute tests
+  hosts: linux
+  vars:
+    node_version: 16.3.0
+
+    # The following information is populated using the gathered inventory variables
+    fluent_bit_package_name: "{{ tags.fb_package_name }}"
+    pr_number: "{{ tags.pr_number }}"
+  environment:
+    NEW_RELIC_API_KEY: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    NEW_RELIC_REGION: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+  tasks:
+    - name: Install Infrastructure Agent
+      ansible.builtin.include_role:
+        name: newrelic.newrelic_install
+        # Despite being the default, I want to emphasize that we do NOT want the role variables to be
+        # exposed to the play. Otherwise, the "tags" variable specified below would overwrite the AWS "tags"
+        # variable object (that comes from the inventory), which would cause that the `fluent_bit_package_name`
+        # (or any variable depending on the AWS tags) would not be resolvable. Note that this option is only
+        # available in "include_role", and not in "import_role".
+        public: false
+      vars:
+        targets:
+          - infrastructure
+        tags:
+          product: logging
+          owning_team: logging
+          project: fluent-bit-packaging-and-testing
+
+    - name: Configure log forwarding
+      ansible.builtin.include_role:
+        name: create_logging_configs
+      vars:
+        monitored_file: /path/to/file.log
+        monitored_syslog_rfc_5424_tcp_port: 1234
+        monitored_syslog_rfc_5424_udp_port: 5678
+        monitored_tcp_port: 9012
+        monitored_systemd_unit: logtar
+
+    - name: Install Fluent Bit package to be tested for this distro
+      ansible.builtin.include_role:
+        name: install_fluent_bit_from_gh_prerelease
+      vars:
+        fb_package_name: "{{ fluent_bit_package_name }}"
+        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
+      when: pr_number is not regex('^local-.*')
+
+    - name: Set up Node and run tests
+      ansible.builtin.include_role:
+        role: morgangraphics.ansible_role_nvm
+      vars:
+        nodejs_version: "{{ node_version }}"
+        # CentOS comes without "wget", so using "curl" instead
+        nvm_install: "curl"
+        nvm_commands:
+          - "npm -v"
+          - "node -v"

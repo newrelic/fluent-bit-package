@@ -6,6 +6,7 @@ locals {
   #    "osVersion": 9,
   #    "arch": "x86_64",
   #    "ami": "ami-08c92aec9ccf0e1e9",
+  #    "targetPackageName": "fluent-bit-2.0.7-1.centos-9.x86_64.rpm",
   #    ...
   #  }
   instance_matrix = jsondecode(file(var.instance_matrix_file))
@@ -58,6 +59,7 @@ module "ec2_instance" {
     arch = each.value.arch
     fb_version = each.value.fbVersion
     instance_type = var.instance_type
+    fb_package_name = each.value.targetPackageName
   })
 
   volume_tags = merge(local.default_tags, {
@@ -67,5 +69,6 @@ module "ec2_instance" {
     arch = each.value.arch
     fb_version = each.value.fbVersion
     instance_type = var.instance_type
+    fb_package_name = each.value.targetPackageName
   })
 }

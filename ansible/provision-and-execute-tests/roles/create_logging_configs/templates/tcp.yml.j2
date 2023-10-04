@@ -1,0 +1,7 @@
+logs:
+  - name: tcp-test
+      tcp:
+        uri: tcp://0.0.0.0:{{ monitored_tcp_port }}
+        format: none
+        separator: \n
+      max_line_kb: 32

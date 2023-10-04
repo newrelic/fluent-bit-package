@@ -25,6 +25,9 @@ local:
 		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		-e AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} \
 		-e AWS_DEFAULT_REGION=us-east-2 \
+		-e NEW_RELIC_API_KEY=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_API_KEY) \
+		-e NEW_RELIC_ACCOUNT_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_ACCOUNT_ID) \
+		-e NEW_RELIC_REGION=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_REGION) \
 		ghcr.io/newrelic/fargate-runner-action:latest \
 		$(target) PR_NUMBER=local-$(USER)
 

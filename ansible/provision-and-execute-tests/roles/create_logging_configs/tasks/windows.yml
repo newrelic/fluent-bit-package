@@ -1,0 +1,25 @@
+- name: Check mandatory variables
+  assert:
+    that:
+      - monitored_file is defined
+      - monitored_tcp_port is defined
+      - monitored_windows_log_name_using_winlog is defined
+      - monitored_windows_log_name_using_winevtlog is defined
+
+# TODO The following is still a draft and needs to be tested
+
+- name: Create configuration directory
+  ansible.windows.win_file:
+    path: "{{ logging_d_config_path }}"
+    state: directory
+
+- name: Configure log forwarding from {{ item }}
+  win_template:
+    src: "{{ item }}.yml.j2"
+    dest: "{{ logging_d_config_path }}/{{ item }}.yml"
+  become: true
+  loop:
+    - file
+    - tcp
+    - winlog
+    - winevtlog
