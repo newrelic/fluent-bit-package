@@ -25,6 +25,9 @@
     arch: "{{ tags.arch }}"
     fluent_bit_package_name: "fluent-bit-{{ fluent_bit_version }}-1.{{ os_distro }}{{ os_version }}.{{ arch }}.rpm"
   tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
     - name: Install dependencies
       community.general.zypper:
         name: "{{ item }}"

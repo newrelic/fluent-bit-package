@@ -1,1 +1,1 @@
-logging_d_config_path: "{{ '/etc/newrelic-infra/logging.d' if ansible_system == 'Linux' else 'TODO' }}"
+logging_d_config_path: '{{ "/etc/newrelic-infra/logging.d" if ansible_system == "Linux" else "C:\\Program Files\\New Relic\\newrelic-infra\\logging.d\\" }}'

@@ -1,0 +1,13 @@
+- name: Download package from URL
+  win_get_url:
+    url: "{{ fb_package_url }}"
+    dest: C:\Windows\Temp
+
+- name: Unzip the Fluent Bit package
+  community.windows.win_unzip:
+    src: 'C:\Windows\Temp\{{ fb_package_name }}'
+    dest: '{{ fb_windows_binary_path }}'
+
+- name: Modify Infrastructure Agent config to point to installed Fluent Bit executable
+  debug:
+    msg: "IMPLEMENT ME {{ fb_windows_binary_path }}!"
