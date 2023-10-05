@@ -1,5 +1,7 @@
+const { WAIT_FOR_TEST_COMPLETION } = require('./lib/waitTimes');
+
 module.exports = {
-  testTimeout: 300000, // 5 min
+  testTimeout: WAIT_FOR_TEST_COMPLETION,
   testFailureExitCode: 0,
   reporters: [
     'jest-junit'

@@ -37,7 +37,7 @@ module.exports = {
    * This should be long enough to cover almost 100% of possible test runs, but short
    * enough so that builds don't wait forever if they're failing
    */
-  WAIT_FOR_TEST_COMPLETION: 5 * ONE_MINUTE,
+  WAIT_FOR_TEST_COMPLETION: 1 * ONE_MINUTE,
 
   /**
    * This should be longer than WAIT_FOR_PROCESSING, so that when tests fail
