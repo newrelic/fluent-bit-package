@@ -5,5 +5,5 @@ logs:
       parser: rfc5424
   - name: syslog-udp-test
     syslog:
-      uri: tcp://127.0.0.1:{{ monitored_syslog_rfc_5424_udp_port }}
+      uri: udp://127.0.0.1:{{ monitored_syslog_rfc_5424_udp_port }}
       parser: rfc5424

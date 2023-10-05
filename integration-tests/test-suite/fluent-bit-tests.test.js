@@ -1,12 +1,12 @@
-const logger = require('../../../fluent-bit-package/integration-tests/lib/logger.js');
-const Nrdb = require('../../../fluent-bit-package/integration-tests/lib/nrdb');
+const logger = require('./lib/logger');
+const Nrdb = require('./lib/nrdb');
 const fs = require('fs');
 const { Socket } = require('net');
 const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
-const { currentTimeAsIso8601 } = require('../../../fluent-bit-package/integration-tests/lib/time');
+const { currentTimeAsIso8601 } = require('./lib/time');
 const { spawnSync } = require('child_process');
-const { requireEnvironmentVariable } = require('../../../fluent-bit-package/integration-tests/lib/environmentVariables');
+const { requireEnvironmentVariable } = require('./lib/environmentVariables');
 
 /**
  * The newline is important -- Fluent Bit will wait

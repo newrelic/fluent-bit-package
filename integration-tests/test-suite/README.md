@@ -23,10 +23,6 @@ If a specific environment variable is not set, the tests will assume that
 Fluent Bit is not monitoring that specific thing, and will skip the test.
 We use this functionality to skip behavior that Windows does not support.
 
-## Where did this code come from?
-
-Almost all the files in /lib came from `logging-pipeline-testing`
-
 ## Environment Variables
 
 The tests are configured with environment variables.

@@ -21,6 +21,7 @@ local:
 	docker run -it --platform=linux/amd64 \
         -v $(shell pwd)/tools/local_testing_entrypoint.sh:/entrypoint.sh \
 		-v $(shell pwd):/srv/fluent-bit-package \
+        -v /tmp/test-reports:/tmp/test-reports \
 		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
 		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
 		-e AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} \
