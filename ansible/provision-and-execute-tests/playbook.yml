@@ -7,10 +7,22 @@
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
+
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+
+    monitored_file: /tmp/tail-log-file-test
+    monitored_syslog_rfc_5424_tcp_port: 5140
+    monitored_syslog_rfc_5424_udp_port: 6140
+    monitored_tcp_port: 5170
+    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
+
+    test_reports_dir: /tmp/test-reports
   environment:
-    NEW_RELIC_API_KEY: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    NEW_RELIC_ACCOUNT_ID: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-    NEW_RELIC_REGION: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+    NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
+    NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
     - name: Install Infrastructure Agent
       ansible.builtin.include_role:
@@ -32,12 +44,6 @@
     - name: Configure log forwarding
       ansible.builtin.include_role:
         name: create_logging_configs
-      vars:
-        monitored_file: /path/to/file.log
-        monitored_syslog_rfc_5424_tcp_port: 1234
-        monitored_syslog_rfc_5424_udp_port: 5678
-        monitored_tcp_port: 9012
-        monitored_systemd_unit: logtar
 
     - name: Install Fluent Bit package to be tested for this distro
       ansible.builtin.include_role:
@@ -47,13 +53,68 @@
         gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
       when: pr_number is not regex('^local-.*')
 
-    - name: Set up Node and run tests
-      ansible.builtin.include_role:
+    - name: Copy test suite
+      ansible.builtin.copy:
+        src: ../../integration-tests/test-suite
+        dest: ~/
+
+    - name: Run tests
+      ansible.builtin.import_role:
         role: morgangraphics.ansible_role_nvm
       vars:
         nodejs_version: "{{ node_version }}"
         # CentOS comes without "wget", so using "curl" instead
         nvm_install: "curl"
         nvm_commands:
-          - "npm -v"
-          - "node -v"
+            - "cd ~/test-suite \
+            && nvm exec default npm install \ 
+            && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
+            NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
+            API_KEY={{ new_relic_api_key }} \
+            ACCOUNT_ID=10418172 \
+            MONITORED_FILE={{ monitored_file }} \
+            MONITORED_TCP_PORT={{ monitored_tcp_port }} \
+            MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
+            MONITORED_SYSLOG_RFC_5424_UDP_PORT={{ monitored_syslog_rfc_5424_udp_port }} \
+            MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
+            nvm exec default npm test"
+
+    - name: Fetch results
+      vars:
+      fetch:
+        flat: true # behave like copy, we only want the file, not the whole path
+        src: ~/test-suite/reports/tests/test-report.xml
+        dest: "{{ test_reports_dir }}/{{ fluent_bit_package_name }}.xml"
+
+- name: Process and merge test reports
+  hosts: localhost
+  become: true
+  vars:
+    node_version: 18.18.0
+    test_reports_dir: /tmp/test-reports
+    test_report_name: report.xml
+  tasks:
+    - name: Copy controller scripts
+      ansible.builtin.copy:
+        src: ../../integration-tests/controller-scripts
+        dest: ~/
+
+    - name: Set up node and trigger process
+      ansible.builtin.import_role:
+        role: morgangraphics.ansible_role_nvm
+      vars:
+        nodejs_version: "{{ node_version }}"
+        # CentOS come without "wget", so using "curl" instead
+        nvm_install: "curl"
+        nvm_commands:
+          - "cd ~/controller-scripts \
+          && nvm exec default npm install \
+          && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} nvm run resultsProcessor.js"
+
+    - name: Capture merged test results
+      command: "cat {{ test_reports_dir }}/{{ test_report_name }}"
+      register: report
+
+    - name: Display merged test results
+      debug:
+        msg: "{{ report.stdout }}"
