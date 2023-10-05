@@ -3,26 +3,25 @@ const path = require('path');
 const xml2js = require("xml2js");
 const { mergeFiles } = require('junit-report-merger');
 
-const processResult = (fileName) => {
+const processResult = (reportsFolder, fileName) => {
     // sample fileName; fluent-bit_2.0.8_debian-bullseye_amd64.deb.xml
     const parser = new xml2js.Parser();
     const runtimeId = path.parse(fileName).name;
     const runtimeProperties = runtimeId.split('_');
-    const osProperties = String(runtimeProperties[2]).split('-');
-    const data = fs.readFileSync(fileName);
+    const data = fs.readFileSync(`${reportsFolder}/${fileName}`);
         parser.parseString(data, function (err, result) {
             const properties = [
                 {
-                    "$": {name: "fb_version", value: runtimeProperties[1]}
+                    "$": {name: "fb_version", value: runtimeProperties[0]}
                 },
                 {
-                    "$": {name: "os_distro", value: osProperties[0]}
+                    "$": {name: "os_distro", value: runtimeProperties[1]}
                 },
                 {
-                    "$": {name: "os_version", value: osProperties[1]}
+                    "$": {name: "os_version", value: runtimeProperties[2]}
                 },
                 {
-                    "$": {name: "arch", value: String(runtimeProperties[3]).split('.')[0]}
+                    "$": {name: "arch", value: runtimeProperties[3]}
                 },
             ]
             const suiteName = properties
@@ -51,15 +50,15 @@ const processResult = (fileName) => {
             result.testsuites.testsuite = [finalSuite];
             const builder = new xml2js.Builder();
             const xml = builder.buildObject(result);
-            fs.writeFileSync(fileName, xml);
+            fs.writeFileSync(`${reportsFolder}/${fileName}`, xml);
         });
 }
 
-const mergeResults = async (path, testReportName) => {
-    const outputFile = `${path}/${testReportName}`;
+const mergeResults = async (path, reportName) => {
+    const outputFile = `${path}/${reportName}`;
     const inputFiles = [];
     fs.readdirSync(path)
-            .filter(file => file !== testReportName)
+            .filter(file => file !== reportName)
             .forEach(file => inputFiles.push(`${path}/${file}`));
 
     await mergeFiles(outputFile, inputFiles);
@@ -68,11 +67,10 @@ const mergeResults = async (path, testReportName) => {
 (async () => {
     const resultsFolder = process.env.TEST_REPORT_ROOT_PATH;
     const testReportName = process.env.TEST_REPORT_NAME;
-    console.log(resultsFolder);
     fs.readdirSync(resultsFolder)
         .filter(file => file !== testReportName)
         .forEach(file => {
-          processResult(`${resultsFolder}/${file}`);
+          processResult(resultsFolder, file);
     });
     await mergeResults(resultsFolder, testReportName);
 })();
