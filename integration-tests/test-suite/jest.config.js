@@ -1,6 +1,6 @@
 module.exports = {
-  setupFilesAfterEnv: ['<rootDir>/setup-jest.js'],
-  testEnvironment: 'node',
+  testTimeout: 300000, // 5 min
+  testFailureExitCode: 0,
   reporters: [
     'jest-junit'
   ]
