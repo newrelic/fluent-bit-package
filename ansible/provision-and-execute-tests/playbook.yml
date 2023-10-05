@@ -58,7 +58,7 @@
         src: ../../integration-tests/test-suite
         dest: ~/
 
-    - name: Run tests
+    - name: Install node and test-suite dependencies
       ansible.builtin.import_role:
         role: morgangraphics.ansible_role_nvm
       vars:
@@ -66,18 +66,25 @@
         # CentOS comes without "wget", so using "curl" instead
         nvm_install: "curl"
         nvm_commands:
-            - "cd ~/test-suite \
-            && nvm exec default npm install \ 
-            && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
-            NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
-            API_KEY={{ new_relic_api_key }} \
-            ACCOUNT_ID=10418172 \
-            MONITORED_FILE={{ monitored_file }} \
-            MONITORED_TCP_PORT={{ monitored_tcp_port }} \
-            MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
-            MONITORED_SYSLOG_RFC_5424_UDP_PORT={{ monitored_syslog_rfc_5424_udp_port }} \
-            MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
-            nvm exec default npm test"
+            - "cd ~/test-suite && nvm exec default npm install"
+
+    - name: Run test-suite
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh \
+        && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
+        NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
+        API_KEY={{ new_relic_api_key }} \
+        ACCOUNT_ID=10418172 \
+        MONITORED_FILE={{ monitored_file }} \
+        MONITORED_TCP_PORT={{ monitored_tcp_port }} \
+        MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
+        MONITORED_SYSLOG_RFC_5424_UDP_PORT={{ monitored_syslog_rfc_5424_udp_port }} \
+        MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
+        npm run test"
+      async: 600 # give it 10 minutes
+      poll: 60 # check for results every minute
+      args:
+        executable: /bin/bash
+        chdir: ~/test-suite
 
     - name: Fetch results
       vars:
@@ -109,7 +116,9 @@
         nvm_commands:
           - "cd ~/controller-scripts \
           && nvm exec default npm install \
-          && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} nvm run resultsProcessor.js"
+          && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
+          TEST_REPORT_NAME={{ test_report_name }} \ 
+          nvm run resultsProcessor.js"
 
     - name: Capture merged test results
       command: "cat {{ test_reports_dir }}/{{ test_report_name }}"
