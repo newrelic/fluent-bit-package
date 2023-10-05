@@ -17,8 +17,6 @@
     monitored_syslog_rfc_5424_udp_port: 6140
     monitored_tcp_port: 5170
     monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
-
-    test_reports_dir: /tmp/test-reports
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
@@ -91,10 +89,15 @@
 
     - name: Fetch results
       vars:
+        test_reports_dir: /tmp/test-reports
+        fb_version: "{{ tags.fb_version }}"
+        os_distro: "{{ tags.os_distro }}"
+        os_version: "{{ tags.os_version }}"
+        arch: "{{ tags.arch }}"
       fetch:
         flat: true # behave like copy, we only want the file, not the whole path
         src: ~/test-suite/reports/tests/test-report.xml
-        dest: "{{ test_reports_dir }}/{{ fluent_bit_package_name }}.xml"
+        dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
@@ -180,7 +183,7 @@
   vars:
     node_version: 18.18.0
     test_reports_dir: /tmp/test-reports
-    test_report_name: report.xml
+    combined_test_report_name: report.xml
   tasks:
     - name: Copy controller scripts
       ansible.builtin.copy:
@@ -198,7 +201,7 @@
           - "cd ~/controller-scripts \
           && nvm exec default npm install \
           && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
-          TEST_REPORT_NAME={{ test_report_name }} \ 
+          TEST_REPORT_NAME={{ combined_test_report_name }} \ 
           nvm run resultsProcessor.js"
 
     - name: Capture merged test results
