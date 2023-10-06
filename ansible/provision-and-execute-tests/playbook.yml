@@ -8,6 +8,12 @@
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
 
+    fb_version: "{{ tags.fb_version }}"
+    os_distro: "{{ tags.os_distro }}"
+    os_version: "{{ tags.os_version }}"
+    arch: "{{ tags.arch }}"
+    test_reports_dir: /tmp/test-reports
+
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
@@ -88,12 +94,6 @@
         chdir: ~/test-suite
 
     - name: Fetch results
-      vars:
-        test_reports_dir: /tmp/test-reports
-        fb_version: "{{ tags.fb_version }}"
-        os_distro: "{{ tags.os_distro }}"
-        os_version: "{{ tags.os_version }}"
-        arch: "{{ tags.arch }}"
       fetch:
         flat: true # behave like copy, we only want the file, not the whole path
         src: ~/test-suite/reports/tests/test-report.xml
@@ -185,11 +185,6 @@
     test_reports_dir: /tmp/test-reports
     combined_test_report_name: report.xml
   tasks:
-    - name: Copy controller scripts
-      ansible.builtin.copy:
-        src: ../../integration-tests/controller-scripts
-        dest: ~/
-
     - name: Set up node and trigger process
       ansible.builtin.import_role:
         role: morgangraphics.ansible_role_nvm
@@ -198,7 +193,7 @@
         # CentOS come without "wget", so using "curl" instead
         nvm_install: "curl"
         nvm_commands:
-          - "cd ~/controller-scripts \
+          - "cd ~/fluent-bit-package/integration-tests/controller-scripts \
           && nvm exec default npm install \
           && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
           TEST_REPORT_NAME={{ combined_test_report_name }} \ 
