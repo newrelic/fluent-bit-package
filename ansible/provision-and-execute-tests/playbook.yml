@@ -74,7 +74,7 @@
         && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
         NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
         API_KEY={{ new_relic_api_key }} \
-        ACCOUNT_ID=10418172 \
+        ACCOUNT_ID={{ new_relic_account_id }} \
         MONITORED_FILE={{ monitored_file }} \
         MONITORED_TCP_PORT={{ monitored_tcp_port }} \
         MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
@@ -202,10 +202,10 @@
           && nvm exec default npm install \
           && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
           TEST_REPORT_NAME={{ combined_test_report_name }} \ 
-          nvm run resultsProcessor.js"
+          nvm exec default npm run"
 
     - name: Capture merged test results
-      command: "cat {{ test_reports_dir }}/{{ test_report_name }}"
+      command: "cat {{ test_reports_dir }}/{{ combined_test_report_name }}"
       register: report
 
     - name: Display merged test results
