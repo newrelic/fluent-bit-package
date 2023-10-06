@@ -82,7 +82,7 @@
         MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
         npm run test"
       async: 600 # give it 10 minutes
-      poll: 60 # check for results every minute
+      poll: 30 # check for results every minute
       args:
         executable: /bin/bash
         chdir: ~/test-suite
