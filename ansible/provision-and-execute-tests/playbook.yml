@@ -7,12 +7,10 @@
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
-
     fb_version: "{{ tags.fb_version }}"
     os_distro: "{{ tags.os_distro }}"
     os_version: "{{ tags.os_version }}"
     arch: "{{ tags.arch }}"
-    test_reports_dir: /tmp/test-reports
 
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -23,6 +21,8 @@
     monitored_syslog_rfc_5424_udp_port: 6140
     monitored_tcp_port: 5170
     monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
+
+    test_reports_dir: /tmp/test-reports
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
@@ -102,15 +102,36 @@
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
   vars:
-    node_version: 16.3.0
+    node_version: 16.14.0
 
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
+    fb_version: "{{ tags.fb_version }}"
+    os_distro: "{{ tags.os_distro }}"
+    os_version: "{{ tags.os_version }}"
+    arch: "{{ tags.arch }}"
+
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+
+    monitored_file: "C:\\Users\\Administrator\\tail-log-file-test"
+    monitored_syslog_rfc_5424_tcp_port: 5140
+    monitored_syslog_rfc_5424_udp_port: 6140
+    monitored_tcp_port: 5170
+    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
+    monitored_windows_log_name_using_winevtlog: "Application"
+    monitored_windows_log_name_using_winlog: "Application"
+
+    test_suite_folder: "C:\\Windows\\Temp\\test-suite"
+    test_suite_report_path: "{{ test_suite_folder }}\\reports\\tests\\test-report.xml"
+    test_reports_dir: /tmp/test-reports
+
   environment:
-    NEW_RELIC_API_KEY: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    NEW_RELIC_ACCOUNT_ID: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-    NEW_RELIC_REGION: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+    NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
+    NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
@@ -135,11 +156,6 @@
     - name: Configure log forwarding
       ansible.builtin.include_role:
         name: create_logging_configs
-      vars:
-        monitored_file: /path/to/file.log
-        monitored_tcp_port: 9012
-        monitored_windows_log_name_using_winlog: logtar_channel
-        monitored_windows_log_name_using_winevtlog: logtar_channel
 
     - name: Install Fluent Bit package to be tested for this distro
       ansible.builtin.include_role:
@@ -161,21 +177,45 @@
     - name: Install Node JS
       ansible.windows.win_command: "nvm install {{ node_version }}"
 
-    - name: Run NPM version
-      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm -v"
-      register: npm_version_out
+    - name: Copy test suite
+      ansible.builtin.copy:
+        src: ../../integration-tests/test-suite
+        dest: "C:\\Windows\\Temp\\"
 
-    - name: NPM version result (to be removed)
-      debug:
-        var: npm_version_out
+    - name: Install test-suite dependencies
+      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm i"
+      args:
+        chdir: "{{ test_suite_folder }}"
 
-    - name: Run Node version
-      ansible.windows.win_shell: "nvm use {{ node_version }} ; node -v"
-      register: node_version_out
+    - name: Run test-suite
+      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm run test"
+      environment:
+        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: 10418172
+        MONITORED_FILE: "{{ monitored_file }}"
+#        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" waiting for https://github.com/fluent/fluent-bit/issues/6671
+        MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
+        MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
+        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+      async: 1 # the strategy used in the linux playbook wont work here
+      poll: 0 # kick-off and wait in the next task for the report to be completed
+      args:
+        chdir: "{{ test_suite_folder }}"
 
-    - name: Node version result (to be removed)
-      debug:
-        var: node_version_out
+    - name: Wait for test-report to exist
+      ansible.windows.win_wait_for:
+        path: "{{ test_suite_report_path }}"
+        timeout: 460 # 8 minutes; we run 7 tests, each with a timeout of 1 minute
+
+    - name: Fetch results
+      fetch:
+        flat: true # behave like copy, we only want the file, not the whole path
+        src: "{{ test_suite_report_path }}"
+        dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
 
 - name: Process and merge test reports
   hosts: localhost
@@ -196,7 +236,7 @@
           - "cd ~/fluent-bit-package/integration-tests/controller-scripts \
           && nvm exec default npm install \
           && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
-          TEST_REPORT_NAME={{ combined_test_report_name }} \ 
+          TEST_REPORT_NAME={{ combined_test_report_name }} \
           nvm exec default npm run"
 
     - name: Capture merged test results
