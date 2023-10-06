@@ -1,0 +1,15 @@
+- name: Download package from URL
+  win_get_url:
+    url: "{{ fb_package_url }}"
+    dest: C:\Windows\Temp
+
+- name: Unzip the Fluent Bit package
+  community.windows.win_unzip:
+    src: 'C:\Windows\Temp\{{ fb_package_name }}'
+    dest: '{{ fb_windows_binary_path }}'
+
+# As of: https://github.com/newrelic/infrastructure-agent/blob/1.47.2/pkg/config/config.go#L899-L903
+- name: Modify Infrastructure Agent config to point to installed Fluent Bit executable
+  community.windows.win_lineinfile:
+    path: C:\Program Files\New Relic\newrelic-infra\newrelic-infra.yml
+    line: 'fluent_bit_exe_path: {{ fb_windows_binary_path }}\fluent-bit.exe'

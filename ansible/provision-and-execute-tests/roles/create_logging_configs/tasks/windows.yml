@@ -16,8 +16,7 @@
 - name: Configure log forwarding from {{ item }}
   win_template:
     src: "{{ item }}.yml.j2"
-    dest: "{{ logging_d_config_path }}/{{ item }}.yml"
-  become: true
+    dest: '{{ logging_d_config_path }}\{{ item }}.yml'
   loop:
     - file
     - tcp
