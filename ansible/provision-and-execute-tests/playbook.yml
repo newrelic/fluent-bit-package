@@ -207,10 +207,7 @@
         API_KEY: "{{ new_relic_api_key }}"
         ACCOUNT_ID: "{{ new_relic_account_id }}"
         MONITORED_FILE: '{{ monitored_file }}'
-        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
-        MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
-        MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
-        MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+#        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
         MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
 
