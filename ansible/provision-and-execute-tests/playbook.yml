@@ -76,7 +76,7 @@
             - "cd ~/test-suite && nvm exec default npm install"
 
     - name: Remove previous reports
-      ansible.windows.win_file:
+      ansible.builtin.file:
         path: ~/test-suite/reports
         state: absent
 
