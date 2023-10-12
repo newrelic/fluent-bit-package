@@ -75,23 +75,27 @@
         nvm_commands:
             - "cd ~/test-suite && nvm exec default npm install"
 
+    - name: Remove previous reports
+      ansible.windows.win_file:
+        path: ~/test-suite/reports
+        state: absent
+
     - name: Run test-suite
-      ansible.builtin.shell: "source ~/.nvm/nvm.sh \
-        && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
-        NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
-        API_KEY={{ new_relic_api_key }} \
-        ACCOUNT_ID={{ new_relic_account_id }} \
-        MONITORED_FILE={{ monitored_file }} \
-        MONITORED_TCP_PORT={{ monitored_tcp_port }} \
-        MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
-        MONITORED_SYSLOG_RFC_5424_UDP_PORT={{ monitored_syslog_rfc_5424_udp_port }} \
-        MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
-        npm run test"
-      async: 600 # give it 10 minutes
-      poll: 30 # check for results every minute
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
         executable: /bin/bash
         chdir: ~/test-suite
+        creates: ~/test-suite/reports
+      environment:
+        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: "{{ new_relic_account_id }}"
+        MONITORED_FILE: "{{ monitored_file }}"
+        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
+        MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
 
     - name: Fetch results
       fetch:
