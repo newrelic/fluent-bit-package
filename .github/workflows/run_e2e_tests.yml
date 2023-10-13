@@ -43,18 +43,16 @@ jobs:
     secrets: inherit
 
   provision_and_execute_tests:
-    name:
-    needs: [ spin_up_test_executor_instances ]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Provision instances and run tests
-        run:
-          echo "TODO, stubbed step"
+    name: Provision instances and run tests
+    needs: spin_up_test_executor_instances
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    needs: [ provision_and_execute_tests ]
+    needs: provision_and_execute_tests
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
