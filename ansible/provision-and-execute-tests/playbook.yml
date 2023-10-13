@@ -222,6 +222,8 @@
     controller_scripts_folder: ../../integration-tests/controller-scripts
     test_reports_dir: /tmp/test-reports
     combined_test_report_name: report.xml
+  roles:
+    - andrewrothstein.gh
   tasks:
     - name: Install node and script dependencies
       ansible.builtin.import_role:
@@ -241,3 +243,7 @@
       environment:
         TEST_REPORT_ROOT_PATH: "{{ test_reports_dir }}"
         TEST_REPORT_NAME: "{{ combined_test_report_name }}"
+
+    - name: Upload generated artifacts to release
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }}"
+      when: pr_number is not regex('^local-.*')
