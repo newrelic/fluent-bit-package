@@ -38,6 +38,7 @@ jobs:
         run: |
           pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
           if [[ $pre_release_exists == "true" ]]; then
+            echo "Deleting existing pre-release"
             gh release delete ${{ env.PRE_RELEASE_NAME }} -y --cleanup-tag
           fi
 
@@ -45,9 +46,12 @@ jobs:
           pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
           pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
 
-          echo "Creating pre-release: $pre_release_tag"
+          # Releases created from a runner are always DRAFT
+          echo "Creating release: $pre_release_tag"
+          gh release create "$pre_release_tag" --title "$pre_release_title" --notes "$pre_release_notes"
           # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
-          gh release create "$pre_release_tag" --prerelease --title "$pre_release_title" --notes "$pre_release_notes"
+          echo "Updating release to be a pre-release"
+          gh release edit "$pre_release_tag" --draft=false --prerelease
 
       - name: Install python
         uses: actions/setup-python@v4
