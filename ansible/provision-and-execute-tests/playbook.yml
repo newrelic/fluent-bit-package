@@ -2,7 +2,7 @@
 - name: Provision Linux test executor instances and execute tests
   hosts: linux
   vars:
-    node_version: 16.3.0
+    node_version: 16.14.0
 
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
