@@ -57,3 +57,24 @@ jobs:
     with:
       container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
+
+  report_test_results:
+    name: Report results
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download report from pre-release
+        run: |
+          gh release download "$pre_release_tag" --pattern 'test-report.xml'
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        with:
+          name: e2e-tests  # Name of the check run which will be created
+          path: test-report.xml # Path to test results
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            test-report.xml
