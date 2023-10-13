@@ -121,10 +121,7 @@
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
 
     monitored_file: 'C:\Users\Administrator\tail-log-file-test'
-    monitored_syslog_rfc_5424_tcp_port: 5140
-    monitored_syslog_rfc_5424_udp_port: 6140
     monitored_tcp_port: 5170
-    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
     monitored_windows_log_name_using_winevtlog: "Application"
     monitored_windows_log_name_using_winlog: "Application"
 
