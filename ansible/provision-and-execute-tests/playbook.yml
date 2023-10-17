@@ -174,12 +174,7 @@
 
     # Ref: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-680105708
     - name: Reboot the machine so Chocolatey path will be picked up
-      ansible.windows.win_shell: "Restart-Computer"
-      async: 120
-      poll: 0
-
-    - name: Wait for connection to be available
-      wait_for_connection:
+      ansible.windows.win_reboot:
 
     - name: Install Node JS
       ansible.windows.win_command: "nvm install {{ node_version }}"
