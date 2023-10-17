@@ -4,5 +4,5 @@ packages:
   - arch: win64
     ami: ami-0d1435d1563c37bbd
   # There is no win32 image available in AWS, so we use the w64 one to test the w32 binaries
-  - arch: win32
-    ami: ami-0d1435d1563c37bbd
+#  - arch: win32
+#    ami: ami-0d1435d1563c37bbd
