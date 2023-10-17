@@ -175,6 +175,7 @@
     # Ref: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-680105708
     - name: Reboot the machine so Chocolatey path will be picked up
       ansible.windows.win_reboot:
+        test_command: 'exit (Get-Service -Name newrelic-infra).Status -ne "Running"'
 
     - name: Install Node JS
       ansible.windows.win_command: "nvm install {{ node_version }}"
