@@ -130,6 +130,8 @@
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
     test_reports_dir: /tmp/test-reports
 
+    nvm_exe: "C:\ProgramData\nvm\nvm.exe"
+
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
@@ -177,15 +179,8 @@
 #      ansible.windows.win_reboot:
 #        test_command: 'exit (Get-Service -Name newrelic-infra).Status -ne "Running"'
 
-    - name: Ensure chocolatey path is registered
-      win_path:
-        name: PATH
-        elements: C:\ProgramData\chocolatey\bin
-        scope: user
-        state: present
-
     - name: Install Node JS
-      ansible.windows.win_command: "nvm install {{ node_version }}"
+      ansible.windows.win_command: "{{ nvm_exe }} install {{ node_version }}"
 
 #    - name: Copy test suite
 #      ansible.builtin.copy:
@@ -193,7 +188,7 @@
 #        dest: 'C:\Windows\Temp\'
 #
 #    - name: Install test-suite dependencies
-#      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm i"
+#      ansible.windows.win_shell: "{{ nvm_exe }} use {{ node_version }} ; npm i"
 #      args:
 #        chdir: '{{ test_suite_folder }}'
 #
@@ -203,7 +198,7 @@
 #        state: absent
 #
 #    - name: Run test-suite
-#      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm run test"
+#      ansible.windows.win_shell: "{{ nvm_exe }} use {{ node_version }} ; npm run test"
 #      args:
 #        chdir: '{{ test_suite_folder }}'
 #        creates: '{{ test_suite_folder }}\reports'
