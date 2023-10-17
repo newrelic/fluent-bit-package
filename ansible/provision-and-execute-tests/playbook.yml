@@ -134,7 +134,7 @@
     # due to an issue with OpenSSH, as mentioned here: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-748350731
     # There's a fix for OpenSSH already, but doesn't seem to be available on the latest Windows AMIs. Rebooting the machines
     # has been observed to be unreliable. So, we're forced to just use the full NVM path.
-    nvm_exe: "C:\ProgramData\nvm\nvm.exe"
+    nvm_exe: 'C:\ProgramData\nvm\nvm.exe'
 
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
