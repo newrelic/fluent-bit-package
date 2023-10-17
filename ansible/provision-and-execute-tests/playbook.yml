@@ -178,6 +178,9 @@
         name: nodejs
         version: '{{ node_version }}'
         state: present
+
+    - name: Node version
+      ansible.windows.win_shell: 'npm -v'
 #
 #    - name: Copy test suite
 #      ansible.builtin.copy:
