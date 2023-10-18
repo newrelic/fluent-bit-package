@@ -239,6 +239,7 @@
 - name: Process and merge test reports
   hosts: localhost
   vars:
+    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
     node_version: 18.18.0
     controller_scripts_folder: ../../integration-tests/controller-scripts
 #    test_reports_dir: /tmp/test-reports
