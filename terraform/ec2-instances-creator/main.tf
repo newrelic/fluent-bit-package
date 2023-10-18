@@ -41,7 +41,7 @@ module "ec2_instance" {
   name = each.key
 
   ami                    = each.value.ami
-  instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
+  instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.medium" : "t4g.small"
   vpc_security_group_ids = [local.ec2_instances_security_group]
   subnet_id              = local.aws_vpc_subnet
 

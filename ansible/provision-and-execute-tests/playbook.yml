@@ -106,16 +106,17 @@
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
+  gather_facts: no
   vars:
-    node_version: 16.14.0
 
+    node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
-    fluent_bit_package_name: "{{ tags.fb_package_name }}"
-    pr_number: "{{ tags.pr_number }}"
-    fb_version: "{{ tags.fb_version }}"
-    os_distro: "{{ tags.os_distro }}"
-    os_version: "{{ tags.os_version }}"
-    arch: "{{ tags.arch }}"
+#    fluent_bit_package_name: "{{ tags.fb_package_name }}"
+#    pr_number: "{{ tags.pr_number }}"
+#    fb_version: "{{ tags.fb_version }}"
+#    os_distro: "{{ tags.os_distro }}"
+#    os_version: "{{ tags.os_version }}"
+#    arch: "{{ tags.arch }}"
 
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -135,8 +136,9 @@
     # There's a fix for OpenSSH already, but doesn't seem to be available on the latest Windows AMIs. Rebooting the machines
     # has been observed to be unreliable. So, we're forced to just use the full paths.
     nvm_exe: 'C:\ProgramData\nvm\nvm.exe'
-    npm_exe: 'C:\ProgramData\nvm\v{{ node_version }}\npm.cmd'
-    node_exe: 'C:\ProgramData\nvm\v{{ node_version }}\node.exe'
+    node_path: 'C:\ProgramData\nvm\v{{ node_version }}'
+    npm_exe: '{{ node_path }}\npm.cmd'
+    node_exe: '{{ node_path }}\node.exe'
 
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
@@ -182,31 +184,41 @@
 #        product_id: '{6F56DDC2-C83A-4501-AB01-F81988163858}'
 #        arguments:
 #          - /install
-#          - INSTALLDIR="C:\NewFolder"
+#          - INSTALLDIR="C:\NewFolder"(
+    - name: Show contents of PATH environment variable
+      win_shell: $env:PATH
 
     - name: Install NVM
       win_chocolatey:
         name: nvm.install
         state: present
 
-    - name: Install Node
-      ansible.windows.win_shell: 'nvm version'
+    # This is an ugly hack, unfortunately. See notes in variables section.
+    - name: Copy settings.txt file so we can use the nvm_exe directly
+      ansible.windows.win_copy:
+        src: C:\ProgramData\nvm\settings.txt
+        dest: C:\settings.txt
+        remote_src: true
 
     - name: NVM Version
-      ansible.windows.win_shell: 'nvm version'
-
-#    # This is an ugly hack, unfortunately. See notes in variables section.
-#    - name: Copy settings.txt file so we can use the nvm_exe directly
-#      ansible.windows.win_copy:
-#        src: C:\ProgramData\nvm\settings.txt
-#        dest: C:\settings.txt
-#        remote_src: true
+      ansible.windows.win_shell: '{{ nvm_exe }} version'
 
     - name: Install Node
-      ansible.windows.win_shell: 'nvm install {{ node_version }}'
+      ansible.windows.win_shell: '{{ nvm_exe }} install {{ node_version }}'
+
+    - name: Show contents of PATH environment variable
+      win_shell: $env:PATH
+
+    - name: Include node in path
+      ansible.windows.win_path:
+        elements:
+          - '{{ node_path }}'
+
+    - name: Show contents of PATH environment variable
+      win_shell: $env:PATH
 
     - name: NPM version
-      ansible.windows.win_shell: 'nvm use {{ node_version }} ; npm -v'
+      ansible.windows.win_shell: '{{ nvm_exe }} use {{ node_version }} ; npm -v'
 
 #
 #    - name: Copy test suite
