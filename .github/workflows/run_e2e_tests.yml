@@ -64,13 +64,14 @@ jobs:
     needs: provision_and_execute_tests
     env:
       GH_TOKEN: ${{ github.token }}
+      PRE_RELEASE_NAME: tmp-pr-${{ github.event.pull_request.number }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Download report from pre-release
         run: |
-          gh release download "$pre_release_tag" --pattern 'tests-report.xml'
+          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern 'tests-report.xml'
 
       - name: Test Report
         uses: dorny/test-reporter@v1
