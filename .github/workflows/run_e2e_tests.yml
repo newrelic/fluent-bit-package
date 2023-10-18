@@ -60,10 +60,13 @@ jobs:
 
   report_test_results:
     name: Report results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Download report from pre-release
         run: |
           gh release download "$pre_release_tag" --pattern 'test-report.xml'
