@@ -78,6 +78,7 @@ jobs:
         with:
           name: e2e-tests  # Name of the check run which will be created
           path: tests-report.xml # Path to test results
+          reporter: jest-junit
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
