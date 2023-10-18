@@ -175,11 +175,12 @@
 
     - name: Install NVM
       win_chocolatey:
-        name: nvm.portable
+        name: nodejs-lts
+        version: "{{ node_version }}"
         state: present
 
-    - name: Install Node
-      ansible.windows.win_shell: 'nvm install {{ node_version }}'
+#    - name: Install Node
+#      ansible.windows.win_shell: 'nvm install {{ node_version }}'
 
     - name: NPM version
       ansible.windows.win_shell: 'npm -v'
