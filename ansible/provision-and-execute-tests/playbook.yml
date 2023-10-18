@@ -241,7 +241,8 @@
   vars:
     node_version: 18.18.0
     controller_scripts_folder: ../../integration-tests/controller-scripts
-    test_reports_dir: /tmp/test-reports
+#    test_reports_dir: /tmp/test-reports
+    test_reports_dir: "{{ controller_scripts_folder }}/test-reports"
     combined_test_report_name: tests-report.xml
     pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
   roles:

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<testsuites name="jest tests" tests="7" failures="0" errors="0" time="27.259">
+  <testsuite name="fb_version=2.0.8 os_distro=debian os_version=bullseye arch=amd64" errors="0" failures="0" skipped="2" tests="7" time="27.259" timestamp="2023-10-13T15:34:39">
+    <properties name="fb_version" value="2.0.8"/>
+    <properties name="os_distro" value="debian"/>
+    <properties name="os_version" value="bullseye"/>
+    <properties name="arch" value="amd64"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects appending to a file" name="Infrastructure Agent Fluent Bit features detects appending to a file" time="5.349"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects writing to TCP port" name="Infrastructure Agent Fluent Bit features detects writing to TCP port" time="5.298"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects writing to a TCP socket with a syslog RFC 5424 message" name="Infrastructure Agent Fluent Bit features detects writing to a TCP socket with a syslog RFC 5424 message" time="5.332"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects writing to a UDP socket with a syslog RFC 5424 message" name="Infrastructure Agent Fluent Bit features detects writing to a UDP socket with a syslog RFC 5424 message" time="5.322"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects a log message in systemd" name="Infrastructure Agent Fluent Bit features detects a log message in systemd" time="5.517"/>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects a Windows event using &quot;winlog&quot; input plugin" name="Infrastructure Agent Fluent Bit features detects a Windows event using &quot;winlog&quot; input plugin" time="0">
+      <skipped/>
+    </testcase>
+    <testcase classname="Infrastructure Agent Fluent Bit features detects a Windows event using &quot;winevtlog&quot; input plugin" name="Infrastructure Agent Fluent Bit features detects a Windows event using &quot;winevtlog&quot; input plugin" time="0">
+      <skipped/>
+    </testcase>
+  </testsuite>
+</testsuites>
