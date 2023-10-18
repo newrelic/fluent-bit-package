@@ -133,8 +133,8 @@
     # Chocolatey-installed packages (and Chocolatey itself) can't get their updated PATHs available unless the VM is restarted
     # due to an issue with OpenSSH, as mentioned here: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-748350731
     # There's a fix for OpenSSH already, but doesn't seem to be available on the latest Windows AMIs. Rebooting the machines
-    # has been observed to be unreliable. So, we're forced to just use the full node path.
-    npm_exe: 'C:\ProgramData\nvm\nvm.exe'
+    # has been observed to be unreliable. So, we're forced to just use the full NVM path.
+    nvm_exe: 'C:\ProgramData\nvm\nvm.exe'
 
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
@@ -190,8 +190,15 @@
 #    - name: Install Node
 #      ansible.windows.win_shell: 'nvm install {{ node_version }}'
 
+    - name: Copy settings.txt file so we can use the nvm_exe directly (hack)
+      ansible.windows.win_copy:
+        src: C:\ProgramData\nvm\settings.txt
+        dest: C:\settings.txt
+        remote_src: true
+
     - name: NPM version
-      ansible.windows.win_shell: 'npm -v'
+      ansible.windows.win_shell: '{{ nvm_exe }} use {{ node_version }} ; npm -v'
+
 #
 #    - name: Copy test suite
 #      ansible.builtin.copy:
