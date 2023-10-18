@@ -175,7 +175,8 @@
 
     - name: Install Node
       ansible.windows.win_package:
-        path: https://nodejs.org/dist/v16.14.0/node-v16.14.0-x64.msi
+        # SHA: 4d2adf5b11877a9017a0eef735dcc344ceb849bf3bb02da4f5dc1e756cfc9300
+        path: https://mirrors.cloud.tencent.com/nodejs-release/v16.14.0/node-v16.14.0-x64.msi
         state: present
 
 #    - name: Install NVM
