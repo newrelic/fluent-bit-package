@@ -69,17 +69,17 @@ jobs:
 
       - name: Download report from pre-release
         run: |
-          gh release download "$pre_release_tag" --pattern 'test-report.xml'
+          gh release download "$pre_release_tag" --pattern 'tests-report.xml'
 
       - name: Test Report
         uses: dorny/test-reporter@v1
         with:
           name: e2e-tests  # Name of the check run which will be created
-          path: test-report.xml # Path to test results
+          path: tests-report.xml # Path to test results
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
-            test-report.xml
+            tests-report.xml
