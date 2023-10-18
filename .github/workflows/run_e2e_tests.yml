@@ -61,6 +61,8 @@ jobs:
   report_test_results:
     name: Report results
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download report from pre-release
         run: |
