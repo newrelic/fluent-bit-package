@@ -173,13 +173,15 @@
 #        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
 #      when: pr_number is not regex('^local-.*')
 
-    - name: Install NodeJS
+    - name: Install NVM
       win_chocolatey:
-        name: nodejs.install
-        version: '{{ node_version }}'
+        name: nvm.portable
         state: present
 
-    - name: Node version
+    - name: Install Node
+      ansible.windows.win_shell: 'nvm install {{ node_version }}'
+
+    - name: NPM version
       ansible.windows.win_shell: 'npm -v'
 #
 #    - name: Copy test suite
