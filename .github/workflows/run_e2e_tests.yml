@@ -73,14 +73,14 @@ jobs:
         run: |
           gh release download ${{ env.PRE_RELEASE_NAME }} --pattern 'tests-report.xml'
 
-      - name: Test Report
+      - name: Tests Report Details
         uses: dorny/test-reporter@v1
         with:
           name: e2e-tests  # Name of the check run which will be created
           path: tests-report.xml # Path to test results
           reporter: jest-junit
 
-      - name: Publish Test Results
+      - name: Tests Report Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
