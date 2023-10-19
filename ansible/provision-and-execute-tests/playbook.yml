@@ -266,5 +266,5 @@
         TEST_REPORT_NAME: "{{ combined_test_report_name }}"
 
     - name: Upload generated artifacts to release
-      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }}"
       when: pr_number is not regex('^local-.*')
