@@ -76,7 +76,7 @@ jobs:
       - name: Tests Report Details
         uses: dorny/test-reporter@v1
         with:
-          name: e2e-tests  # Name of the check run which will be created
+          name: Tests Report Details  # Name of the check run which will be created
           path: tests-report.xml # Path to test results
           reporter: jest-junit
 
