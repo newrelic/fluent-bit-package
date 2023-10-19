@@ -177,6 +177,13 @@
         name: nvm.install
         state: present
 
+    # Ugly hack for NVM to work
+    - name: Copy settings.txt file to root so it can be found
+      ansible.windows.win_copy:
+        src: '{{ nvm_path }}\settings.txt'
+        dest: C:\settings.txt
+        remote_src: true
+
     - name: Capture contents of PATH environment variable
       win_shell: $env:PATH
       register: original_path
