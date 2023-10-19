@@ -2,18 +2,17 @@
 - name: Provision Linux test executor instances and execute tests
   hosts: linux
   vars:
-    node_version: 16.3.0
+    node_version: 16.14.0
 
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
-
     fb_version: "{{ tags.fb_version }}"
     os_distro: "{{ tags.os_distro }}"
     os_version: "{{ tags.os_version }}"
     arch: "{{ tags.arch }}"
-    test_reports_dir: /tmp/test-reports
 
+    # The following vars are injected in the fargate task env
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
@@ -23,6 +22,8 @@
     monitored_syslog_rfc_5424_udp_port: 6140
     monitored_tcp_port: 5170
     monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
+
+    test_reports_dir: /tmp/test-reports
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
@@ -75,23 +76,27 @@
         nvm_commands:
             - "cd ~/test-suite && nvm exec default npm install"
 
+    - name: Remove previous reports
+      ansible.builtin.file:
+        path: ~/test-suite/reports
+        state: absent
+
     - name: Run test-suite
-      ansible.builtin.shell: "source ~/.nvm/nvm.sh \
-        && LOGGING_ENDPOINT=https://staging-log-api.newrelic.com/log/v1 \
-        NERD_GRAPH_URL=https://staging-api.newrelic.com/graphql \
-        API_KEY={{ new_relic_api_key }} \
-        ACCOUNT_ID={{ new_relic_account_id }} \
-        MONITORED_FILE={{ monitored_file }} \
-        MONITORED_TCP_PORT={{ monitored_tcp_port }} \
-        MONITORED_SYSLOG_RFC_5424_TCP_PORT={{ monitored_syslog_rfc_5424_tcp_port }} \
-        MONITORED_SYSLOG_RFC_5424_UDP_PORT={{ monitored_syslog_rfc_5424_udp_port }} \
-        MONITORED_SYSTEMD_UNIT={{ monitored_systemd_unit }} \
-        npm run test"
-      async: 600 # give it 10 minutes
-      poll: 30 # check for results every minute
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
         executable: /bin/bash
         chdir: ~/test-suite
+        creates: ~/test-suite/reports
+      environment:
+        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: "{{ new_relic_account_id }}"
+        MONITORED_FILE: "{{ monitored_file }}"
+        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
+        MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
 
     - name: Fetch results
       fetch:
@@ -102,15 +107,38 @@
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
   vars:
-    node_version: 16.3.0
-
+    node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
+    fb_version: "{{ tags.fb_version }}"
+    os_distro: "{{ tags.os_distro }}"
+    os_version: "{{ tags.os_version }}"
+    arch: "{{ tags.arch }}"
+
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+
+    monitored_file: 'C:\Users\Administrator\tail-log-file-test'
+    monitored_tcp_port: 5170
+    monitored_windows_log_name_using_winevtlog: "Application"
+    monitored_windows_log_name_using_winlog: "Application"
+
+    test_suite_folder: 'C:\Windows\Temp\test-suite'
+    test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
+    test_reports_dir: /tmp/test-reports
+
+    # There's an issue with OpenSSH that seems to be preventing environment variables to be updated. This includes updating
+    # the PATH as well. Ref: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-748350731
+    # We are not 100% sure whether the aws_ssm plugin uses OpenSSH under the hood, but we're forced to manually overwrite
+    # the PATH environment using Ansible's "environment" clause for these steps requiring nvm, node or npm to be in the PATH.
+    nvm_path: 'C:\ProgramData\nvm'
+    node_path: 'C:\ProgramData\nvm\v{{ node_version }}'
   environment:
-    NEW_RELIC_API_KEY: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    NEW_RELIC_ACCOUNT_ID: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-    NEW_RELIC_REGION: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+    NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
+    NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
@@ -135,11 +163,6 @@
     - name: Configure log forwarding
       ansible.builtin.include_role:
         name: create_logging_configs
-      vars:
-        monitored_file: /path/to/file.log
-        monitored_tcp_port: 9012
-        monitored_windows_log_name_using_winlog: logtar_channel
-        monitored_windows_log_name_using_winevtlog: logtar_channel
 
     - name: Install Fluent Bit package to be tested for this distro
       ansible.builtin.include_role:
@@ -151,58 +174,98 @@
 
     - name: Install NVM
       win_chocolatey:
-        name: nvm
+        name: nvm.install
         state: present
 
-    # Ref: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-680105708
-    - name: Reboot the machine so Chocolatey path will be picked up
-      ansible.windows.win_reboot:
+    # Ugly hack for NVM to work
+    - name: Copy settings.txt file to root so it can be found
+      ansible.windows.win_copy:
+        src: '{{ nvm_path }}\settings.txt'
+        dest: C:\settings.txt
+        remote_src: true
 
-    - name: Install Node JS
-      ansible.windows.win_command: "nvm install {{ node_version }}"
+    - name: Capture contents of PATH environment variable
+      win_shell: $env:PATH
+      register: original_path
 
-    - name: Run NPM version
-      ansible.windows.win_shell: "nvm use {{ node_version }} ; npm -v"
-      register: npm_version_out
+    - name: Include nvm and node paths into patched_path
+      set_fact:
+        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
 
-    - name: NPM version result (to be removed)
-      debug:
-        var: npm_version_out
+    - name: Install node
+      win_shell: 'nvm install {{ node_version }}'
+      environment:
+        PATH: '{{ patched_path }}'
 
-    - name: Run Node version
-      ansible.windows.win_shell: "nvm use {{ node_version }} ; node -v"
-      register: node_version_out
+    - name: Copy test suite
+      ansible.windows.win_copy:
+        src: ../../integration-tests/test-suite
+        dest: 'C:\Windows\Temp\'
 
-    - name: Node version result (to be removed)
-      debug:
-        var: node_version_out
+    - name: Install test-suite dependencies
+      ansible.windows.win_shell: 'npm i'
+      args:
+        chdir: '{{ test_suite_folder }}'
+      environment:
+        PATH: '{{ patched_path }}'
+
+    - name: Remove previous reports
+      ansible.windows.win_file:
+        path: '{{ test_suite_folder }}\reports'
+        state: absent
+
+    - name: Run test-suite
+      ansible.windows.win_shell: 'npm run test'
+      args:
+        chdir: '{{ test_suite_folder }}'
+        creates: '{{ test_suite_folder }}\reports'
+      environment:
+        PATH: '{{ patched_path }}'
+        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: "{{ new_relic_account_id }}"
+        MONITORED_FILE: '{{ monitored_file }}'
+#        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
+        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
+        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+
+    - name: Fetch results
+      fetch:
+        flat: true # behave like copy, we only want the file, not the whole path
+        src: '{{ test_suite_report_path }}'
+        dest: '{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml'
 
 - name: Process and merge test reports
   hosts: localhost
-  become: true
   vars:
     node_version: 18.18.0
+    controller_scripts_folder: ../../integration-tests/controller-scripts
     test_reports_dir: /tmp/test-reports
     combined_test_report_name: report.xml
+    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
+  roles:
+    - andrewrothstein.gh
   tasks:
-    - name: Set up node and trigger process
+    - name: Install node and script dependencies
       ansible.builtin.import_role:
         role: morgangraphics.ansible_role_nvm
       vars:
         nodejs_version: "{{ node_version }}"
-        # CentOS come without "wget", so using "curl" instead
+        # CentOS comes without "wget", so using "curl" instead
         nvm_install: "curl"
         nvm_commands:
-          - "cd ~/fluent-bit-package/integration-tests/controller-scripts \
-          && nvm exec default npm install \
-          && TEST_REPORT_ROOT_PATH={{ test_reports_dir }} \
-          TEST_REPORT_NAME={{ combined_test_report_name }} \ 
-          nvm exec default npm run"
+          - "cd {{ controller_scripts_folder }} && nvm exec default npm install"
 
-    - name: Capture merged test results
-      command: "cat {{ test_reports_dir }}/{{ combined_test_report_name }}"
-      register: report
+    - name: Process test reports
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && nvm exec default npm start"
+      args:
+        executable: /bin/bash
+        chdir: "{{ controller_scripts_folder }}"
+      environment:
+        TEST_REPORT_ROOT_PATH: "{{ test_reports_dir }}"
+        TEST_REPORT_NAME: "{{ combined_test_report_name }}"
 
-    - name: Display merged test results
-      debug:
-        msg: "{{ report.stdout }}"
+    - name: Upload generated artifacts to release
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }}"
+      when: pr_number is not regex('^local-.*')

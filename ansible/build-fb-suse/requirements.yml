@@ -2,3 +2,4 @@ collections: []
 
 roles:
   - name: andrewrothstein.gh
+    version: v0.2.0
