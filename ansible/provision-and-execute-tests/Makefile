@@ -4,7 +4,7 @@ include ../Ansible.common.mk
 
 .PHONY: provision-and-execute-tests
 provision-and-execute-tests: ansible/dependencies ansible/prepare-inventory
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook.yml -i $(ANSIBLE_INVENTORY) -vvv
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook.yml -i $(ANSIBLE_INVENTORY)
 
 .PHONY: clean
 clean: ansible/clean
