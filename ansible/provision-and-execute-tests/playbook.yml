@@ -120,10 +120,10 @@
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
 
-    monitored_file: 'C:\Users\Administrator\tail-log-file-test'
+    monitored_file: 'C:\Temp\tail-log-file-test'
     monitored_tcp_port: 5170
-    monitored_windows_log_name_using_winevtlog: "Application"
-    monitored_windows_log_name_using_winlog: "Application"
+    monitored_windows_log_name_using_winevtlog: 'Application'
+    monitored_windows_log_name_using_winlog: 'Application'
 
     test_suite_folder: 'C:\Windows\Temp\test-suite'
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
