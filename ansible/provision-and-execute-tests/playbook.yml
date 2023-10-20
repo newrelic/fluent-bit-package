@@ -223,6 +223,7 @@
       become: true
       become_user: Administrator
       become_method: runas
+      register: testout
       environment:
         PATH: '{{ patched_path }}'
         LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
@@ -233,6 +234,10 @@
 #        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
         MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+
+    - name: Display merged test results
+      debug:
+        msg: "{{ testout }}"
 
     - name: Fetch results
       fetch:
