@@ -219,6 +219,10 @@
       args:
         chdir: '{{ test_suite_folder }}'
         creates: '{{ test_suite_folder }}\reports'
+      # needed to run winevtlog/winlog tests
+      become: true
+      become_user: Administrator
+      become_method: runas
       environment:
         PATH: '{{ patched_path }}'
         LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
