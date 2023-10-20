@@ -177,20 +177,20 @@
 #        name: nvm.install
 #        state: present
 #
-#    # Ugly hack for NVM to work
-#    - name: Copy settings.txt file to root so it can be found
-#      ansible.windows.win_copy:
-#        src: '{{ nvm_path }}\settings.txt'
-#        dest: C:\settings.txt
-#        remote_src: true
-#
-#    - name: Capture contents of PATH environment variable
-#      win_shell: $env:PATH
-#      register: original_path
-#
-#    - name: Include nvm and node paths into patched_path
-#      set_fact:
-#        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
+    # Ugly hack for NVM to work
+    - name: Copy settings.txt file to root so it can be found
+      ansible.windows.win_copy:
+        src: '{{ nvm_path }}\settings.txt'
+        dest: C:\settings.txt
+        remote_src: true
+
+    - name: Capture contents of PATH environment variable
+      win_shell: $env:PATH
+      register: original_path
+
+    - name: Include nvm and node paths into patched_path
+      set_fact:
+        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
 #
 #    - name: Install node
 #      win_shell: 'nvm install {{ node_version }}'
