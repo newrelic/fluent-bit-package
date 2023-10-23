@@ -220,9 +220,9 @@
         chdir: '{{ test_suite_folder }}'
         creates: '{{ test_suite_folder }}\reports'
       # needed to run winevtlog/winlog tests
-      become: true
-      become_user: Administrator
-      become_method: runas
+#      become: true
+#      become_user: Administrator
+#      become_method: runas
       register: testout
       environment:
         PATH: '{{ patched_path }}'
