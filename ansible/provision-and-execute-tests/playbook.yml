@@ -143,40 +143,40 @@
     - name: Wait for connection to be available
       wait_for_connection:
 
-#    - name: Install Infrastructure Agent
-#      ansible.builtin.include_role:
-#        name: newrelic.newrelic_install
-#        # Despite being the default, I want to emphasize that we do NOT want the role variables to be
-#        # exposed to the play. Otherwise, the "tags" variable specified below would overwrite the AWS "tags"
-#        # variable object (that comes from the inventory), which would cause that the `fluent_bit_package_name`
-#        # (or any variable depending on the AWS tags) would not be resolvable. Note that this option is only
-#        # available in "include_role", and not in "import_role".
-#        public: false
-#      vars:
-#        targets:
-#          - infrastructure
-#        tags:
-#          product: logging
-#          owning_team: logging
-#          project: fluent-bit-packaging-and-testing
-#
-#    - name: Configure log forwarding
-#      ansible.builtin.include_role:
-#        name: create_logging_configs
-#
-#    - name: Install Fluent Bit package to be tested for this distro
-#      ansible.builtin.include_role:
-#        name: install_fluent_bit_from_gh_prerelease
-#      vars:
-#        fb_package_name: "{{ fluent_bit_package_name }}"
-#        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
-#      when: pr_number is not regex('^local-.*')
-#
-#    - name: Install NVM
-#      win_chocolatey:
-#        name: nvm.install
-#        state: present
-#
+    - name: Install Infrastructure Agent
+      ansible.builtin.include_role:
+        name: newrelic.newrelic_install
+        # Despite being the default, I want to emphasize that we do NOT want the role variables to be
+        # exposed to the play. Otherwise, the "tags" variable specified below would overwrite the AWS "tags"
+        # variable object (that comes from the inventory), which would cause that the `fluent_bit_package_name`
+        # (or any variable depending on the AWS tags) would not be resolvable. Note that this option is only
+        # available in "include_role", and not in "import_role".
+        public: false
+      vars:
+        targets:
+          - infrastructure
+        tags:
+          product: logging
+          owning_team: logging
+          project: fluent-bit-packaging-and-testing
+
+    - name: Configure log forwarding
+      ansible.builtin.include_role:
+        name: create_logging_configs
+
+    - name: Install Fluent Bit package to be tested for this distro
+      ansible.builtin.include_role:
+        name: install_fluent_bit_from_gh_prerelease
+      vars:
+        fb_package_name: "{{ fluent_bit_package_name }}"
+        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
+      when: pr_number is not regex('^local-.*')
+
+    - name: Install NVM
+      win_chocolatey:
+        name: nvm.install
+        state: present
+
     # Ugly hack for NVM to work
     - name: Copy settings.txt file to root so it can be found
       ansible.windows.win_copy:
