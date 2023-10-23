@@ -120,7 +120,7 @@
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
 
-    monitored_file: 'C:\Windows\Temp\tail-log-file-test'
+    monitored_file: 'C:\Users\Administrator\tail-log-file-test'
     monitored_tcp_port: 5170
     monitored_windows_log_name_using_winevtlog: "Application"
     monitored_windows_log_name_using_winlog: "Application"
@@ -239,11 +239,11 @@
 - name: Process and merge test reports
   hosts: localhost
   vars:
-    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
     node_version: 18.18.0
     controller_scripts_folder: ../../integration-tests/controller-scripts
     test_reports_dir: /tmp/test-reports
-    combined_test_report_name: tests-report.xml
+    combined_test_report_name: report.xml
+    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
   roles:
     - andrewrothstein.gh
   tasks:
@@ -267,5 +267,5 @@
         TEST_REPORT_NAME: "{{ combined_test_report_name }}"
 
     - name: Upload generated artifacts to release
-      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
+      command: "gh release upload tmp-pr-{{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }}"
       when: pr_number is not regex('^local-.*')
