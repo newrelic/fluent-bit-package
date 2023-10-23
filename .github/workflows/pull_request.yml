@@ -132,58 +132,57 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
-#  spin_up_suse:
-#    needs: setup_environment
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
-#    secrets: inherit
-#
-#  build_suse_packages:
-#    needs: spin_up_suse
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
-#    secrets: inherit
-#
-#  tear_down_suse:
-#    needs: build_suse_packages
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
-#    secrets: inherit
+  spin_up_suse:
+    needs: setup_environment
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
 
-#  sign_suse_packages:
-#    needs: [setup_environment, build_suse_packages]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: true
-#      matrix:
-#        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
-#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-#
-#    steps:
-#      - name: Check out repository
-#        uses: actions/checkout@v3
-#
-#      - name: Fetch package from GitHub pre-release
-#        run: |
-#          mkdir -p packages
-#          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
-#
-#      - name: Sign package
-#        run: |
-#          sudo apt-get install -y debsigs
-#          bash ./scripts/sign.sh
-#
-#      - name: Upload signed asset
-#        run:
-#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
+  build_suse_packages:
+    needs: spin_up_suse
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
+  tear_down_suse:
+    needs: build_suse_packages
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
+  sign_suse_packages:
+    needs: [setup_environment, build_suse_packages]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
+    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Fetch package from GitHub pre-release
+        run: |
+          mkdir -p packages
+          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
+
+      - name: Sign package
+        run: |
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Upload signed asset
+        run:
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
-#    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease]
-    needs: setup_environment
+    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease]
     name: Run E2E tests
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
