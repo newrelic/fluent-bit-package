@@ -153,9 +153,6 @@
     - name: Wait for connection to be available
       wait_for_connection:
 
-    - name: Get whoami information
-      ansible.windows.win_whoami:
-
     - name: Install Infrastructure Agent
       ansible.builtin.include_role:
         name: newrelic.newrelic_install
