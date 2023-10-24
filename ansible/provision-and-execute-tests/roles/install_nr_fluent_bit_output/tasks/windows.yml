@@ -9,12 +9,12 @@
 - name: Download NR FB Output Plugin
   ansible.windows.win_get_url:
     url: "{{ nr_fb_output_plugin_url }}"
-    dest: '{{ fb_binary_path }}\out_newrelic.{{ nr_fb_output_file_extension }}'
+    dest: 'C:\Windows\Temp\out_newrelic.{{ nr_fb_output_file_extension }}'
 
 - name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
   community.windows.win_lineinfile:
     path: "{{ infra_agent_config_file_absolute_path }}"
-    line: 'fluent_bit_nr_lib_path: {{ fb_binary_path }}\out_newrelic.{{ nr_fb_output_file_extension }}'
+    line: 'fluent_bit_nr_lib_path: C:\Windows\Temp\out_newrelic.{{ nr_fb_output_file_extension }}'
 
 - name: Start again newrelic-infra service with new Fluent Bit binary (Windows)
   ansible.windows.win_service:
