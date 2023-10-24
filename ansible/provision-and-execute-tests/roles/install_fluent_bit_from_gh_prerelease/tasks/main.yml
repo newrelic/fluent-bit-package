@@ -4,14 +4,24 @@
     that:
       - gh_prerelease_tag is defined
       - fb_package_name is defined
-      - arch is defined
-      - nr_fb_output_plugin_version is defined
-
 
 - name: Install (replace) Fluent Bit Linux package
-  include_tasks: "linux.yml"
+  include_tasks: "{{ ansible_pkg_mgr }}.yml"
   when: ansible_system == 'Linux'
 
 - name: Install (replace) Fluent Bit Windows package
   include_tasks: "windows.yml"
+  when: ansible_system != 'Linux'
+
+- name: Restart newrelic-infra service to pick up new Fluent Bit binary (Linux)
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: restarted
+  become: true
+  when: ansible_system == 'Linux'
+
+- name: Restart newrelic-infra service to pick up new Fluent Bit binary (Windows)
+  ansible.windows.win_service:
+    name: newrelic-infra
+    state: restarted
   when: ansible_system != 'Linux'
