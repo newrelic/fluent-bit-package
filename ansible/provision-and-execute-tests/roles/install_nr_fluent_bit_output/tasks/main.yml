@@ -1,0 +1,14 @@
+---
+- name: Check mandatory variables (all distros)
+  assert:
+    that:
+      - plugin_arch is defined
+      - plugin_version is defined
+
+- name: Install (replace) Fluent Bit Linux package
+  include_tasks: "linux.yml"
+  when: ansible_system == 'Linux'
+
+- name: Install (replace) Fluent Bit Windows package
+  include_tasks: "windows.yml"
+  when: ansible_system != 'Linux'

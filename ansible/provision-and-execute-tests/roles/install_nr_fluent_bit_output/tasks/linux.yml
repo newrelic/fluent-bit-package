@@ -1,0 +1,26 @@
+- name: Load a variable file based on the OS type, or a default if not found. Using free-form to specify the file.
+  ansible.builtin.include_vars: "linux.yml"
+
+- name: Stop newrelic-infra service (Linux)
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: stopped
+  become: true
+
+- name: Download NR FB Output Plugin
+  ansible.builtin.get_url:
+    url: "{{ nr_fb_output_plugin_url }}"
+    dest: '{{ fb_binary_path }}/out_newrelic.{{ nr_fb_output_file_extension }}'
+  become: true
+
+- name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
+  ansible.builtin.lineinfile:
+    path: "{{ infra_agent_config_file_absolute_path }}"
+    line: 'fluent_bit_nr_lib_path: {{ fb_binary_path }}\out_newrelic.{{ nr_fb_output_file_extension }}'
+  become: true
+
+- name: Start again newrelic-infra service with new Fluent Bit binary (Linux)
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: started
+  become: true

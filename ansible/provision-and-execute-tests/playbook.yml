@@ -60,9 +60,14 @@
       vars:
         fb_package_name: "{{ fluent_bit_package_name }}"
         gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
-        arch: "{{ (arch == 'arm64') | ternary('arm','amd64') }}"
-        nr_fb_output_plugin_version: "{{ nr_fb_output_plugin_version }}"
       when: pr_number is not regex('^local-.*')
+
+    - name: Install NR Fluent Bit output
+      ansible.builtin.include_role:
+        name: install_nr_fluent_bit_output
+      vars:
+        plugin_arch: "{{ arch }}"
+        plugin_version: "{{ nr_fb_output_plugin_version }}"
 
     - name: Copy test suite
       ansible.builtin.copy:
@@ -178,9 +183,14 @@
       vars:
         fb_package_name: "{{ fluent_bit_package_name }}"
         gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
-        arch: "{{ (arch == 'win64') | ternary('amd64','386') }}"
-        nr_fb_output_plugin_version: "{{ nr_fb_output_plugin_version }}"
       when: pr_number is not regex('^local-.*')
+
+    - name: Install NR Fluent Bit output
+      ansible.builtin.include_role:
+        name: install_nr_fluent_bit_output
+      vars:
+        plugin_arch: "{{ (arch == 'win64') | ternary('amd64','386') }}"
+        plugin_version: "{{ nr_fb_output_plugin_version }}"
 
     - name: Install NVM
       win_chocolatey:
