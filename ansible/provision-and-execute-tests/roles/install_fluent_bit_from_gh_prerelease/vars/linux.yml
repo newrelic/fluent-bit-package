@@ -1,4 +1,0 @@
-fb_package_url: "https://github.com/newrelic/fluent-bit-package/releases/download/{{ gh_prerelease_tag }}/{{ fb_package_name }}"
-fb_binary_path: /opt/fluent-bit/bin
-nr_fb_output_plugin_artifact: 'out_newrelic-linux-{{ arch }}-{{ nr_fb_output_plugin_version }}.so'
-nr_fb_output_plugin_url: "https://github.com/newrelic/newrelic-fluent-bit-output/releases/download/v{{ nr_fb_output_plugin_version }}/{{ nr_fb_output_plugin_artifact }}"
