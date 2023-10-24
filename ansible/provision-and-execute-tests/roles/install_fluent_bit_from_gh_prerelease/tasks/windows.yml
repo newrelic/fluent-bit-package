@@ -1,3 +1,17 @@
+- name: Load a variable file based on the OS type, or a default if not found. Using free-form to specify the file.
+  ansible.builtin.include_vars:
+  vars:
+    params:
+      files:
+        - 'windows.yaml'
+      paths:
+        - 'vars'
+
+- name: Stop newrelic-infra service (Windows)
+  ansible.windows.win_service:
+    name: newrelic-infra
+    state: stopped
+
 - name: Download package from URL
   win_get_url:
     url: "{{ fb_package_url }}"
@@ -6,10 +20,25 @@
 - name: Unzip the Fluent Bit package
   community.windows.win_unzip:
     src: 'C:\Windows\Temp\{{ fb_package_name }}'
-    dest: '{{ fb_windows_binary_path }}'
+    dest: '{{ fb_binary_path }}'
 
 # As of: https://github.com/newrelic/infrastructure-agent/blob/1.47.2/pkg/config/config.go#L899-L903
 - name: Modify Infrastructure Agent config to point to installed Fluent Bit executable
   community.windows.win_lineinfile:
     path: C:\Program Files\New Relic\newrelic-infra\newrelic-infra.yml
-    line: 'fluent_bit_exe_path: {{ fb_windows_binary_path }}\fluent-bit.exe'
+    line: 'fluent_bit_exe_path: {{ fb_binary_path }}\fluent-bit.exe'
+
+- name: Download NR FB Output Plugin
+  win_get_url:
+    url: "{{ nr_fb_output_plugin_url }}"
+    dest: '{{ fb_binary_path }}\out_newrelic.dll'
+
+- name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
+  community.windows.win_lineinfile:
+    path: C:\Program Files\New Relic\newrelic-infra\newrelic-infra.yml
+    line: 'fluent_bit_nr_lib_path: {{ fb_binary_path }}\out_newrelic.dll'
+
+- name: Start again newrelic-infra service with new Fluent Bit binary (Windows)
+  ansible.windows.win_service:
+    name: newrelic-infra
+    state: started

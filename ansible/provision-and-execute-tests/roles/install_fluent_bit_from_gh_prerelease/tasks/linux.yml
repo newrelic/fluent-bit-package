@@ -1,0 +1,39 @@
+- name: Load a variable file based on the OS type, or a default if not found. Using free-form to specify the file.
+  ansible.builtin.include_vars:
+  vars:
+    params:
+      files:
+        - 'linux.yaml'
+      paths:
+        - 'vars'
+
+- name: Stop newrelic-infra service (Linux)
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: stopped
+  become: true
+
+- name: Install (replace) Fluent Bit Linux package
+  include_tasks: "{{ ansible_pkg_mgr }}.yml"
+
+# As of: https://github.com/newrelic/infrastructure-agent/blob/1.47.2/pkg/config/config.go#L899-L903
+- name: Modify Infrastructure Agent config to point to installed Fluent Bit executable
+  community.builtin.lineinfile:
+    path: /etc/newrelic-infra.yml
+    line: 'fluent_bit_exe_path: {{ fb_binary_path }}/fluent-bit'
+
+- name: Download NR FB Output Plugin
+  get_url:
+    url: "{{ nr_fb_output_plugin_url }}"
+    dest: '{{ fb_binary_path }}\out_newrelic.so'
+
+- name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
+  community.builtin.lineinfile:
+    path: /etc/newrelic-infra.yml
+    line: 'fluent_bit_nr_lib_path: {{ fb_binary_path }}\out_newrelic.so'
+
+- name: Start again newrelic-infra service with new Fluent Bit binary (Linux)
+  ansible.builtin.service:
+    name: newrelic-infra
+    state: started
+  become: true

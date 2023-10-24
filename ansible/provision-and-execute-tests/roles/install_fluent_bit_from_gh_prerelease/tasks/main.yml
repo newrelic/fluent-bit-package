@@ -4,37 +4,14 @@
     that:
       - gh_prerelease_tag is defined
       - fb_package_name is defined
+      - arch is defined
+      - nr_fb_output_plugin_version is defined
 
-- name: Stop newrelic-infra service (Linux)
-  ansible.builtin.service:
-    name: newrelic-infra
-    state: stopped
-  become: true
-  when: ansible_system == 'Linux'
-
-- name: Stop newrelic-infra service (Windows)
-  ansible.windows.win_service:
-    name: newrelic-infra
-    state: stopped
-  when: ansible_system != 'Linux'
 
 - name: Install (replace) Fluent Bit Linux package
-  include_tasks: "{{ ansible_pkg_mgr }}.yml"
+  include_tasks: "linux.yml"
   when: ansible_system == 'Linux'
 
 - name: Install (replace) Fluent Bit Windows package
   include_tasks: "windows.yml"
-  when: ansible_system != 'Linux'
-
-- name: Start again newrelic-infra service with new Fluent Bit binary (Linux)
-  ansible.builtin.service:
-    name: newrelic-infra
-    state: started
-  become: true
-  when: ansible_system == 'Linux'
-
-- name: Start again newrelic-infra service with new Fluent Bit binary (Windows)
-  ansible.windows.win_service:
-    name: newrelic-infra
-    state: started
   when: ansible_system != 'Linux'
