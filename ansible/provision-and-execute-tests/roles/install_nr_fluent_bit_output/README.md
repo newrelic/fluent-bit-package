@@ -1,7 +1,7 @@
 Role Name
 =========
 
-This roles maks the infra agent use a specific version (plugin_arch) of the NR FB output plugin.
+This roles makes the infra agent use a specific version (plugin_arch) of the NR FB output plugin.
 
 Role Variables
 --------------
