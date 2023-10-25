@@ -28,5 +28,8 @@
     "includeConsoleLog": true,
     "includeFailureMsg": true,
     "includeSuiteFailure": true
+  },
+  "dependencies": {
+    "node-eventlog": "^1.0.2"
   }
 }
