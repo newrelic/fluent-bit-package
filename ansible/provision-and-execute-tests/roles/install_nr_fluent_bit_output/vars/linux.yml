@@ -3,4 +3,4 @@ infra_agent_config_file_absolute_path: /etc/newrelic-infra.yml
 nr_fb_output_file_extension: 'so'
 nr_fb_output_plugin_artifact: 'out_newrelic-linux-{{ plugin_arch }}-{{ plugin_version }}.{{ nr_fb_output_file_extension }}'
 nr_fb_output_plugin_url: "https://github.com/newrelic/newrelic-fluent-bit-output/releases/download/v{{ plugin_version }}/{{ nr_fb_output_plugin_artifact }}"
-nr_fb_download_file_path: "/tmp/out_newrelic.{{ nr_fb_output_file_extension }}'"
+nr_fb_output_plugin_download_file_path: "/tmp/out_newrelic.{{ nr_fb_output_file_extension }}'"
