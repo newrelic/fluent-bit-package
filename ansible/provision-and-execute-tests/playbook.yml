@@ -130,8 +130,8 @@
 
     monitored_file: 'C:\Users\Administrator\tail-log-file-test'
     monitored_tcp_port: 5170
-    monitored_windows_log_name_using_winevtlog: 'Application'
-    monitored_windows_log_name_using_winlog: 'Application'
+    monitored_windows_log_name_using_winevtlog: "Application"
+    monitored_windows_log_name_using_winlog: "Application"
 
     test_suite_folder: 'C:\Windows\Temp\test-suite'
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
