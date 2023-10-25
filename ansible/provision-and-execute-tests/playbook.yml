@@ -130,8 +130,8 @@
 
     monitored_file: 'C:\Users\Administrator\tail-log-file-test'
     monitored_tcp_port: 5170
-    monitored_windows_log_name_using_winevtlog: "Application"
-    monitored_windows_log_name_using_winlog: "Application"
+    monitored_windows_log_name_using_winevtlog: 'Application'
+    monitored_windows_log_name_using_winlog: 'Application'
 
     test_suite_folder: 'C:\Windows\Temp\test-suite'
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
@@ -201,13 +201,13 @@
 #        dest: C:\settings.txt
 #        remote_src: true
 #
-#    - name: Capture contents of PATH environment variable
-#      win_shell: $env:PATH
-#      register: original_path
-#
-#    - name: Include nvm and node paths into patched_path
-#      set_fact:
-#        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
+    - name: Capture contents of PATH environment variable
+      win_shell: $env:PATH
+      register: original_path
+
+    - name: Include nvm and node paths into patched_path
+      set_fact:
+        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
 #
 #    - name: Install node
 #      win_shell: 'nvm install {{ node_version }}'
@@ -226,26 +226,26 @@
 #      environment:
 #        PATH: '{{ patched_path }}'
 #
-#    - name: Remove previous reports
-#      ansible.windows.win_file:
-#        path: '{{ test_suite_folder }}\reports'
-#        state: absent
-#
-#    - name: Run test-suite
-#      ansible.windows.win_shell: 'npm run test'
-#      args:
-#        chdir: '{{ test_suite_folder }}'
-#        creates: '{{ test_suite_folder }}\reports'
-#      environment:
-#        PATH: '{{ patched_path }}'
-#        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
-#        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
-#        API_KEY: "{{ new_relic_api_key }}"
-#        ACCOUNT_ID: "{{ new_relic_account_id }}"
-#        MONITORED_FILE: '{{ monitored_file }}'
-##        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
-#        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
-#        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+    - name: Remove previous reports
+      ansible.windows.win_file:
+        path: '{{ test_suite_folder }}\reports'
+        state: absent
+
+    - name: Run test-suite
+      ansible.windows.win_shell: 'npm run test'
+      args:
+        chdir: '{{ test_suite_folder }}'
+        creates: '{{ test_suite_folder }}\reports'
+      environment:
+        PATH: '{{ patched_path }}'
+        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: "{{ new_relic_account_id }}"
+        MONITORED_FILE: '{{ monitored_file }}'
+#        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
+        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
+        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
 
     - name: Fetch results
       fetch:
