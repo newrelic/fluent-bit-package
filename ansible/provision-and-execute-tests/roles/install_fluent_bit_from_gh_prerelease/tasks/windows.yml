@@ -3,11 +3,6 @@
     url: "{{ fb_package_url }}"
     dest: C:\Windows\Temp
 
-- name: Stop any fb running service to proceed with custom fb installation
-  ansible.windows.win_service:
-    name: newrelic-infra
-    state: stopped
-
 - name: Unzip the Fluent Bit package
   community.windows.win_unzip:
     src: 'C:\Windows\Temp\{{ fb_package_name }}'
