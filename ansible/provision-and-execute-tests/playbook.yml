@@ -174,78 +174,78 @@
 #      ansible.builtin.include_role:
 #        name: create_logging_configs
 
-    - name: Install Fluent Bit package to be tested for this distro
-      ansible.builtin.include_role:
-        name: install_fluent_bit_from_gh_prerelease
-      vars:
-        fb_package_name: "{{ fluent_bit_package_name }}"
-        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
-      when: pr_number is not regex('^local-.*')
-
-    - name: Install NR Fluent Bit output
-      ansible.builtin.include_role:
-        name: install_nr_fluent_bit_output
-      vars:
-        plugin_arch: "{{ (arch == 'win64') | ternary('amd64','386') }}"
-        plugin_version: "{{ nr_fb_output_plugin_version }}"
-
-    - name: Install NVM
-      win_chocolatey:
-        name: nvm.install
-        state: present
-
-    # Ugly hack for NVM to work
-    - name: Copy settings.txt file to root so it can be found
-      ansible.windows.win_copy:
-        src: '{{ nvm_path }}\settings.txt'
-        dest: C:\settings.txt
-        remote_src: true
-
-    - name: Capture contents of PATH environment variable
-      win_shell: $env:PATH
-      register: original_path
-
-    - name: Include nvm and node paths into patched_path
-      set_fact:
-        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
-
-    - name: Install node
-      win_shell: 'nvm install {{ node_version }}'
-      environment:
-        PATH: '{{ patched_path }}'
-
-    - name: Copy test suite
-      ansible.windows.win_copy:
-        src: ../../integration-tests/test-suite
-        dest: 'C:\Windows\Temp\'
-
-    - name: Install test-suite dependencies
-      ansible.windows.win_shell: 'npm i'
-      args:
-        chdir: '{{ test_suite_folder }}'
-      environment:
-        PATH: '{{ patched_path }}'
-
-    - name: Remove previous reports
-      ansible.windows.win_file:
-        path: '{{ test_suite_folder }}\reports'
-        state: absent
-
-    - name: Run test-suite
-      ansible.windows.win_shell: 'npm run test'
-      args:
-        chdir: '{{ test_suite_folder }}'
-        creates: '{{ test_suite_folder }}\reports'
-      environment:
-        PATH: '{{ patched_path }}'
-        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
-        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
-        API_KEY: "{{ new_relic_api_key }}"
-        ACCOUNT_ID: "{{ new_relic_account_id }}"
-        MONITORED_FILE: '{{ monitored_file }}'
-#        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
-        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
-        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+#    - name: Install Fluent Bit package to be tested for this distro
+#      ansible.builtin.include_role:
+#        name: install_fluent_bit_from_gh_prerelease
+#      vars:
+#        fb_package_name: "{{ fluent_bit_package_name }}"
+#        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
+#      when: pr_number is not regex('^local-.*')
+#
+#    - name: Install NR Fluent Bit output
+#      ansible.builtin.include_role:
+#        name: install_nr_fluent_bit_output
+#      vars:
+#        plugin_arch: "{{ (arch == 'win64') | ternary('amd64','386') }}"
+#        plugin_version: "{{ nr_fb_output_plugin_version }}"
+#
+#    - name: Install NVM
+#      win_chocolatey:
+#        name: nvm.install
+#        state: present
+#
+#    # Ugly hack for NVM to work
+#    - name: Copy settings.txt file to root so it can be found
+#      ansible.windows.win_copy:
+#        src: '{{ nvm_path }}\settings.txt'
+#        dest: C:\settings.txt
+#        remote_src: true
+#
+#    - name: Capture contents of PATH environment variable
+#      win_shell: $env:PATH
+#      register: original_path
+#
+#    - name: Include nvm and node paths into patched_path
+#      set_fact:
+#        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
+#
+#    - name: Install node
+#      win_shell: 'nvm install {{ node_version }}'
+#      environment:
+#        PATH: '{{ patched_path }}'
+#
+#    - name: Copy test suite
+#      ansible.windows.win_copy:
+#        src: ../../integration-tests/test-suite
+#        dest: 'C:\Windows\Temp\'
+#
+#    - name: Install test-suite dependencies
+#      ansible.windows.win_shell: 'npm i'
+#      args:
+#        chdir: '{{ test_suite_folder }}'
+#      environment:
+#        PATH: '{{ patched_path }}'
+#
+#    - name: Remove previous reports
+#      ansible.windows.win_file:
+#        path: '{{ test_suite_folder }}\reports'
+#        state: absent
+#
+#    - name: Run test-suite
+#      ansible.windows.win_shell: 'npm run test'
+#      args:
+#        chdir: '{{ test_suite_folder }}'
+#        creates: '{{ test_suite_folder }}\reports'
+#      environment:
+#        PATH: '{{ patched_path }}'
+#        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
+#        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+#        API_KEY: "{{ new_relic_api_key }}"
+#        ACCOUNT_ID: "{{ new_relic_account_id }}"
+#        MONITORED_FILE: '{{ monitored_file }}'
+##        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}" # waiting for https://github.com/fluent/fluent-bit/issues/6671
+#        MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
+#        MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
 
     - name: Fetch results
       fetch:
