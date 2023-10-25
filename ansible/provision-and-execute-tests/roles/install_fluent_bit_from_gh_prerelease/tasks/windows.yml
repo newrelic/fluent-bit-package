@@ -1,8 +1,3 @@
-- name: Stop any running service to proceed with custom fb installation
-  ansible.windows.win_service:
-    name: fluent-bit
-    state: stopped
-
 - name: Download package from URL
   win_get_url:
     url: "{{ fb_package_url }}"
