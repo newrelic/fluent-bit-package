@@ -19,7 +19,7 @@
     line: 'fluent_bit_nr_lib_path: {{ nr_fb_output_plugin_download_file_path }}'
   become: true
 
-- name: Start again newrelic-infra service with new Fluent Bit binary (Linux)
+- name: Start again newrelic-infra service with new NR FB Output plugin (Linux)
   ansible.builtin.service:
     name: newrelic-infra
     state: started

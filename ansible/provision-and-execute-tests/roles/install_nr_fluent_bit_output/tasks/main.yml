@@ -5,10 +5,10 @@
       - plugin_arch is defined
       - plugin_version is defined
 
-- name: Install (replace) Fluent Bit Linux package
+- name: Install specific NR Fluent Bit output Linux plugin
   include_tasks: "linux.yml"
   when: ansible_system == 'Linux'
 
-- name: Install (replace) Fluent Bit Windows package
+- name: Install specific NR Fluent Bit output Windows plugin
   include_tasks: "windows.yml"
   when: ansible_system != 'Linux'
