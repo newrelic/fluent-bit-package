@@ -16,7 +16,7 @@ const causeEventToBeWrittenToWindowsApplicationLog = async (logName, source, mes
  *
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
-describe('Windows Infrastructure Agent Fluent Bit features', () => {
+describe('Windows Infrastructure Agent Fluent Bit specific features', () => {
   let nrdb;
 
   beforeAll(() => {
