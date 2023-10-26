@@ -2,7 +2,7 @@
 - name: Provision Linux test executor instances and execute tests
   hosts: linux
   vars:
-    node_version: 20.9.0
+    node_version: 16.14.0
 
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
@@ -90,7 +90,7 @@
         state: absent
 
     - name: Run test-suite
-      ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm test"
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
         executable: /bin/bash
         chdir: ~/test-suite
@@ -115,7 +115,7 @@
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
   vars:
-    node_version: 20.9.0
+    node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
@@ -232,7 +232,7 @@
         state: absent
 
     - name: Run test-suite
-      ansible.windows.win_shell: 'npm test'
+      ansible.windows.win_shell: 'npm run test'
       args:
         chdir: '{{ test_suite_folder }}'
         creates: '{{ test_suite_folder }}\reports'
@@ -256,7 +256,7 @@
 - name: Process and merge test reports
   hosts: localhost
   vars:
-    node_version: 20.9.0
+    node_version: 18.18.0
     controller_scripts_folder: ../../integration-tests/controller-scripts
     test_reports_dir: /tmp/test-reports
     combined_test_report_name: tests-report.xml
