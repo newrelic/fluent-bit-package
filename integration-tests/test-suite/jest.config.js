@@ -4,6 +4,7 @@ module.exports = {
   testTimeout: WAIT_FOR_TEST_COMPLETION,
   testFailureExitCode: 0,
   reporters: [
+    'default',
     'jest-junit'
   ]
 };
