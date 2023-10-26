@@ -1,6 +1,15 @@
+const Nrdb = require('./lib/nrdb');
 const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
 const { EventLog } = require("node-eventlog");
+
+const newNrdb = (configuration) => {
+  return new Nrdb({
+    accountId: configuration.accountId,
+    apiKey: configuration.apiKey,
+    nerdGraphUrl: configuration.nerdGraphUrl,
+  });
+};
 
 const causeEventToBeWrittenToWindowsApplicationLog = async (logName, source, message) => {
   // Create a source so that for debugging we can easily just look
