@@ -39,7 +39,7 @@ describe('Windows Infrastructure Agent Fluent Bit specific features', () => {
   });
 
   const waitForLogMessageContaining = async (substring) => {
-    return nrdb.waitToFindOne({ where: `message like '%${substring}%'` });
+    return nrdb.waitToFindOne({ where: `StringInserts like '%${substring}%'` });
   }
 
   const testOnlyIfSet = (environmentVariableName) => {
