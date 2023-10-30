@@ -1,7 +1,8 @@
 const Nrdb = require('./lib/nrdb');
 const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const { EventLog } = require("node-eventlog");
+const { spawnSync} = require("child_process");
+const logger = require("./lib/logger");
 
 const newNrdb = (configuration) => {
   return new Nrdb({
@@ -11,13 +12,37 @@ const newNrdb = (configuration) => {
   });
 };
 
-const causeEventToBeWrittenToWindowsApplicationLog = async (logName, source, message) => {
+const executeSync = (command, commandArguments, expectedExitCode) => {
+  const result = spawnSync(command, commandArguments);
+
+  logger.info(result.stdout?.toString());
+  logger.error(result.stderr?.toString());
+  expect(result.status).toEqual(expectedExitCode);
+}
+
+const createWindowsEventLogSource = (logName, source) => {
+  const createEventSourceCommand = `[System.Diagnostics.EventLog]::CreateEventSource("${source}", "${logName}")`
+  try {
+    spawnSync('powershell', [createEventSourceCommand]);
+  } catch (err) {
+      logger.error('Error creating event log', err);
+  }
+}
+
+const createWindowsEventLogMessage = (logName, source, message) => {
+  const expectedExitCode = 0;
+  const command = `Write-EventLog -LogName "${logName}" -Source "${source}" -EventID 3001 -EntryType Information -Message "${message}"`
+
+  executeSync('powershell', [command], expectedExitCode);
+}
+
+const causeEventToBeWrittenToWindowsApplicationLog = (logName, source, message) => {
   // Create a source so that for debugging we can easily just look
   // at logs created by us (this is just a nice to have, we could also
   // just write as some existing source)
+  createWindowsEventLogSource(logName, source);
 
-  const winEvtLogger = new EventLog(source);
-  await winEvtLogger.log(message, 'info', 3001);
+  createWindowsEventLogMessage(logName, source, message);
 }
 
 /**
@@ -39,7 +64,7 @@ describe('Windows Infrastructure Agent Fluent Bit specific features', () => {
   });
 
   const waitForLogMessageContaining = async (substring) => {
-    return nrdb.waitToFindOne({ where: `StringInserts like '%${substring}%'` });
+    return nrdb.waitToFindOne({ where: `message like '%${substring}%'` });
   }
 
   const testOnlyIfSet = (environmentVariableName) => {
