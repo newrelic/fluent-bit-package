@@ -1,4 +1,3 @@
-fb_package_url: "https://github.com/newrelic/fluent-bit-package/releases/download/{{ gh_prerelease_tag }}/{{ fb_package_name }}"
 infra_agent_config_file_absolute_path: /etc/newrelic-infra.yml
 nr_fb_output_file_extension: 'so'
 nr_fb_output_plugin_artifact: 'out_newrelic-linux-{{ plugin_arch }}-{{ plugin_version }}.{{ nr_fb_output_file_extension }}'
