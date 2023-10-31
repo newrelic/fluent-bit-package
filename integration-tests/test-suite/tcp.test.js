@@ -4,7 +4,7 @@ const { Socket } = require('net');
 const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const {testOnlyIfSet, waitForLogMessageContaining} = require("./lib/test-util");
+const { testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util");
 
 /**
  * The newline is important -- Fluent Bit will wait

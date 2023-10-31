@@ -5,7 +5,7 @@ const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
 const { currentTimeAsIso8601 } = require('./lib/time');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const {waitForLogMessageContaining, testOnlyIfSet} = require("./lib/test-util");
+const { waitForLogMessageContaining, testOnlyIfSet } = require("./lib/test-util");
 
 /**
  * The newline is important -- Fluent Bit will wait

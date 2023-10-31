@@ -3,7 +3,7 @@ const Nrdb = require('./lib/nrdb');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const {testOnlyIfSet, waitForLogMessageContaining} = require("./lib/test-util");
+const { testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util");
 
 /**
  * The newline is important -- Fluent Bit will wait

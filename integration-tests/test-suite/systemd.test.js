@@ -1,13 +1,7 @@
-const logger = require('./lib/logger');
 const Nrdb = require('./lib/nrdb');
-const fs = require('fs');
-const { Socket } = require('net');
-const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
-const { currentTimeAsIso8601 } = require('./lib/time');
-const { spawnSync } = require('child_process');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const {executeSync, testOnlyIfSet, waitForLogMessageContaining} = require("./lib/test-util");
+const { executeSync, testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util");
 
 const causeJournaldMessageToBeWrittenForSsh = (uuid) => {
   // This _attempts_ to make an SSH connecting using the UUID as a user.
