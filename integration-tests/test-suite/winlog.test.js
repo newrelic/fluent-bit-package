@@ -3,15 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
 const { spawnSync} = require("child_process");
 const logger = require("./lib/logger");
-const {testOnlyIfSet, waitForLogMessageContaining} = require("./lib/test-util");
-
-const executeSync = (command, commandArguments, expectedExitCode) => {
-  const result = spawnSync(command, commandArguments);
-
-  logger.info(result.stdout?.toString());
-  logger.error(result.stderr?.toString());
-  expect(result.status).toEqual(expectedExitCode);
-}
+const { testOnlyIfSet, waitForLogMessageContaining, executeSync } = require("./lib/test-util");
 
 const createWindowsEventLogSource = (logName, source) => {
   const createEventSourceCommand = `[System.Diagnostics.EventLog]::CreateEventSource("${source}", "${logName}")`
@@ -70,7 +62,7 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     //
     // NOTE: this may take a while, since unlike winevtlog (which just reads
     // new events by default), winlog will read all events in the monitored log
-    await waitForLogMessageContaining(message);
+    await waitForLogMessageContaining(nrdb, message);
   });
 
   testOnlyIfSet('MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG')('detects a Windows event using "winevtlog" input plugin', async () => {
@@ -84,6 +76,6 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     await causeEventToBeWrittenToWindowsApplicationLog(monitoredLogName, source, message);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(message);
+    await waitForLogMessageContaining(nrdb, message);
   });
 });
