@@ -11,7 +11,6 @@
   ansible.builtin.get_url:
     url: "{{ nr_fb_output_plugin_url }}"
     dest: "{{ nr_fb_output_plugin_download_file_path }}"
-  become: true
 
 - name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
   ansible.builtin.lineinfile:
