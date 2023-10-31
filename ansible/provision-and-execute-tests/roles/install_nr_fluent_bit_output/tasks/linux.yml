@@ -1,7 +1,7 @@
-- name: Load a variable file based on the OS type, or a default if not found. Using free-form to specify the file.
+- name: Load Linux variables
   ansible.builtin.include_vars: "linux.yml"
 
-- name: Stop newrelic-infra service (Linux)
+- name: Stop newrelic-infra service
   ansible.builtin.service:
     name: newrelic-infra
     state: stopped
@@ -19,7 +19,7 @@
     line: 'fluent_bit_nr_lib_path: {{ nr_fb_output_plugin_download_file_path }}'
   become: true
 
-- name: Start again newrelic-infra service with new NR FB Output plugin (Linux)
+- name: Start again newrelic-infra service with new NR FB Output plugin
   ansible.builtin.service:
     name: newrelic-infra
     state: started
