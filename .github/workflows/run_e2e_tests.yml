@@ -50,9 +50,38 @@ jobs:
       container_make_target: "ansible/provision-and-execute-tests PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
 
+  report_test_results:
+    name: Report results
+    runs-on: ubuntu-20.04
+    needs: provision_and_execute_tests
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PRE_RELEASE_NAME: tmp-pr-${{ github.event.pull_request.number }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download report from pre-release
+        run: |
+          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern 'tests-report.xml'
+
+      - name: Tests Report Details
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests Report Details  # Name of the check run which will be created
+          path: tests-report.xml # Path to test results
+          reporter: jest-junit
+
+      - name: Tests Report Summary
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            tests-report.xml
+
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    needs: provision_and_execute_tests
+    needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"

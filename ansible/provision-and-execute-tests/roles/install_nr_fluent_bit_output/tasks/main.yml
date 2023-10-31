@@ -1,0 +1,14 @@
+---
+- name: Check mandatory variables (all distros)
+  assert:
+    that:
+      - plugin_arch is defined
+      - plugin_version is defined
+
+- name: Install specific NR Fluent Bit output Linux plugin
+  include_tasks: "linux.yml"
+  when: ansible_system == 'Linux'
+
+- name: Install specific NR Fluent Bit output Windows plugin
+  include_tasks: "windows.yml"
+  when: ansible_system != 'Linux'
