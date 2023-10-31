@@ -3,14 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireEnvironmentVariable } = require('./lib/environmentVariables');
 const { spawnSync} = require("child_process");
 const logger = require("./lib/logger");
-
-const newNrdb = (configuration) => {
-  return new Nrdb({
-    accountId: configuration.accountId,
-    apiKey: configuration.apiKey,
-    nerdGraphUrl: configuration.nerdGraphUrl,
-  });
-};
+const {testOnlyIfSet, waitForLogMessageContaining} = require("./lib/test-util");
 
 const executeSync = (command, commandArguments, expectedExitCode) => {
   const result = spawnSync(command, commandArguments);
@@ -50,7 +43,7 @@ const causeEventToBeWrittenToWindowsApplicationLog = (logName, source, message) 
  *
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
-describe('Windows Infrastructure Agent Fluent Bit specific features', () => {
+describe('WINLOG & WINEVTLOG inputs', () => {
   let nrdb;
 
   beforeAll(() => {
@@ -59,17 +52,9 @@ describe('Windows Infrastructure Agent Fluent Bit specific features', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb = newNrdb({ accountId, apiKey, nerdGraphUrl });
+    nrdb = new Nrdb({ accountId, apiKey, nerdGraphUrl });
 
   });
-
-  const waitForLogMessageContaining = async (substring) => {
-    return nrdb.waitToFindOne({ where: `message like '%${substring}%'` });
-  }
-
-  const testOnlyIfSet = (environmentVariableName) => {
-    return process.env[environmentVariableName] ? test : test.skip;
-  }
 
   testOnlyIfSet('MONITORED_WINDOWS_LOG_NAME_USING_WINLOG')('detects a Windows event using "winlog" input plugin', async () => {
     // Create a unique string so that we can find the log message later
