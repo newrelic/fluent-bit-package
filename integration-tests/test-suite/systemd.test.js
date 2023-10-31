@@ -67,7 +67,7 @@ describe('SYSTEMD unit input', () => {
     causeJournaldMessageToBeWrittenForSsh(uuid);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(uuid);
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
 });

@@ -48,7 +48,7 @@ describe('TAIL input', () => {
     appendTo(file, line);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(uuid);
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
 });

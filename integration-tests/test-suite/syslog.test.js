@@ -76,7 +76,7 @@ describe('SYSLOG tests', () => {
     writeToTcpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(uuid);
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
   testOnlyIfSet('MONITORED_SYSLOG_RFC_5424_UDP_PORT')('detects writing to a UDP socket with a syslog RFC 5424 message', async () => {
@@ -90,7 +90,7 @@ describe('SYSLOG tests', () => {
     writeToUdpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(uuid);
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
 });
