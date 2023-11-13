@@ -1,0 +1,27 @@
+name: Merge to master
+
+on:
+  push:
+    branches:
+      - test_main
+
+jobs:
+  cd:
+    name: Promote pre-release to release and publish artifacts to production repositories
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v6
+        id: get_pr_number
+        with:
+          script: |
+              return (
+                await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  commit_sha: context.sha,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                })
+              ).data[0].number;
+          result-encoding: string
+      - name: PR number
+        run: echo '${{steps.get_pr_number.outputs.result}}'
