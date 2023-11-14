@@ -1,4 +1,4 @@
-fbVersion: 2.1.10
+fbVersion: 2.0.8
 
 #  This file, together with each distro file are processed and merged incrementally to
 #  build all the information required to download and test each package. Each package ends
