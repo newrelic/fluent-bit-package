@@ -7,13 +7,10 @@ if __name__ == '__main__':
     schemaObjectArray = []
     for item in matrixData:
         if item['osDistro'] != 'windows-server':
-            type = item['nrPackageUrl'].split('/')[5]
-            arch = 'arm64' if (item['arch'] == 'aarch64') else item['arch']
+            type = item['packageManagerType']
             schemaObject = {
                 'src': item['targetPackageName'],
-                'arch': [
-                    arch
-                ],
+                'arch': [item['repoArch']],
                 'uploads': [
                     {
                         'type': type,
