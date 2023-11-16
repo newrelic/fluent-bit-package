@@ -27,7 +27,13 @@ jobs:
       - name: Publish assets to windows S3
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
-          TAG: ${{ github.event.inputs.tag }}
+          TAG: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
+          GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
+          GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+          AWS_S3_BUCKET_NAME: "nr-downloads-main"
+          AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock"
+          AWS_REGION: "us-east-1"
           AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
           AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
@@ -37,7 +43,7 @@ jobs:
           dest_prefix: "logging-test/"
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
-          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/tmp-pr-${{ steps.get_pr_number.outputs.result }}/generated-linux-schema.yaml"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.TAG }}/generated-linux-schema.yaml"
           aws_access_key_id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws_s3_bucket_name: ${{ env.AWS_S3_BUCKET_NAME }}
