@@ -32,8 +32,8 @@ jobs:
           GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
           GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-          AWS_S3_BUCKET_NAME: "nr-downloads-main"
-          AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock"
+          AWS_S3_BUCKET_NAME: "nr-downloads-ohai-staging"
+          AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock-staging"
           AWS_REGION: "us-east-1"
           AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
@@ -49,7 +49,7 @@ jobs:
           aws_secret_access_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws_s3_bucket_name: ${{ env.AWS_S3_BUCKET_NAME }}
           aws_s3_lock_bucket_name: ${{ env.AWS_S3_LOCK_BUCKET_NAME }}
-          access_point_host: "testing"
+          access_point_host: "staging"
           run_id: ${{ github.run_id }}
           aws_region: ${{ env.AWS_REGION }}
           aws_role_session_name: ${{ env.AWS_ROLE_SESSION_NAME }}
