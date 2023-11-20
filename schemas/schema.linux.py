@@ -25,7 +25,5 @@ if __name__ == '__main__':
             }
             schemaObjectArray.append(schemaObject)
 
-    print(matrixData[0])
     matrix.close()
-    print(schemaObjectArray)
     print(yaml.dump(schemaObjectArray))
