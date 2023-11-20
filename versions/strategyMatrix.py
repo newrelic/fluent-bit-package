@@ -68,7 +68,7 @@ RPM_DISTROS = ['amazonlinux', 'centos']
 WINDOWS_DISTRO = 'windows-server'
 
 def deb_package_details(pkg):
-    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb",
+    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"[0],
     return {
         'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
         'targetPackageName': target_package_name,
@@ -81,7 +81,7 @@ f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/apt/pool
 def rpm_package_details(pkg):
     rpm_os_family = {'amazonlinux': 'amazonlinux', 'centos': 'el'}[pkg['osDistro']]
     repo_arch = 'arm64' if pkg['arch'] == 'aarch64' else 'x86_64'
-    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{repo_arch}.rpm"
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{repo_arch}.rpm"[0]
 
     return {
         'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
@@ -93,7 +93,7 @@ def rpm_package_details(pkg):
     }
 
 def sles_package_details(pkg):
-    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm",
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"[0],
     return {
         # SLES packages are not officially available in Fluent Bit repos (we compile them ourselves), so no 'packageUrl' is available for them.
         'targetPackageName': target_package_name,
@@ -105,7 +105,7 @@ def sles_package_details(pkg):
 
 def windows_package_details(data):
     windows_target_arch = {'win32': '386', 'win64': 'amd64'}[data['arch']]
-    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
+    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"[0]
     return {
         'packageUrl': f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         'targetPackageName': target_package_name
