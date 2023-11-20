@@ -38,6 +38,8 @@ This results in the following JSON objects in the resulting strategy matrix (rep
     "packageUrl": "https://packages.fluentbit.io/centos/9/x86_64/fluent-bit-2.0.7-1.x86_64.rpm",
     "targetPackageName": "fluent-bit-2.0.7-1.centos-9.x86_64.rpm",
     "nrPackageUrl": "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/el/9/x86_64/fluent-bit-2.0.7-1.centos-9.x86_64.rpm"
+    "repoArch": "x86_64",
+    "packageManagerType": "yum"
   },
   {
     "fbVersion": "2.0.6",
@@ -48,6 +50,8 @@ This results in the following JSON objects in the resulting strategy matrix (rep
     "packageUrl": "https://packages.fluentbit.io/centos/9/aarch64/fluent-bit-2.0.6-1.aarch64.rpm",
     "targetPackageName": "fluent-bit-2.0.6-1.centos-9.arm64.rpm",
     "nrPackageUrl": "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/el/9/aarch64/fluent-bit-2.0.6-1.centos-9.arm64.rpm"
+    "repoArch": "arm64",
+    "packageManagerType": "yum"
   }
 
 This script file takes care of computing the following attributes for each supported package:
@@ -64,36 +68,47 @@ RPM_DISTROS = ['amazonlinux', 'centos']
 WINDOWS_DISTRO = 'windows-server'
 
 def deb_package_details(pkg):
+    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
         'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
-        'targetPackageName': f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb",
-        'nrPackageUrl': 
-f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/apt/pool/main/f/fluent-bit/fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
+        'targetPackageName': target_package_name,
+        'nrPackageUrl':
+f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/apt/pool/main/f/fluent-bit/{target_package_name}",
+        'repoArch': f"{pkg['arch']}",
+        'packageManagerType': 'apt'
     }
 
 def rpm_package_details(pkg):
-    rpm_target_arch_remap = {'aarch64': 'arm64', 'x86_64': 'x86_64'}
-    rpm_os_family_remap = {'amazonlinux': 'amazonlinux', 'centos': 'el'}
+    rpm_os_family = {'amazonlinux': 'amazonlinux', 'centos': 'el'}[pkg['osDistro']]
+    repo_arch = 'arm64' if pkg['arch'] == 'aarch64' else 'x86_64'
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{repo_arch}.rpm"
+
     return {
         'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
-        'targetPackageName': f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm",
-        'nrPackageUrl': 
-f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/{rpm_os_family_remap[pkg['osDistro']]}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{rpm_target_arch_remap[pkg['arch']]}.rpm"
+        'targetPackageName': target_package_name,
+        'nrPackageUrl':
+            f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
+        'repoArch': repo_arch,
+        'packageManagerType': 'yum'
     }
 
 def sles_package_details(pkg):
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
     return {
         # SLES packages are not officially available in Fluent Bit repos (we compile them ourselves), so no 'packageUrl' is available for them.
-        'targetPackageName': f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm",
+        'targetPackageName': target_package_name,
         'nrPackageUrl':
-            f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
+            f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
+        'repoArch': f"{pkg['arch']}",
+        'packageManagerType': 'zypp'
     }
 
 def windows_package_details(data):
-    windows_target_arch_remap = {'win32': '386', 'win64': 'amd64'}
+    windows_target_arch = {'win32': '386', 'win64': 'amd64'}[data['arch']]
+    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
     return {
         'packageUrl': f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
-        'targetPackageName': f"fb-windows-{data['fbVersion']}-{windows_target_arch_remap[data['arch']]}.zip"
+        'targetPackageName': target_package_name,
         # TODO: add URL to Logging's S3 bucket holding Windows packages here
         # 'nrPackageUrl': 'url'
     }
