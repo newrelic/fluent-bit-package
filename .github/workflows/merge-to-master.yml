@@ -34,7 +34,7 @@ jobs:
       - name: Publish linux packages to staging
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
-          TAG: ${{ needs.get-release-tag.outputs.tag }}"
+          TAG: ${{ needs.get-release-tag.outputs.tag }}
           GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
           GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
