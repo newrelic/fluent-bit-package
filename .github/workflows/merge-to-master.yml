@@ -6,29 +6,35 @@ on:
       - test_main
 
 jobs:
-  publishing-to-s3:
+  get-release-tag:
     name: Publish linux artifacts into s3 bucket
     runs-on: ubuntu-latest
-
+    outputs:
+      tag: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
     steps:
       - name: Get PR number
         uses: actions/github-script@v6
         id: get_pr_number
         with:
           script: |
-              return (
-                await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  commit_sha: context.sha,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                })
-              ).data[0].number;
+            return (
+              await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                commit_sha: context.sha,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              })
+            ).data[0].number;
           result-encoding: string
 
-      - name: Publish packages
+  publish-linux:
+    name: Publish linux packages to staging and production buckets
+    needs: get-release-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish linux packages to staging
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
-          TAG: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
+          TAG: ${{ needs.get-release-tag.outputs.tag }}"
           GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
           GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
