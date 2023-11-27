@@ -7,6 +7,11 @@ on:
         description: Make target to execute remotely in a Fargate task
         required: true
         type: string
+      ref:
+        description: Check out this ref in the fargate container
+        required: false
+        type: string
+
 
 jobs:
   run_task:
@@ -49,4 +54,4 @@ jobs:
           aws_vpc_security_groups: |
             sg-0de7ca06bb5972dcb
           repo_name: "newrelic/fluent-bit-package"
-          ref: ${{ env.GIT_BRANCH }}
+          ref: ${{ inputs.ref == '' && env.GIT_BRANCH || inputs.ref }}
