@@ -21,12 +21,14 @@ def download_win_packages_from_gh_release(token, tag_name):
 
     return asset_names
 
+
 def upload_file(file_name, bucket):
     s3_client = boto3.client('s3')
     try:
         s3_client.upload_file(file_name, bucket, None)
     except ClientError as e:
         logging.error(e)
+
 
 if __name__ == "__main__":
     asset_names = download_win_packages_from_gh_release(os.environ['GITHUB_TOKEN'], os.environ['REF'])
