@@ -57,23 +57,3 @@ jobs:
           # used for signing package stuff
           gpg_passphrase: ${{ env.GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ env.GPG_PRIVATE_KEY_BASE64 }}
-
-  notify:
-    runs-on: ubuntu-latest
-    needs: release
-    steps:
-      - name: Send release details to Slack workflow
-        id: slack
-        uses: slackapi/slack-github-action@v1.23.0
-        with:
-          payload: |
-            {
-              "releaseUrl": ":github: ${{ github.event.release.html_url }}",
-              "releaseName": "${{ github.event.release.name }}",
-              "productName": "${{ env.PRODUCT_NAME }}",
-              "productUrl": "${{ env.PRODUCT_URL }}"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          PRODUCT_NAME: Fluentbit Linux Packages
-          PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
