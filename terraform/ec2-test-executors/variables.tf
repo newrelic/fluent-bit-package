@@ -8,7 +8,7 @@ variable "crowdstrike_ccid" {
   description = "NR Crowdstrike CCID"
 }
 
-variable "crowdstrike_bucket_url" {
+variable "crowdstrike_bucket" {
   type = string
   description = "Logging's crowdstrike bucket url"
 }

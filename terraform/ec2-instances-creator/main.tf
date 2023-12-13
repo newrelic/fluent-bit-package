@@ -46,7 +46,7 @@ module "ec2_instance" {
 
   iam_instance_profile   = local.ec2_instance_profile
 
-  user_data = templatefile(local.user_data_script, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion, package_manager_type = each.value.packageManagerType, crowdstrike_package_name = each.value.crowdstrikePackageName, crowdstrike_bucket_url =  var.crowdstrike_bucket_url, crowdstrike_ccid = var.crowdstrike_ccid })
+  user_data = templatefile(local.user_data_script, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion, package_manager_type = each.value.packageManagerType, crowdstrike_package_name = each.value.crowdstrikePackageName, crowdstrike_bucket =  var.crowdstrike_bucket, crowdstrike_ccid = var.crowdstrike_ccid })
 
   # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
   # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the

@@ -9,5 +9,5 @@ module "suse-fb-builder-instances" {
   pr_number = var.pr_number
   instance_type = "fluentbit-builder"
   crowdstrike_ccid = var.crowdstrike_ccid
-  crowdstrike_bucket_url = var.crowdstrike_bucket_url
+  crowdstrike_bucket = var.crowdstrike_bucket
 }

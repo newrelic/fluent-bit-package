@@ -9,5 +9,5 @@ module "test-executor-instances" {
   pr_number = var.pr_number
   instance_type = "test-executor"
   crowdstrike_ccid = var.crowdstrike_ccid
-  crowdstrike_bucket_url = var.crowdstrike_bucket_url
+  crowdstrike_bucket = var.crowdstrike_bucket
 }
