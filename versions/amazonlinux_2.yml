@@ -3,5 +3,7 @@ osVersion: 2
 packages:
   - arch: x86_64
     ami: ami-05e1405c57ab23683
+    crowdstrikePackageName: falcon-sensor-7.05.0-16004.amzn2.x86_64.rpm
   - arch: aarch64
     ami: ami-08d8cbe09f0a01184
+    crowdstrikePackageName: falcon-sensor-7.05.0-16004.amzn2.aarch64.rpm

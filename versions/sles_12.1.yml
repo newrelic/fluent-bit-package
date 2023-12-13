@@ -4,3 +4,4 @@ packages:
   - arch: x86_64
     # It suses the one from SLES 12.3 since there is none available for 12.1
     ami: ami-03ce00a6a270d98ef
+    crowdstrikePackageName: falcon-sensor-7.05.0-16004.suse12.x86_64.rpm

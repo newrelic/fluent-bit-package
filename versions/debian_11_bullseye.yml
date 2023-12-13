@@ -3,5 +3,7 @@ osVersion: bullseye
 packages:
   - arch: amd64
     ami: ami-06a7641d5bd7bdc65
-  - arch: arm64
-    ami: ami-0237d8bf4f989d904
+    crowdstrikePackageName: falcon-sensor_7.05.0-16004_amd64_debian.deb
+#  No packages available for aarch64
+#  - arch: arm64
+#    ami: ami-0237d8bf4f989d904

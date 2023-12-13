@@ -26,6 +26,8 @@ terraform/backend: checks
 .PHONY: terraform/vars
 terraform/vars:
 	echo "pr_number = \"${PR_NUMBER}\"" >> "./${TERRAFORM_PROJECT}/variables.tfvars"
+	echo "crowdstrike_ccid = \"${CROWDSTRIKE_CCID}\"" >> "./${TERRAFORM_PROJECT}/variables.tfvars"
+	echo "crowdstrike_bucket_url = \"${CROWDSTRIKE_BUCKET_URL}\"" >> "./${TERRAFORM_PROJECT}/variables.tfvars"
 
 # Terraform-applies
 .PHONY: provision
