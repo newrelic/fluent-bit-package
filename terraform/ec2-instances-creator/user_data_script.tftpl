@@ -49,3 +49,7 @@ sudo dpkg -i amazon-ssm-agent.deb
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
 %{endif}
+%{if os_distro == "sles"}
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent
+%{endif}
