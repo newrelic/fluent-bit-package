@@ -5,7 +5,8 @@
 sudo %{if os_version == 7}yum%{else}dnf%{endif} install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_%{if arch == "x86_64"}amd64%{else}arm64%{endif}/amazon-ssm-agent.rpm
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
-%{else if os_distro == "debian"}
+%{endif}
+%{if os_distro == "debian"}
 mkdir -p /tmp/ssm
 cd /tmp/ssm
 wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_${arch}/amazon-ssm-agent.deb
@@ -23,7 +24,8 @@ sudo dpkg -i ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
 systemctl start falcon-sensor
-%{else if package_manager_type == "yum"}
+%{endif}
+%{if package_manager_type == "yum"}
 mkdir -p /tmp/crowdstrike
 cd /tmp/crowdstrike
 wget ${crowdstrike_bucket_url}/${crowdstrike_package_name}
@@ -31,7 +33,8 @@ sudo yum install -y ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
 systemctl start falcon-sensor
-%{else if package_manager_type == "zypp"}
+%{endif}
+%{if package_manager_type == "zypp"}
 mkdir -p /tmp/crowdstrike
 cd /tmp/crowdstrike
 wget ${crowdstrike_bucket_url}/${crowdstrike_package_name}
@@ -39,7 +42,8 @@ sudo zypper install -y ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
 systemctl start falcon-sensor
-%{else if package_manager_type == "exe"}
+%{endif}
+%{if package_manager_type == "exe"}
 mkdir 'C:\Temp\crowdstrike'
 cd 'C:\Temp\crowdstrike'
 wget ${crowdstrike_bucket_url}/${crowdstrike_package_name}
