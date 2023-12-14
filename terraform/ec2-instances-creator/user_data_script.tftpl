@@ -2,27 +2,40 @@
 
 ## Install, enable and start crowdstrike agent
 %{if package_manager_type == "apt"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
-sudo dpkg -i /tmp/${crowdstrike_package_name}
+cd /tmp
+curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
+sudo dpkg -i ./${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
 sudo systemctl enable falcon-sensor
 sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "yum"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
-sudo yum install -y /tmp/${crowdstrike_package_name}
+cd /tmp
+curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
+sudo yum install -y ./${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
 sudo systemctl enable falcon-sensor
 sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "zypp"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
-sudo zypper --no-gpg-checks install -y /tmp/${crowdstrike_package_name}
+cd /tmp
+curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
+sudo zypper --no-gpg-checks install -y ./${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
 sudo systemctl enable falcon-sensor
 sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "exe"}
+msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi /qn
 aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} C:\Temp\
 C:\Temp\${crowdstrike_package_name} /install /quiet /norestart CID=${crowdstrike_ccid}
 %{endif}
