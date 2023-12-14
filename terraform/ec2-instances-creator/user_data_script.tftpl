@@ -2,28 +2,28 @@
 
 ## Install, enable and start crowdstrike agent
 %{if package_manager_type == "apt"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
 sudo dpkg -i /tmp/${crowdstrike_package_name}
-sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
-systemctl enable falcon-sensor
-systemctl start falcon-sensor
+sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
+sudo systemctl enable falcon-sensor
+sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "yum"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
 sudo yum install -y /tmp/${crowdstrike_package_name}
-sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
-systemctl enable falcon-sensor
-systemctl start falcon-sensor
+sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
+sudo systemctl enable falcon-sensor
+sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "zypp"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
 sudo zypper install -y /tmp/${crowdstrike_package_name}
-sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
-systemctl enable falcon-sensor
-systemctl start falcon-sensor
+sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
+sudo systemctl enable falcon-sensor
+sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "exe"}
-aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} C:\Temp\${crowdstrike_package_name}
+aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} C:\Temp\
 C:\Temp\${crowdstrike_package_name} /install /quiet /norestart CID=${crowdstrike_ccid}
 %{endif}
 
