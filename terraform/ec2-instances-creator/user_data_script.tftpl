@@ -16,8 +16,11 @@ sudo systemctl enable falcon-sensor
 sudo systemctl start falcon-sensor
 %{endif}
 %{if package_manager_type == "zypp"}
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} /tmp/
-sudo zypper install -y /tmp/${crowdstrike_package_name}
+sudo echo "${crowdstrike_bucket}/${crowdstrike_package_name}"
+cd /tmp
+echo "sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./"
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
+sudo zypper --no-gpg-checks install -y ./${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
 sudo systemctl enable falcon-sensor
 sudo systemctl start falcon-sensor
