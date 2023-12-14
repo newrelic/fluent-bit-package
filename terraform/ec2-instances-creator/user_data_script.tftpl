@@ -4,7 +4,7 @@
 %{if package_manager_type == "apt"}
 mkdir -p /tmp/crowdstrike
 cd /tmp/crowdstrike
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ${crowdstrike_package_name}
 sudo dpkg -i ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
@@ -13,7 +13,7 @@ systemctl start falcon-sensor
 %{if package_manager_type == "yum"}
 mkdir -p /tmp/crowdstrike
 cd /tmp/crowdstrike
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ${crowdstrike_package_name}
 sudo yum install -y ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
@@ -22,7 +22,7 @@ systemctl start falcon-sensor
 %{if package_manager_type == "zypp"}
 mkdir -p /tmp/crowdstrike
 cd /tmp/crowdstrike
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name}
+sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ${crowdstrike_package_name}
 sudo zypper install -y ${crowdstrike_package_name}
 sudo /opt/CrowdStrike/falconctl -s --cid=${crowdstrike_ccid}
 systemctl enable falcon-sensor
@@ -31,7 +31,7 @@ systemctl start falcon-sensor
 %{if package_manager_type == "exe"}
 mkdir 'C:\Temp\crowdstrike'
 cd 'C:\Temp\crowdstrike'
-aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name}
+aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ${crowdstrike_package_name}
 ${crowdstrike_package_name} /install /quiet /norestart CID=${crowdstrike_ccid}
 %{endif}
 
