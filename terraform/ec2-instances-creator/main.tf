@@ -59,6 +59,8 @@ module "ec2_instance" {
     fb_version = each.value.fbVersion
     instance_type = var.instance_type
     fb_package_name = each.value.targetPackageName
+    crowdstrike_bucket =  var.crowdstrike_bucket
+    crowdstrike_package_name = each.value.crowdstrikePackageName
   })
 
   volume_tags = merge(local.default_tags, {

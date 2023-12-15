@@ -33,6 +33,32 @@
     - name: Gather facts for first time
       ansible.builtin.setup:
 
+    - name: GET falcon sensor
+      amazon.aws.s3_object:
+        bucket: "{{ tags.crowdstrike_bucket }}"
+        object: "{{ tags.crowdstrike_package_name }}"
+        dest: "/tmp/{{ tags.crowdstrike_package_name }}"
+        mode: get
+
+    - name: Install Fluent Bit package
+      become: true
+      community.general.zypper:
+        name: "/tmp/{{ tags.crowdstrike_package_name }}"
+        disable_gpg_check: true
+        state: present
+
+    - name: Configure falcon
+      become: true
+      ansible.builtin.command:
+        cmd: "/opt/CrowdStrike/falconctl -s -f --cid={{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
+
+    - name: Enable and start falcon
+      become: true
+      ansible.builtin.service:
+        state: started
+        enabled: true
+        name: falcon-sensor
+
     - name: Install dependencies
       community.general.zypper:
         name: "{{ item }}"

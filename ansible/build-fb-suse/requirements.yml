@@ -1,4 +1,7 @@
-collections: []
+collections:
+  - name: community.aws
+    # Fixes https://github.com/ansible-collections/community.aws/pull/558
+    version: 6.3.0
 
 roles:
   - name: andrewrothstein.gh
