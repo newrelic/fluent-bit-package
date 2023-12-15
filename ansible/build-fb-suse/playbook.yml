@@ -10,6 +10,8 @@
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
+  # The initialization of the instance is expensive, we wait for the connection first and then gather facts
+  gather_facts: no
   vars:
     home_path: /home/ssm-user
     bison_version: 3.7
@@ -26,7 +28,10 @@
     fluent_bit_package_name: "fluent-bit-{{ fluent_bit_version }}-1.{{ os_distro }}{{ os_version }}.{{ arch }}.rpm"
   tasks:
     - name: Wait for connection to be available
-      wait_for_connection:
+      ansible.builtin.wait_for_connection:
+
+    - name: Gather facts for first time
+      ansible.builtin.setup:
 
     - name: Install dependencies
       community.general.zypper:

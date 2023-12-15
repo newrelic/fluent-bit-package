@@ -1,6 +1,8 @@
 
 - name: Provision Linux test executor instances and execute tests
   hosts: linux
+  # The initialization of the instance is expensive, we wait for the connection first and then gather facts
+  gather_facts: no
   vars:
     node_version: 16.14.0
 
@@ -32,6 +34,10 @@
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
+      ansible.builtin.wait_for_connection:
+
+    - name: Gather facts for first time
+      ansible.builtin.setup:
 
     - name: Install Infrastructure Agent
       ansible.builtin.include_role:
@@ -114,6 +120,8 @@
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
+  # The initialization of the instance is expensive, we wait for the connection first and then gather facts
+  gather_facts: no
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
@@ -152,6 +160,10 @@
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
+      ansible.builtin.wait_for_connection:
+
+    - name: Gather facts for first time
+      ansible.builtin.setup:
 
     - name: Install Infrastructure Agent
       ansible.builtin.include_role:
