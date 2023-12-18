@@ -30,21 +30,20 @@
 
     - name: Install dependencies
       community.general.zypper:
-        name: "{{ item }}"
+        name:
+          - git
+          - flex
+          - wget
+          - libyaml-devel
+          - libopenssl-devel
+          - systemd-devel
+          - gcc
+          - gcc-c++
+          - rpmbuild
+          - "{{ cpp_with_version }}"
         state: present
         oldpackage: true
         force_resolution: true
-      loop:
-        - git
-        - flex
-        - wget
-        - libyaml-devel
-        - libopenssl-devel
-        - systemd-devel
-        - gcc
-        - gcc-c++
-        - rpmbuild
-        - "{{ cpp_with_version }}"
       become: true
       register: install_status
       until: install_status is success
