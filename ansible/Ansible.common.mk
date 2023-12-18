@@ -17,17 +17,6 @@ CROWDSTRIKE_PKGS := /srv/newrelic/fluent-bit-package/$(CROWDSTRIKE_BUCKET)
 $(ROLES_PATH) $(COLLECTIONS_PATH):
 	@mkdir -p $@
 
-.PHONY: ansible/prepare-inventory
-ansible/prepare-inventory:
-	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
-
-# Download crowdstrike bucket
-.PHONY: ansible/crowdstrike
-ansible/crowdstrike:
-	# Requirements to manage EC2 instances using falcon-sensor
-	mkdir -p $(CROWDSTRIKE_PKGS)
-	aws s3 cp --recursive s3://$(CROWDSTRIKE_BUCKET)/ $(CROWDSTRIKE_PKGS)/
-
 # Installs dependencies into "collections" and "roles" folders
 .PHONY: ansible/dependencies
 ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
@@ -38,6 +27,18 @@ ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
 
 	ansible-galaxy role install -r $(REQUIREMENTS_FILE) -p $(ROLES_PATH)
 	ansible-galaxy collection install -r $(REQUIREMENTS_FILE) -p $(COLLECTIONS_PATH)
+
+.PHONY: ansible/prepare-inventory
+ansible/prepare-inventory:
+	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
+
+# Download crowdstrike bucket
+.PHONY: ansible/crowdstrike
+ansible/crowdstrike:
+	# Requirements to manage EC2 instances using falcon-sensor
+	mkdir -p $(CROWDSTRIKE_PKGS)
+	aws s3 cp --recursive s3://$(CROWDSTRIKE_BUCKET)/ $(CROWDSTRIKE_PKGS)/
+	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
 
 # Bundles the above
 .PHONY: ansible/common

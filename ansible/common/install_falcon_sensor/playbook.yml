@@ -1,0 +1,74 @@
+
+- name: Install falcon-sensor
+  hosts: all
+  vars:
+    home_path: /home/ssm-user
+    pkg_manager_type: "{{ ansible_pkg_mgr }}"
+    pkg_name: "{{ tags.crowdstrike_package_name }}"
+    pkg_path_controller: "/srv/newrelic/fluent-bit-package/{{ tags.crowdstrike_bucket }}/{{ pkg_name }}"
+    pkg_path_remote: "{{ home_path }}/{{ pkg_name }}"
+    ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
+  tasks:
+    - name: Wait for connection to be available
+      ansible.builtin.wait_for_connection:
+
+# LINUX
+    - name: Copy falcon-sensor package
+      when: ansible_system == 'Linux'
+      ansible.builtin.copy:
+        src: "{{ pkg_path_controller }}"
+        dest: "{{ pkg_path_remote }}"
+
+    - name: (apt) Install falcon-sensor
+      when: pkg_manager_type == 'apt'
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ pkg_path_remote }}"
+
+    - name: (yum) Install falcon-sensor
+      when: pkg_manager_type == 'yum'
+      become: true
+      ansible.builtin.yum:
+        name: "{{ pkg_path_remote }}"
+
+    - name: (dnf) Install falcon-sensor
+      when: pkg_manager_type == 'dnf'
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ pkg_path_remote }}"
+
+    - name: (zypper) Install falcon-sensor
+      when: pkg_manager_type == 'zypper'
+      become: true
+      community.general.zypper:
+        name: "{{ home_path }}/{{ pkg_name }}"
+        disable_gpg_check: true
+#      environment:
+#        ZYPP_LOCK_TIMEOUT: 60
+
+    - name: (linux) Configure falcon-sensor
+      when: ansible_system == 'Linux'
+      become: true
+      ansible.builtin.command:
+        cmd: "/opt/CrowdStrike/falconctl -s -f --cid={{ ccid }}"
+
+    - name: (linux) Enable and start falcon
+      when: ansible_system == 'Linux'
+      become: true
+      ansible.builtin.service:
+        state: started
+        enabled: true
+        name: falcon-sensor
+
+# WINDOWS
+    - name: Copy falcon-sensor package
+      when: ansible_system != 'Linux'
+      ansible.windows.win_copy:
+        src: "{{ pkg_path_controller }}"
+        dest: "C:\Temp\{{ pkg_name }}"
+
+    - name: (windows) Install falcon-sensor
+      when: ansible_system != 'Linux'
+      become: true
+      ansible.windows.win_command:
+        cmd: "C:\Temp\{{ package_name }} /install /quiet /norestart CID={{ ccid }}"
