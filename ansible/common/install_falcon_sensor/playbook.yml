@@ -31,12 +31,14 @@
       become: true
       ansible.builtin.yum:
         name: "{{ pkg_path_remote }}"
+        disable_gpg_check: true
 
     - name: (dnf) Install falcon-sensor
       when: pkg_manager_type == 'dnf'
       become: true
       ansible.builtin.dnf:
         name: "{{ pkg_path_remote }}"
+        disable_gpg_check: true
 
     - name: (zypper) Install falcon-sensor
       when: pkg_manager_type == 'zypper'
