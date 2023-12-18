@@ -8,6 +8,4 @@ module "test-executor-instances" {
   instance_matrix_file = local.all_instances_matrix_path
   pr_number = var.pr_number
   instance_type = "test-executor"
-  crowdstrike_ccid = var.crowdstrike_ccid
-  crowdstrike_bucket = var.crowdstrike_bucket
 }

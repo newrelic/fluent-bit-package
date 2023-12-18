@@ -1,60 +1,15 @@
 #!/bin/bash
 
-## Install, enable and start crowdstrike agent
-%{if package_manager_type == "apt"}
-cd /tmp
-curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
-sudo dpkg -i ./${crowdstrike_package_name}
-sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
-sudo systemctl enable falcon-sensor
-sudo systemctl start falcon-sensor
-%{endif}
-%{if package_manager_type == "yum"}
-cd /tmp
-curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
-sudo yum install -y ./${crowdstrike_package_name}
-sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
-sudo systemctl enable falcon-sensor
-sudo systemctl start falcon-sensor
-%{endif}
-#%{if package_manager_type == "zypp"}
-#cd /tmp
-#curl %{if arch == "x86_64"}"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"%{else}"https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"%{endif} -o "awscliv2.zip"
-#unzip awscliv2.zip
-#sudo ./aws/install
-#sudo aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} ./
-#sudo zypper --no-gpg-checks install -y ./${crowdstrike_package_name}
-#sudo /opt/CrowdStrike/falconctl -s -f --cid=${crowdstrike_ccid}
-#sudo systemctl enable falcon-sensor
-#sudo systemctl start falcon-sensor
-#%{endif}
-%{if package_manager_type == "exe"}
-msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi /qn
-aws s3 cp ${crowdstrike_bucket}/${crowdstrike_package_name} C:\Temp\
-C:\Temp\${crowdstrike_package_name} /install /quiet /norestart CID=${crowdstrike_ccid}
-%{endif}
-
-## Install, enable and start ssm agent
 %{if os_distro == "centos"}
 sudo %{if os_version == 7}yum%{else}dnf%{endif} install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_%{if arch == "x86_64"}amd64%{else}arm64%{endif}/amazon-ssm-agent.rpm
-systemctl enable amazon-ssm-agent
-systemctl start amazon-ssm-agent
 %{endif}
+
 %{if os_distro == "debian"}
 mkdir -p /tmp/ssm
 cd /tmp/ssm
 wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_${arch}/amazon-ssm-agent.deb
 sudo dpkg -i amazon-ssm-agent.deb
+%{endif}
+
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
-%{endif}
-%{if os_distro == "sles"}
-systemctl enable amazon-ssm-agent
-systemctl start amazon-ssm-agent
-%{endif}
