@@ -37,6 +37,7 @@
         mode: get
 
     - name: Install falcon sensor
+      become: true
       community.general.zypper:
         name: "/tmp/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
