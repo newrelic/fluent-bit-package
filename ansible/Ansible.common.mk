@@ -20,6 +20,13 @@ $(ROLES_PATH) $(COLLECTIONS_PATH):
 ansible/prepare-inventory:
 	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
 
+# Download crowdstrike bucket
+.PHONY: ansible/crowdstrike
+ansible/crowdstrike:
+	# Requirements to manage EC2 instances using falcon-sensor
+	mkdir -p $(ANSIBLE_FOLDER)/$(CROWDSTRIKE_BUCKET)
+	aws s3 cp s3://$(CROWDSTRIKE_BUCKET)/$(ANSIBLE_FOLDER)/$(CROWDSTRIKE_BUCKET)/
+
 # Installs dependencies into "collections" and "roles" folders
 .PHONY: ansible/dependencies
 ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
@@ -30,6 +37,10 @@ ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
 
 	ansible-galaxy role install -r $(REQUIREMENTS_FILE) -p $(ROLES_PATH)
 	ansible-galaxy collection install -r $(REQUIREMENTS_FILE) -p $(COLLECTIONS_PATH)
+
+# Bundles the above
+.PHONY: ansible/common
+ansible/common: ansible/dependencies ansible/prepare-inventory ansible/crowdstrike
 
 # Removes "collections" and "roles" folders
 .PHONY: ansible/clean

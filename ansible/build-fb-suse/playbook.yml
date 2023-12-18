@@ -29,17 +29,17 @@
     - name: Wait for connection to be available
       ansible.builtin.wait_for_connection:
 
-    - name: GET falcon sensor
-      amazon.aws.s3_object:
-        bucket: "{{ tags.crowdstrike_bucket }}"
-        object: "{{ tags.crowdstrike_package_name }}"
-        dest: "/tmp/{{ tags.crowdstrike_package_name }}"
-        mode: get
+#    - name: GET falcon sensor
+#      amazon.aws.s3_object:
+#        bucket: "{{ tags.crowdstrike_bucket }}"
+#        object: "{{ tags.crowdstrike_package_name }}"
+#        dest: "/tmp/{{ tags.crowdstrike_package_name }}"
+#        mode: get
 
     - name: Install falcon sensor
       become: true
       community.general.zypper:
-        name: "/tmp/{{ tags.crowdstrike_package_name }}"
+        name: "../{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
 
     - name: Configure falcon
