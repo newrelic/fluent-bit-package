@@ -45,7 +45,7 @@
         name: "{{ home_path }}/{{ pkg_name }}"
         disable_gpg_check: true
       environment:
-        ZYPP_LOCK_TIMEOUT: 60
+        ZYPP_LOCK_TIMEOUT: 300
 
     - name: (linux) Configure falcon-sensor
       when: ansible_system == 'Linux'
