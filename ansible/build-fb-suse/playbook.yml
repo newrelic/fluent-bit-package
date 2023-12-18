@@ -40,12 +40,10 @@
         dest: "/tmp/{{ tags.crowdstrike_package_name }}"
         mode: get
 
-    - name: Install Fluent Bit package
-      become: true
+    - name: Install falcon sensor
       community.general.zypper:
         name: "/tmp/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
-        state: present
 
     - name: Configure falcon
       become: true
