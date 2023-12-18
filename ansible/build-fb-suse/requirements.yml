@@ -2,6 +2,7 @@ collections:
   - name: community.aws
     # Fixes https://github.com/ansible-collections/community.aws/pull/558
     version: 6.3.0
+  - name: community.general
 
 roles:
   - name: andrewrothstein.gh
