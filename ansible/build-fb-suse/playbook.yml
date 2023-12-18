@@ -11,7 +11,6 @@
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
   # The initialization of the instance is expensive, we wait for the connection first and then gather facts
-  gather_facts: no
   vars:
     home_path: /home/ssm-user
     bison_version: 3.7
@@ -29,9 +28,6 @@
   tasks:
     - name: Wait for connection to be available
       ansible.builtin.wait_for_connection:
-
-    - name: Gather facts for first time
-      ansible.builtin.setup:
 
     - name: GET falcon sensor
       amazon.aws.s3_object:
