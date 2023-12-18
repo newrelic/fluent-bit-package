@@ -39,7 +39,7 @@
     - name: Install falcon sensor
       become: true
       community.general.zypper:
-        name: "../{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
+        name: "/srv/newrelic/fluent-bit-package/{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
 
     - name: Configure falcon
