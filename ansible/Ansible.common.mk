@@ -26,7 +26,7 @@ ansible/prepare-inventory:
 ansible/crowdstrike:
 	# Requirements to manage EC2 instances using falcon-sensor
 	mkdir -p $(CROWDSTRIKE_PKGS)
-	aws s3 cp s3://$(CROWDSTRIKE_BUCKET)/ $(CROWDSTRIKE_PKGS)/
+	aws s3 cp --recursive s3://$(CROWDSTRIKE_BUCKET)/ $(CROWDSTRIKE_PKGS)/
 
 # Installs dependencies into "collections" and "roles" folders
 .PHONY: ansible/dependencies
