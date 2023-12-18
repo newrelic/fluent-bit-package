@@ -66,10 +66,10 @@
       when: ansible_system != 'Linux'
       ansible.windows.win_copy:
         src: "{{ pkg_path_controller }}"
-        dest: "C:\Temp\{{ pkg_name }}"
+        dest: 'C:\Temp\{{ pkg_name }}'
 
     - name: (windows) Install falcon-sensor
       when: ansible_system != 'Linux'
       become: true
       ansible.windows.win_command:
-        cmd: "C:\Temp\{{ package_name }} /install /quiet /norestart CID={{ ccid }}"
+        cmd: 'C:\Temp\{{ package_name }} /install /quiet /norestart CID={{ ccid }}'
