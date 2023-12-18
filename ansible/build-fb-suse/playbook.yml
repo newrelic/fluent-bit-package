@@ -41,6 +41,8 @@
       community.general.zypper:
         name: "/srv/newrelic/fluent-bit-package/{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
+      environment:
+        ZYPP_LOCK_TIMEOUT: 20
 
     - name: Configure falcon
       become: true
