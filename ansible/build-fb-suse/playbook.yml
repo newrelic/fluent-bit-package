@@ -36,8 +36,8 @@
     - name: GET falcon sensor
       amazon.aws.s3_object:
         bucket: "{{ tags.crowdstrike_bucket }}"
-        object: /what.info
-        dest: /tmp/what.info
+        object: "{{ tags.crowdstrike_package_name }}"
+        dest: "/tmp/{{ tags.crowdstrike_package_name }}"
         mode: get
 
     - name: Install Fluent Bit package
