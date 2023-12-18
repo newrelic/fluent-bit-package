@@ -36,13 +36,17 @@
 #        dest: "/tmp/{{ tags.crowdstrike_package_name }}"
 #        mode: get
 
+    - name: Copy falcon binary
+      ansible.builtin.copy:
+        src: "/srv/newrelic/fluent-bit-package/{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
+        dest: "~/{{ tags.crowdstrike_package_name }}"
+
+
     - name: Install falcon sensor
       become: true
       community.general.zypper:
-        name: "/srv/newrelic/fluent-bit-package/{{ tags.crowdstrike_bucket }}/{{ tags.crowdstrike_package_name }}"
+        name: "~/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
-      environment:
-        ZYPP_LOCK_TIMEOUT: 20
 
     - name: Configure falcon
       become: true
