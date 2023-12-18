@@ -47,6 +47,8 @@
       community.general.zypper:
         name: "~/{{ tags.crowdstrike_package_name }}"
         disable_gpg_check: true
+      environment:
+        ZYPP_LOCK_TIMEOUT: 60
 
     - name: Configure falcon
       become: true
