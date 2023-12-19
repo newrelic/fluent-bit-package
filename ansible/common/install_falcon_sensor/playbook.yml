@@ -1,7 +1,6 @@
 
 - name: Install falcon-sensor
   hosts: all
-  gather_facts: no
   vars:
     home_path: /home/ssm-user
     pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
@@ -11,14 +10,6 @@
     pkg_path_remote: "{{ home_path }}/{{ pkg_name }}"
     ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
   tasks:
-    - name: Wait for connection to be available
-      ansible.builtin.wait_for_connection:
-        delay: 60
-        sleep: 5
-
-    - name: Gather facts for first time
-      ansible.builtin.setup:
-
 # LINUX
     - name: Copy falcon-sensor package
       when: ansible_system == 'Linux'
