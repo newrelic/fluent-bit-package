@@ -20,7 +20,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          role-duration-seconds: 10800 # default to 1 hour, which might not suffice https://github.com/aws-actions/configure-aws-credentials#credential-lifetime
+          # https://github.com/aws-actions/configure-aws-credentials#credential-lifetime
+          role-duration-seconds: 21600 # default to 1 hour, which might not suffice
           aws-region: us-east-2
 
       - name: Set branch name
