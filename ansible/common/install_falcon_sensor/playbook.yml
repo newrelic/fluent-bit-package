@@ -25,12 +25,15 @@
       become: true
       ansible.builtin.apt:
         deb: "{{ pkg_path_remote }}"
+        # crowdstrike packages are not signed
+        allow_unauthenticated: true
 
     - name: (yum) Install falcon-sensor
       when: pkg_manager_type == 'yum'
       become: true
       ansible.builtin.yum:
         name: "{{ pkg_path_remote }}"
+        # crowdstrike packages are not signed
         disable_gpg_check: true
 
     - name: (dnf) Install falcon-sensor
@@ -38,6 +41,7 @@
       become: true
       ansible.builtin.dnf:
         name: "{{ pkg_path_remote }}"
+        # crowdstrike packages are not signed
         disable_gpg_check: true
 
     - name: (zypper) Install falcon-sensor
@@ -45,6 +49,7 @@
       become: true
       community.general.zypper:
         name: "{{ home_path }}/{{ pkg_name }}"
+        # crowdstrike packages are not signed
         disable_gpg_check: true
       environment:
         ZYPP_LOCK_TIMEOUT: 300
