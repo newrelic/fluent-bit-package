@@ -29,6 +29,8 @@ local:
 		-e NEW_RELIC_API_KEY=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_API_KEY) \
 		-e NEW_RELIC_ACCOUNT_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_ACCOUNT_ID) \
 		-e NEW_RELIC_REGION=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_REGION) \
+		-e CROWDSTRIKE_BUCKET=${CROWDSTRIKE_BUCKET} \
+		-e CROWDSTRIKE_CCID=${CROWDSTRIKE_CCID} \
 		ghcr.io/newrelic/fargate-runner-action:latest \
 		$(target) PR_NUMBER=local-$(USER)
 
