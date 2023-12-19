@@ -2,7 +2,7 @@
 - name: Install falcon-sensor
   hosts: all
   vars:
-    home_path: "{{ (tags.os_distro == 'windows-server') | ternary('C:\Tmp','/tmp') }}"
+    home_path: "/tmp"
     pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
     pkg_manager_type: "{{ ansible_pkg_mgr }}"
     pkg_name: "{{ tags.crowdstrike_package_name }}"
@@ -13,10 +13,17 @@
     - name: Wait for connection to be available
       wait_for_connection:
 
-    - name: Copy falcon-sensor package
+    - name: (linux) Copy falcon-sensor package
+      when: ansible_system == 'Linux'
       ansible.builtin.copy:
         src: "{{ pkg_path_controller }}"
         dest: "{{ pkg_path_remote }}"
+
+    - name: (windows) Copy falcon-sensor package
+      when: ansible_system != 'Linux'
+      ansible.windows.win_copy:
+        src: '{{ pkg_path_controller }}'
+        dest: '{{ pkg_path_remote }}'
 
     - name: (apt) Install falcon-sensor
       when: pkg_manager_type == 'apt'
