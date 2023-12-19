@@ -4,6 +4,7 @@ packages:
   - arch: amd64
     ami: ami-0ddf7dfd13a83d8c8
     crowdstrikePackageName: falcon-sensor_7.05.0-16004_amd64_debian.deb
-#  No packages available for aarch64
-#  - arch: arm64
-#    ami: ami-0edd7fb88540aa37c
+  - arch: arm64
+    ami: ami-0edd7fb88540aa37c
+    # Use ubuntu's
+    crowdstrikePackageName: falcon-sensor_7.05.0-16004_arm64_ubuntu.deb
