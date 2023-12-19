@@ -13,6 +13,9 @@
   tasks:
     - name: Wait for connection to be available
       ansible.builtin.wait_for_connection:
+        delay: 60
+        sleep: 5
+
     - name: Gather facts for first time
       ansible.builtin.setup:
 
