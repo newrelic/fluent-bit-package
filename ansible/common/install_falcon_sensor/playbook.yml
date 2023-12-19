@@ -61,7 +61,11 @@
       when: ansible_system == 'Linux'
       become: true
       ansible.builtin.command:
-        cmd: "/opt/CrowdStrike/falconctl -s -f --cid={{ ccid }}"
+        argv:
+          - "/opt/CrowdStrike/falconctl"
+          - "-s"
+          - "-f"
+          - "--cid={{ ccid }}"
 
     - name: (linux) Enable and start falcon
       when: ansible_system == 'Linux'
