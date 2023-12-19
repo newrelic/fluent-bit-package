@@ -2,7 +2,7 @@
 - name: Install falcon-sensor
   hosts: all
   vars:
-    home_path: /home/ssm-user
+    home_path: "{{ (tags.os_distro == 'windows-server') | ternary('C:\Tmp','/tmp') }}"
     pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
     pkg_manager_type: "{{ ansible_pkg_mgr }}"
     pkg_name: "{{ tags.crowdstrike_package_name }}"
@@ -10,9 +10,7 @@
     pkg_path_remote: "{{ home_path }}/{{ pkg_name }}"
     ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
   tasks:
-# LINUX
     - name: Copy falcon-sensor package
-      when: ansible_system == 'Linux'
       ansible.builtin.copy:
         src: "{{ pkg_path_controller }}"
         dest: "{{ pkg_path_remote }}"
@@ -45,11 +43,16 @@
       when: pkg_manager_type == 'zypper'
       become: true
       community.general.zypper:
-        name: "{{ home_path }}/{{ pkg_name }}"
+        name: "{{ pkg_path_remote }}"
         # crowdstrike packages are not signed
         disable_gpg_check: true
       environment:
         ZYPP_LOCK_TIMEOUT: 300
+
+    - name: (windows) Install falcon-sensor
+      when: ansible_system != 'Linux'
+      ansible.windows.win_command:
+        cmd: '{{ pkg_path_remote }} /install /quiet /norestart CID={{ ccid }}'
 
     - name: (linux) Configure falcon-sensor
       when: ansible_system == 'Linux'
@@ -68,15 +71,3 @@
         state: started
         enabled: true
         name: falcon-sensor
-
-# WINDOWS
-    - name: Copy falcon-sensor package
-      when: ansible_system != 'Linux'
-      ansible.windows.win_copy:
-        src: "{{ pkg_path_controller }}"
-        dest: 'C:\Temp\{{ pkg_name }}'
-
-    - name: (windows) Install falcon-sensor
-      when: ansible_system != 'Linux'
-      ansible.windows.win_command:
-        cmd: 'C:\Temp\{{ package_name }} /install /quiet /norestart CID={{ ccid }}'
