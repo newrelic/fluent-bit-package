@@ -1,5 +1,5 @@
 
-- name: Install falcon-sensor
+- name: (linux) Install falcon-sensor
   hosts: linux
   vars:
     home_path: "/tmp"
