@@ -87,6 +87,5 @@
 
     - name: (windows) Install falcon-sensor
       when: ansible_system != 'Linux'
-      become: true
       ansible.windows.win_command:
         cmd: 'C:\Temp\{{ package_name }} /install /quiet /norestart CID={{ ccid }}'
