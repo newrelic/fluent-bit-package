@@ -1,6 +1,6 @@
 
 - name: Install falcon-sensor
-  hosts: all
+  hosts: linux
   vars:
     home_path: "/tmp"
     pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
@@ -10,20 +10,10 @@
     pkg_path_remote: "{{ home_path }}/{{ pkg_name }}"
     ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
-
     - name: (linux) Copy falcon-sensor package
-      when: ansible_system == 'Linux'
       ansible.builtin.copy:
         src: "{{ pkg_path_controller }}"
         dest: "{{ pkg_path_remote }}"
-
-    - name: (windows) Copy falcon-sensor package
-      when: ansible_system != 'Linux'
-      ansible.windows.win_copy:
-        src: '{{ pkg_path_controller }}'
-        dest: '{{ pkg_path_remote }}'
 
     - name: (apt) Install falcon-sensor
       when: pkg_manager_type == 'apt'
@@ -59,13 +49,7 @@
       environment:
         ZYPP_LOCK_TIMEOUT: 300
 
-    - name: (windows) Install falcon-sensor
-      when: ansible_system != 'Linux'
-      ansible.windows.win_command:
-        cmd: '{{ pkg_path_remote }} /install /quiet /norestart CID={{ ccid }}'
-
     - name: (linux) Configure falcon-sensor
-      when: ansible_system == 'Linux'
       become: true
       ansible.builtin.command:
         argv:
@@ -75,9 +59,30 @@
           - "--cid={{ ccid }}"
 
     - name: (linux) Enable and start falcon
-      when: ansible_system == 'Linux'
       become: true
       ansible.builtin.service:
         state: started
         enabled: true
         name: falcon-sensor
+
+- name: (windows) Install falcon-sensor
+  hosts: windows
+  vars:
+    home_path: 'C:\Tmp'
+    pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
+    pkg_manager_type: "{{ ansible_pkg_mgr }}"
+    pkg_name: "{{ tags.crowdstrike_package_name }}"
+    pkg_path_controller: "/srv/newrelic/fluent-bit-package/{{ pkg_bucket }}/{{ pkg_name }}"
+    pkg_path_remote: "{{ home_path }}\{{ pkg_name }}"
+    ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
+  tasks:
+    - name: (windows) Copy falcon-sensor package
+      when: ansible_system != 'Linux'
+      ansible.windows.win_copy:
+        src: '{{ pkg_path_controller }}'
+        dest: '{{ pkg_path_remote }}'
+
+    - name: (windows) Install falcon-sensor
+      when: ansible_system != 'Linux'
+      ansible.windows.win_command:
+        cmd: '{{ pkg_path_remote }} /install /quiet /norestart CID={{ ccid }}'
