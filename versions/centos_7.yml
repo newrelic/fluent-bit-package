@@ -4,6 +4,7 @@ packages:
   - arch: x86_64
     ami: ami-05a36e1502605b4aa
     crowdstrikePackageName: falcon-sensor-7.05.0-16004.el7.x86_64.rpm
-#  No packages available for aarch64
-#  - arch: aarch64
-#    ami: ami-01f5164ccc6a81e61
+  - arch: aarch64
+    ami: ami-01f5164ccc6a81e61
+    # Use amzn2 pkg
+    crowdstrikePackageName: falcon-sensor-7.05.0-16004.amzn2.aarch64.rpm
