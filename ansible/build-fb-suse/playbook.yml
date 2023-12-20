@@ -103,6 +103,8 @@
     - name: Build Fluent Bit {{ fluent_bit_version }}
       community.general.make:
         chdir: "{{ fluent_bit_path }}/build"
+      async: 1200 # timeout 20m
+      poll: 60 # poll every 60s
 
     - name: Create SUSE RPM package for Fluent Bit {{ fluent_bit_version }}
       command:
