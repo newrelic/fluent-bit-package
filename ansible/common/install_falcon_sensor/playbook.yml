@@ -71,18 +71,21 @@
 - name: (windows) Install falcon-sensor
   hosts: windows
   vars:
-    home_path: 'C:\Tmp'
+    home_path: '/Windows/Temp'
     pkg_bucket: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_BUCKET') }}"
     pkg_manager_type: "{{ ansible_pkg_mgr }}"
     pkg_name: "{{ tags.crowdstrike_package_name }}"
     pkg_path_controller: "/srv/newrelic/fluent-bit-package/{{ pkg_bucket }}/{{ pkg_name }}"
-    pkg_path_remote: '{{ home_path }}\{{ pkg_name }}'
+    pkg_path_remote: '{{ home_path }}/{{ pkg_name }}'
     ccid: "{{ lookup('ansible.builtin.env', 'CROWDSTRIKE_CCID') }}"
   tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
     - name: (windows) Copy falcon-sensor package
       ansible.windows.win_copy:
-        src: '{{ pkg_path_controller }}'
-        dest: '{{ pkg_path_remote }}'
+        src: "{{ pkg_path_controller }}"
+        dest: "{{ pkg_path_remote }}"
 
     - name: (windows) Install falcon-sensor
       ansible.windows.win_command:
