@@ -96,8 +96,8 @@
         chdir: ~/test-suite
         creates: ~/test-suite/reports
       environment:
-        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
-        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://api.newrelic.com/graphql
         API_KEY: "{{ new_relic_api_key }}"
         ACCOUNT_ID: "{{ new_relic_account_id }}"
         MONITORED_FILE: "{{ monitored_file }}"
@@ -238,8 +238,8 @@
         creates: '{{ test_suite_folder }}\reports'
       environment:
         PATH: '{{ patched_path }}'
-        LOGGING_ENDPOINT: https://staging-log-api.newrelic.com/log/v1
-        NERD_GRAPH_URL: https://staging-api.newrelic.com/graphql
+        LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://api.newrelic.com/graphql
         API_KEY: "{{ new_relic_api_key }}"
         ACCOUNT_ID: "{{ new_relic_account_id }}"
         MONITORED_FILE: '{{ monitored_file }}'
