@@ -3,7 +3,8 @@ collections:
     # Fixes https://github.com/ansible-collections/community.aws/pull/558
     version: 6.3.0
   - name: community.general
-
+  - name: git+https://github.com/newrelic-experimental/caos-ansible-roles.git#/caos.ansible_roles/
+    type: git
 roles:
   - name: andrewrothstein.gh
     version: v0.2.0
