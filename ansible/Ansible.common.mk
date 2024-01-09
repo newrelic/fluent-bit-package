@@ -32,10 +32,10 @@ ansible/prepare-inventory:
 	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
 
 # Download crowdstrike bucket
-#.PHONY: ansible/crowdstrike
-#ansible/crowdstrike:
-#	# Requirements to manage EC2 instances using falcon-sensor
-#	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
+.PHONY: ansible/crowdstrike
+ansible/crowdstrike:
+	# Requirements to manage EC2 instances using falcon-sensor
+	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
 
 # Bundles the above
 .PHONY: ansible/common
