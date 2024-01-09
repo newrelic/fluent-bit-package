@@ -12,7 +12,7 @@ locals {
   instance_matrix = jsondecode(file(var.instance_matrix_file))
 
   aws_vpc_subnet = "subnet-0d99e0c3f57f87c58"
-  ec2_instances_security_group = "sg-04fb0f51a2f847711"
+  ec2_instances_security_group = "sg-0de7ca06bb5972dcb"
   ec2_instance_profile = "logging-e2e-testing-ec2-ssm-instance-profile"
 
   # See: https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-status-and-restart.html
