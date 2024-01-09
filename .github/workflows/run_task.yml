@@ -44,8 +44,8 @@ jobs:
           # that was used to create the ECS infrastructure. "ecs" is the default cloudwatch_log_prefix
           # when not specified, and our container_name is infra-agent-fb-e2e-testing
           cloud_watch_logs_stream_name: ecs/infra-agent-fb-e2e-testing
-          aws_vpc_subnet: subnet-06240c469195932cf
+          aws_vpc_subnet: subnet-0d99e0c3f57f87c58
           aws_vpc_security_groups: |
-            sg-0c4318be91bbe3cba
+            sg-04fb0f51a2f847711
           repo_name: "newrelic/fluent-bit-package"
           ref: ${{ env.GIT_BRANCH }}
