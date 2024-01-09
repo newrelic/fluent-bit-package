@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-duration-seconds: 10800 # default to 1 hour, which might not suffice https://github.com/aws-actions/configure-aws-credentials#credential-lifetime
@@ -44,8 +44,8 @@ jobs:
           # that was used to create the ECS infrastructure. "ecs" is the default cloudwatch_log_prefix
           # when not specified, and our container_name is infra-agent-fb-e2e-testing
           cloud_watch_logs_stream_name: ecs/infra-agent-fb-e2e-testing
-          aws_vpc_subnet: subnet-06240c469195932cf
+          aws_vpc_subnet: subnet-0d99e0c3f57f87c58
           aws_vpc_security_groups: |
-            sg-0c4318be91bbe3cba
+            sg-0de7ca06bb5972dcb
           repo_name: "newrelic/fluent-bit-package"
           ref: ${{ env.GIT_BRANCH }}
