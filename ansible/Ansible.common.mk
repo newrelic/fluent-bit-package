@@ -11,7 +11,6 @@ ANSIBLE_INVENTORY := $(ANSIBLE_FOLDER)/aws_ec2.yml
 REQUIREMENTS_FILE := $(ANSIBLE_FOLDER)/requirements.yml
 ROLES_PATH := $(ANSIBLE_FOLDER)/roles
 COLLECTIONS_PATH := $(ANSIBLE_FOLDER)/collections
-CROWDSTRIKE_PKGS := /srv/newrelic/fluent-bit-package/$(CROWDSTRIKE_BUCKET)
 
 # Creates "collections" and "roles" folders inside the calling Ansible project
 $(ROLES_PATH) $(COLLECTIONS_PATH):
@@ -33,12 +32,10 @@ ansible/prepare-inventory:
 	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
 
 # Download crowdstrike bucket
-.PHONY: ansible/crowdstrike
-ansible/crowdstrike:
-	# Requirements to manage EC2 instances using falcon-sensor
-	mkdir -p $(CROWDSTRIKE_PKGS)
-	aws s3 cp --recursive s3://$(CROWDSTRIKE_BUCKET)/ $(CROWDSTRIKE_PKGS)/
-	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
+#.PHONY: ansible/crowdstrike
+#ansible/crowdstrike:
+#	# Requirements to manage EC2 instances using falcon-sensor
+#	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
 
 # Bundles the above
 .PHONY: ansible/common
