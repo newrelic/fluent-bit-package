@@ -3,8 +3,5 @@ osVersion: buster
 packages:
   - arch: amd64
     ami: ami-05bf29fabdee3e5d2
-    crowdstrikePackageName: falcon-sensor_7.05.0-16004_amd64_debian.deb
   - arch: arm64
     ami: ami-03e6e856fa72db174
-    #  Use ubuntu's
-    crowdstrikePackageName: falcon-sensor_7.05.0-16004_arm64_ubuntu.deb

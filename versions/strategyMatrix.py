@@ -39,7 +39,6 @@ This results in the following JSON objects in the resulting strategy matrix (rep
     "targetPackageName": "fluent-bit-2.0.7-1.centos-9.x86_64.rpm",
     "nrPackageUrl": "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/el/9/x86_64/fluent-bit-2.0.7-1.centos-9.x86_64.rpm"
     "repoArch": "x86_64",
-    "crowdstrikePackageName": "centos-9-x86_64-crowdstrike.rpm"
   },
   {
     "fbVersion": "2.0.6",
@@ -51,7 +50,6 @@ This results in the following JSON objects in the resulting strategy matrix (rep
     "targetPackageName": "fluent-bit-2.0.6-1.centos-9.arm64.rpm",
     "nrPackageUrl": "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/el/9/aarch64/fluent-bit-2.0.6-1.centos-9.arm64.rpm"
     "repoArch": "arm64",
-    "crowdstrikePackageName": "centos-9-aarch64-crowdstrike.rpm"
   }
 
 This script file takes care of computing the following attributes for each supported package:
@@ -75,7 +73,6 @@ def deb_package_details(pkg):
         'nrPackageUrl':
 f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/apt/pool/main/f/fluent-bit/{target_package_name}",
         'repoArch': f"{pkg['arch']}",
-        'crowdstrikePackageName': f"{pkg['crowdstrikePackageName']}"
     }
 
 def rpm_package_details(pkg):
@@ -89,7 +86,6 @@ def rpm_package_details(pkg):
         'nrPackageUrl':
             f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
         'repoArch': repo_arch,
-        'crowdstrikePackageName': f"{pkg['crowdstrikePackageName']}"
     }
 
 def sles_package_details(pkg):
@@ -100,7 +96,6 @@ def sles_package_details(pkg):
         'nrPackageUrl':
             f"https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
         'repoArch': f"{pkg['arch']}",
-        'crowdstrikePackageName': f"{pkg['crowdstrikePackageName']}"
     }
 
 def windows_package_details(data):
@@ -109,7 +104,6 @@ def windows_package_details(data):
     return {
         'packageUrl': f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         'targetPackageName': target_package_name,
-        'crowdstrikePackageName': f"{data['crowdstrikePackageName']}"
         # TODO: add URL to Logging's S3 bucket holding Windows packages here
         # 'nrPackageUrl': 'url'
     }

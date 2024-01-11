@@ -3,7 +3,5 @@ osVersion: 9
 packages:
   - arch: x86_64
     ami: ami-011d59a275b482a49
-    crowdstrikePackageName: falcon-sensor-7.05.0-16004.el9.x86_64.rpm
   - arch: aarch64
     ami: ami-008dee3b597bad5c2
-    crowdstrikePackageName: falcon-sensor-7.05.0-16004.el9.aarch64.rpm

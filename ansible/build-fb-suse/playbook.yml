@@ -7,6 +7,17 @@
 # - make module: https://docs.ansible.com/ansible/2.9/modules/make_module.html#make-module
 # - Fluent Bit compilation: https://docs.fluentbit.io/manual/installation/sources/build-and-install
 # -ansible.builtin.fetch module: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/fetch_module.html
+- name: Install CrowdStrike Falcon
+  hosts: all
+  become: true
+  gather_facts: yes
+  vars:
+    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+  roles:
+    - caos.ansible_roles.install_crowdstrike_falcon
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all

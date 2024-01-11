@@ -31,15 +31,9 @@ ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
 ansible/prepare-inventory:
 	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
 
-# Download crowdstrike bucket
-.PHONY: ansible/crowdstrike
-ansible/crowdstrike:
-	# Requirements to manage EC2 instances using falcon-sensor
-	ansible-playbook ../common/install_falcon_sensor/playbook.yml -i $(ANSIBLE_INVENTORY)
-
 # Bundles the above
 .PHONY: ansible/common
-ansible/common: ansible/dependencies ansible/prepare-inventory ansible/crowdstrike
+ansible/common: ansible/dependencies ansible/prepare-inventory
 
 # Removes "collections" and "roles" folders
 .PHONY: ansible/clean

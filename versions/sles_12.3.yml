@@ -3,4 +3,3 @@ osVersion: 12.3
 packages:
   - arch: x86_64
     ami: ami-03ce00a6a270d98ef
-    crowdstrikePackageName: falcon-sensor-7.05.0-16004.suse12.x86_64.rpm

@@ -7,7 +7,5 @@ fbVersion: 2.1.9
 packages:
   - arch: x86_64
     ami: ami-01103fb68b3569475
-    crowdstrikePackageName: falcon-sensor-7.05.0-16004.amzn2023.x86_64.rpm
   - arch: aarch64
     ami: ami-01416d11f88e7cb55
-    crowdstrikePackageName: falcon-sensor-7.05.0-16004.amzn2023.aarch64.rpm

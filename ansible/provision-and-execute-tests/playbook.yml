@@ -1,3 +1,26 @@
+- name: (linux) Install CrowdStrike Falcon
+  hosts: linux
+  become: true
+  gather_facts: yes
+  vars:
+    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+  roles:
+    - caos.ansible_roles.install_crowdstrike_falcon
+
+- name: (windows) Install CrowdStrike Falcon
+  hosts: windows
+  gather_facts: yes
+  vars:
+    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+    win_download_path: 'C:\Windows\Temp\falcon-sensor.exe'
+  roles:
+    - caos.ansible_roles.install_crowdstrike_falcon
 
 - name: Provision Linux test executor instances and execute tests
   hosts: linux
