@@ -2,6 +2,6 @@ osDistro: windows-server
 osVersion: 2022
 packages:
   - arch: win64
-    ami: ami-0b24eb32c43d56c23
+    ami: ami-094aa6728b151e05a
   - arch: win32
-    ami: ami-0b24eb32c43d56c23
+    ami: ami-094aa6728b151e05a

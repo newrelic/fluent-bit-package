@@ -138,7 +138,7 @@
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
   vars:
-    node_version: 16.14.0
+    node_version: 21.6.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
     pr_number: "{{ tags.pr_number }}"
@@ -151,7 +151,7 @@
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
 
-    monitored_file: 'C:\Users\Administrator\tail-log-file-test'
+    monitored_file: 'C:\Windows\Temp\tail-log-file-test'
     monitored_tcp_port: 5170
     monitored_windows_log_name_using_winevtlog: 'Application'
     monitored_windows_log_name_using_winlog: 'Application'
@@ -160,12 +160,7 @@
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
     test_reports_dir: /tmp/test-reports
 
-    # There's an issue with OpenSSH that seems to be preventing environment variables to be updated. This includes updating
-    # the PATH as well. Ref: https://github.com/chocolatey/chocolatey-ansible/issues/22#issuecomment-748350731
-    # We are not 100% sure whether the aws_ssm plugin uses OpenSSH under the hood, but we're forced to manually overwrite
-    # the PATH environment using Ansible's "environment" clause for these steps requiring nvm, node or npm to be in the PATH.
-    nvm_path: 'C:\ProgramData\nvm'
-    node_path: 'C:\ProgramData\nvm\v{{ node_version }}'
+    patched_path: '$env:Path;C:\Program Files\nodejs'
 
     nr_fb_output_plugin_version: '1.17.1'
   environment:
@@ -212,30 +207,10 @@
         plugin_arch: "{{ (arch == 'win64') | ternary('amd64','386') }}"
         plugin_version: "{{ nr_fb_output_plugin_version }}"
 
-    - name: Install NVM
+    - name: Install Node
       win_chocolatey:
-        name: nvm.install
-        state: present
-
-    # Ugly hack for NVM to work
-    - name: Copy settings.txt file to root so it can be found
-      ansible.windows.win_copy:
-        src: '{{ nvm_path }}\settings.txt'
-        dest: C:\settings.txt
-        remote_src: true
-
-    - name: Capture contents of PATH environment variable
-      win_shell: $env:PATH
-      register: original_path
-
-    - name: Include nvm and node paths into patched_path
-      set_fact:
-        patched_path: '{{ original_path.stdout }};{{ nvm_path }};{{ node_path }}'
-
-    - name: Install node
-      win_shell: 'nvm install {{ node_version }}'
-      environment:
-        PATH: '{{ patched_path }}'
+        name: nodejs
+        version: '{{ node_version }}'
 
     - name: Copy test suite
       ansible.windows.win_copy:
