@@ -160,7 +160,7 @@
     test_suite_report_path: '{{ test_suite_folder }}\reports\tests\test-report.xml'
     test_reports_dir: /tmp/test-reports
 
-    patched_path: '$env:Path;C:\Program Files\nodejs'
+    node_path: 'C:\Program Files\nodejs\'
 
     nr_fb_output_plugin_version: '1.17.1'
   environment:
@@ -211,6 +211,14 @@
       win_chocolatey:
         name: nodejs
         version: '{{ node_version }}'
+
+    - name: Capture contents of PATH environment variable
+      win_shell: $env:PATH
+      register: original_path
+
+    - name: Include node paths into patched_path
+      set_fact:
+        patched_path: '{{ original_path.stdout }};{{ node_path }}'
 
     - name: Copy test suite
       ansible.windows.win_copy:
