@@ -10,6 +10,7 @@
   roles:
     - caos.ansible_roles.install_crowdstrike_falcon
 
+# We need to have a separate playbook for windows since `become` is not supported
 - name: (windows) Install CrowdStrike Falcon
   hosts: windows
   gather_facts: yes
