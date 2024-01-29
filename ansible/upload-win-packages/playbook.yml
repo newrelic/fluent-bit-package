@@ -3,19 +3,19 @@
   vars:
     pr_tag: "{{ lookup('ansible.builtin.env', 'PR_TAG') }}"
     windows_bucket: logging-fb-windows-packages
+    windows_matrix: "{{ lookup('file','windowsMatrix.json') | from_json }}"
   roles:
     - andrewrothstein.gh
   tasks:
+    - name: Create neighbors dictionary (this is now per interface)
+      set_fact:
+        windows_artifacts: "{{ . | community.general.json_query('[*].targetPackageName') }}"
+
     - name: Download windows artifacts from github pre_release
-      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '*windows*.zip'"
+      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}'"
       args:
         chdir: /tmp
-
-    - name: Capture windows artifact names
-      ansible.builtin.find:
-        paths: /tmp
-        patterns: '*windows*.zip'
-      register: windows_artifacts
+      loop: "{{ windows_artifacts }}"
 
     - name: Upload windows artifacts
       amazon.aws.s3_object:
