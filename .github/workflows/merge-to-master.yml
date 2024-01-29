@@ -70,6 +70,5 @@ jobs:
     needs: get-release-tag
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "upload-win-packages"
-      ref: ${{ needs.get-release-tag.outputs.tag }}
+      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get-release-tag.outputs.tag }}"
     secrets: inherit

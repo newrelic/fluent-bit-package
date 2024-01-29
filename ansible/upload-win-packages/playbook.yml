@@ -1,0 +1,26 @@
+- name: Upload windows packages
+  hosts: localhost
+  vars:
+    pr_tag: "{{ lookup('ansible.builtin.env', 'PR_TAG') }}"
+    windows_bucket: logging-fb-windows-packages
+  roles:
+    - andrewrothstein.gh
+  tasks:
+    - name: Download windows artifacts from github pre_release
+      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '*windows*.zip'"
+      args:
+        chdir: /tmp
+
+    - name: Capture windows artifact names
+      ansible.builtin.find:
+        paths: /tmp
+        patterns: '*windows*.zip'
+      register: windows_artifacts
+
+    - name: Upload windows artifacts
+      amazon.aws.s3_object:
+        bucket: "{{ windows_bucket }}"
+        object: "{{ item }}"
+        src: "/tmp/{{ item }}"
+        mode: put
+      loop: "{{ windows_artifacts }}"
