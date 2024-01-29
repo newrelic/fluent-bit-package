@@ -30,4 +30,5 @@
         src: "{{ item }}"
         mode: put
         permission: public-read
+        purge_tags: false
       loop: "{{ windows_artifacts }}"
