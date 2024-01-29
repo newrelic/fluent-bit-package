@@ -29,4 +29,5 @@
         object: "{{ item }}"
         src: "{{ item }}"
         mode: put
+        permission: public-read
       loop: "{{ windows_artifacts }}"
