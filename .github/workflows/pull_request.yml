@@ -68,69 +68,69 @@ jobs:
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
   # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
-  download_official_packages:
-    needs: [setup_environment]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
-    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Attempt downloading package from New Relic repository
-        id: download_package_from_nr
-        run: |
-          mkdir -p packages
-          if wget --directory-prefix=packages "${{ matrix.nrPackageUrl }}"; then
-            echo "result=success" >> "$GITHUB_OUTPUT"
-          else
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Download, rename and resign Linux package
-        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
-        run: |
-          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
-          sudo apt-get install -y debsigs
-          bash ./scripts/sign.sh
-
-      - name: Download and re-zip Windows package
-        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'windows-server' }}
-        run: |
-          wget ${{ matrix.packageUrl }}
-          unzip fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}.zip
-          zip -r -j packages/${{ matrix.targetPackageName }} \
-               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
-               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
-
-        # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
-        # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
-        # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
-        # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-      - uses: actions/upload-artifact@v2
-        with:
-          # Artifacts are pushed to *shared network folders* that have this name and that contain
-          # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
-          name: ${{ matrix.targetPackageName }}
-          path: packages/${{ matrix.targetPackageName }}
-
-  upload_official_packages_to_prerelease:
-    needs: [ download_official_packages ]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download all artifacts from shared filesystem
-        uses: actions/download-artifact@v3
-        with:
-          path: packages
-
-      - name: Push all artifacts to pre-release
-        run:
-          # To understand the need for /*/*, see comment in "upload artifacts" step above
-          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
+#  download_official_packages:
+#    needs: [setup_environment]
+#    runs-on: ubuntu-latest
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
+#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+#    steps:
+#      - name: Check out repository
+#        uses: actions/checkout@v3
+#
+#      - name: Attempt downloading package from New Relic repository
+#        id: download_package_from_nr
+#        run: |
+#          mkdir -p packages
+#          if wget --directory-prefix=packages "${{ matrix.nrPackageUrl }}"; then
+#            echo "result=success" >> "$GITHUB_OUTPUT"
+#          else
+#            echo "result=failure" >> "$GITHUB_OUTPUT"
+#          fi
+#
+#      - name: Download, rename and resign Linux package
+#        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
+#        run: |
+#          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
+#          sudo apt-get install -y debsigs
+#          bash ./scripts/sign.sh
+#
+#      - name: Download and re-zip Windows package
+#        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'windows-server' }}
+#        run: |
+#          wget ${{ matrix.packageUrl }}
+#          unzip fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}.zip
+#          zip -r -j packages/${{ matrix.targetPackageName }} \
+#               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
+#               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
+#
+#        # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
+#        # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
+#        # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
+#        # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
+#      - uses: actions/upload-artifact@v2
+#        with:
+#          # Artifacts are pushed to *shared network folders* that have this name and that contain
+#          # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
+#          name: ${{ matrix.targetPackageName }}
+#          path: packages/${{ matrix.targetPackageName }}
+#
+#  upload_official_packages_to_prerelease:
+#    needs: [ download_official_packages ]
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Download all artifacts from shared filesystem
+#        uses: actions/download-artifact@v3
+#        with:
+#          path: packages
+#
+#      - name: Push all artifacts to pre-release
+#        run:
+#          # To understand the need for /*/*, see comment in "upload artifacts" step above
+#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
   spin_up_suse:
     needs: setup_environment
@@ -182,7 +182,8 @@ jobs:
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests:
-    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
+    needs: [ setup_environment, sign_suse_packages]
+#    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
     name: Run E2E tests
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
