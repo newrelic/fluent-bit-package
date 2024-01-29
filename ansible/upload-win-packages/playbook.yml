@@ -3,7 +3,7 @@
   vars:
     pr_tag: "{{ lookup('ansible.builtin.env', 'PR_TAG') }}"
     windows_bucket: logging-fb-windows-packages
-    windows_matrix: "{{ lookup('file','windowsMatrix.json') | from_json }}"
+    windows_matrix: "{{ lookup('file','../../versions/windowsMatrix.json') | from_json }}"
   roles:
     - andrewrothstein.gh
   tasks:

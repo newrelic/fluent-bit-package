@@ -5,7 +5,6 @@ include ../Ansible.common.mk
 .PHONY: generateMatrix
 generateMatrix:
 	$(MAKE) -C ../../versions generateMatrices
-	$(mv) windowsMatrix.json $(ANSIBLE_FOLDER)/
 
 .PHONY: upload-win-packages
 upload-win-packages: ansible/dependencies generateMatrix
