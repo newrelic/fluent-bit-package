@@ -21,14 +21,12 @@
 
     - name: Download windows artifacts from github pre_release
       ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}'"
-      args:
-        chdir: /tmp
       loop: "{{ windows_artifacts }}"
 
     - name: Upload windows artifacts
       amazon.aws.s3_object:
         bucket: "{{ windows_bucket }}"
         object: "{{ item }}"
-        src: "/tmp/{{ item }}"
+        src: "{{ item }}"
         mode: put
       loop: "{{ windows_artifacts }}"
