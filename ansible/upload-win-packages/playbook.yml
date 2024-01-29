@@ -20,7 +20,7 @@
         msg: "{{ windows_artifacts }}"
 
     - name: Download windows artifacts from github pre_release
-      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}'"
+      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}' --skip-existing"
       loop: "{{ windows_artifacts }}"
 
     - name: Upload windows artifacts
