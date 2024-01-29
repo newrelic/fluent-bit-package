@@ -17,181 +17,180 @@ env:
 jobs:
   # Empties the GH pre-relase
   # Generates strategy matrices that can be used by other jobs to run the build or testing of all supported packages
-#  setup_environment:
-#    runs-on: ubuntu-latest
-#    outputs:
-#      pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
-#      sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
-#      linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v3
-#
-#        # This is a workaround required to pass environment variables to the run_e2e_tests workflow
-#        # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
-#      - name: Make dynamically-generated env variables available to be passed down to reusable workflows
-#        id: set_vars
-#        run: |
-#          echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
-#
-#      - name: (Re)create pre-release
-#        run: |
-#          pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
-#          if [[ $pre_release_exists == "true" ]]; then
-#            echo "Deleting existing pre-release"
-#            gh release delete ${{ env.PRE_RELEASE_NAME }} -y --cleanup-tag
-#          fi
-#
-#          pre_release_tag=$PRE_RELEASE_NAME
-#          pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
-#          pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
-#
-#          # Releases created from a runner are always DRAFT
-#          echo "Creating release: $pre_release_tag"
-#          gh release create "$pre_release_tag" --title "$pre_release_title" --notes "$pre_release_notes"
-#          # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
-#          echo "Updating release to be a pre-release"
-#          gh release edit "$pre_release_tag" --draft=false --prerelease
-#
-#      - name: Install python
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.10'
-#
-#      - name: Compute matrices
-#        id: set-matrices
-#        run: |
-#          make versions
-#          echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
-#          echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
-#
-#      - name: Compute and upload schemas
-#        run: |
-#          make schemas;
-#          gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema.yaml --repo newrelic/fluent-bit-package
-#
-#  # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
-#  # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
-#  # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
-#  download_official_packages:
-#    needs: [setup_environment]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: true
-#      matrix:
-#        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
-#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-#    steps:
-#      - name: Check out repository
-#        uses: actions/checkout@v3
-#
-#      - name: Attempt downloading package from New Relic repository
-#        id: download_package_from_nr
-#        run: |
-#          mkdir -p packages
-#          if wget --directory-prefix=packages "${{ matrix.nrPackageUrl }}"; then
-#            echo "result=success" >> "$GITHUB_OUTPUT"
-#          else
-#            echo "result=failure" >> "$GITHUB_OUTPUT"
-#          fi
-#
-#      - name: Download, rename and resign Linux package
-#        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
-#        run: |
-#          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
-#          sudo apt-get install -y debsigs
-#          bash ./scripts/sign.sh
-#
-#      - name: Download and re-zip Windows package
-#        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'windows-server' }}
-#        run: |
-#          wget ${{ matrix.packageUrl }}
-#          unzip fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}.zip
-#          zip -r -j packages/${{ matrix.targetPackageName }} \
-#               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
-#               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
-#
-#        # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
-#        # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
-#        # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
-#        # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-#      - uses: actions/upload-artifact@v2
-#        with:
-#          # Artifacts are pushed to *shared network folders* that have this name and that contain
-#          # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
-#          name: ${{ matrix.targetPackageName }}
-#          path: packages/${{ matrix.targetPackageName }}
-#
-#  upload_official_packages_to_prerelease:
-#    needs: [ download_official_packages ]
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: Download all artifacts from shared filesystem
-#        uses: actions/download-artifact@v3
-#        with:
-#          path: packages
-#
-#      - name: Push all artifacts to pre-release
-#        run:
-#          # To understand the need for /*/*, see comment in "upload artifacts" step above
-#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
-#
+  setup_environment:
+    runs-on: ubuntu-latest
+    outputs:
+      pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
+      sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
+      linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+        # This is a workaround required to pass environment variables to the run_e2e_tests workflow
+        # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
+      - name: Make dynamically-generated env variables available to be passed down to reusable workflows
+        id: set_vars
+        run: |
+          echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
+
+      - name: (Re)create pre-release
+        run: |
+          pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
+          if [[ $pre_release_exists == "true" ]]; then
+            echo "Deleting existing pre-release"
+            gh release delete ${{ env.PRE_RELEASE_NAME }} -y --cleanup-tag
+          fi
+
+          pre_release_tag=$PRE_RELEASE_NAME
+          pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
+          pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
+
+          # Releases created from a runner are always DRAFT
+          echo "Creating release: $pre_release_tag"
+          gh release create "$pre_release_tag" --title "$pre_release_title" --notes "$pre_release_notes"
+          # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
+          echo "Updating release to be a pre-release"
+          gh release edit "$pre_release_tag" --draft=false --prerelease
+
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Compute matrices
+        id: set-matrices
+        run: |
+          make versions
+          echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
+
+      - name: Compute and upload schemas
+        run: |
+          make schemas;
+          gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema.yaml --repo newrelic/fluent-bit-package
+
+  # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
+  # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
+  # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
+  download_official_packages:
+    needs: [setup_environment]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
+    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Attempt downloading package from New Relic repository
+        id: download_package_from_nr
+        run: |
+          mkdir -p packages
+          if wget --directory-prefix=packages "${{ matrix.nrPackageUrl }}"; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download, rename and resign Linux package
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
+        run: |
+          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Download and re-zip Windows package
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'windows-server' }}
+        run: |
+          wget ${{ matrix.packageUrl }}
+          unzip fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}.zip
+          zip -r -j packages/${{ matrix.targetPackageName }} \
+               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
+               fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
+
+        # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
+        # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
+        # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
+        # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
+      - uses: actions/upload-artifact@v2
+        with:
+          # Artifacts are pushed to *shared network folders* that have this name and that contain
+          # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
+          name: ${{ matrix.targetPackageName }}
+          path: packages/${{ matrix.targetPackageName }}
+
+  upload_official_packages_to_prerelease:
+    needs: [ download_official_packages ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts from shared filesystem
+        uses: actions/download-artifact@v3
+        with:
+          path: packages
+
+      - name: Push all artifacts to pre-release
+        run:
+          # To understand the need for /*/*, see comment in "upload artifacts" step above
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
+
   spin_up_suse:
-#    needs: setup_environment
+    needs: setup_environment
     uses: ./.github/workflows/run_task.yml
     with:
-#      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
-      container_make_target: "ansible/upload-win-packages PR_TAG=tmp-pr-${{ github.event.pull_request.number }}"
+      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
-#
-#  build_suse_packages:
-#    needs: spin_up_suse
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
-#    secrets: inherit
-#
-#  tear_down_suse:
-#    needs: build_suse_packages
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
-#    secrets: inherit
-#
-#  sign_suse_packages:
-#    needs: [setup_environment, build_suse_packages]
-#    runs-on: ubuntu-latest
-#    strategy:
-#      fail-fast: true
-#      matrix:
-#        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
-#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-#
-#    steps:
-#      - name: Check out repository
-#        uses: actions/checkout@v3
-#
-#      - name: Fetch package from GitHub pre-release
-#        run: |
-#          mkdir -p packages
-#          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
-#
-#      - name: Sign package
-#        run: |
-#          sudo apt-get install -y debsigs
-#          bash ./scripts/sign.sh
-#
-#      - name: Upload signed asset
-#        run:
-#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
-#
-#  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
-#  run_e2e_tests:
-#    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
-#    name: Run E2E tests
-#    uses: ./.github/workflows/run_e2e_tests.yml
-#    with:
-#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-#      infra_agent_version: latest
-#    secrets: inherit
+
+  build_suse_packages:
+    needs: spin_up_suse
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
+  tear_down_suse:
+    needs: build_suse_packages
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+    secrets: inherit
+
+  sign_suse_packages:
+    needs: [setup_environment, build_suse_packages]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
+    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Fetch package from GitHub pre-release
+        run: |
+          mkdir -p packages
+          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
+
+      - name: Sign package
+        run: |
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Upload signed asset
+        run:
+          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
+
+  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
+  run_e2e_tests:
+    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
+    name: Run E2E tests
+    uses: ./.github/workflows/run_e2e_tests.yml
+    with:
+      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+      infra_agent_version: latest
+    secrets: inherit
