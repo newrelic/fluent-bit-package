@@ -1,4 +1,5 @@
 collections:
   - name: community.aws
+  - name: community.general
 roles:
   - name: andrewrothstein.gh
