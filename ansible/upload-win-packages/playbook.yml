@@ -7,17 +7,9 @@
   roles:
     - andrewrothstein.gh
   tasks:
-    - name: Print the gateway for each host when defined
-      ansible.builtin.debug:
-        msg: "{{ windows_matrix }}"
-
-    - name: Create neighbors dictionary (this is now per interface)
+    - name: Set windows artifact names
       set_fact:
         windows_artifacts: "{{ windows_matrix | community.general.json_query('[*].targetPackageName') }}"
-
-    - name: Print the gateway for each host when defined
-      ansible.builtin.debug:
-        msg: "{{ windows_artifacts }}"
 
     - name: Download windows artifacts from github pre_release
       ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}' --skip-existing"
