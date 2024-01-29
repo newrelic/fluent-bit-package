@@ -73,7 +73,6 @@
       command:
         cmd: ./configure
         chdir: "{{ bison_path }}"
-        creates: "{{ bison_path }}/Makefile"
 
     - name: Build Bison {{ bison_version }}
       community.general.make:
@@ -109,7 +108,6 @@
       command:
         cmd: "{{ cmake_path }}/bin/cmake -DCMAKE_INSTALL_PREFIX=/opt/fluent-bit/ -DCMAKE_INSTALL_SYSCONFDIR=/etc/ .."
         chdir: "{{ fluent_bit_path }}/build"
-        creates: "{{ fluent_bit_path }}/Makefile"
 
     - name: Build Fluent Bit {{ fluent_bit_version }}
       community.general.make:
@@ -121,14 +119,12 @@
       command:
         cmd: "{{ cmake_path }}/bin/cpack -G RPM"
         chdir: "{{ fluent_bit_path }}/build"
-        creates: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
 
     - name: Rename binary for the specific OS type, version and arch
       # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
       command:
         cmd: "cp fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm {{ fluent_bit_package_name }}"
         chdir: "{{ fluent_bit_path }}/build"
-        creates: "{{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
 
     - name: Download generated Fluent Bit RPM package
       fetch:
