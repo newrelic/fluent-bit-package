@@ -1,0 +1,26 @@
+- name: Upload windows packages
+  hosts: localhost
+  vars:
+    pr_tag: "{{ lookup('ansible.builtin.env', 'PR_TAG') }}"
+    windows_bucket: logging-fb-windows-packages
+    windows_matrix: "{{ lookup('file','../../versions/windowsMatrix.json') | from_json }}"
+  roles:
+    - andrewrothstein.gh
+  tasks:
+    - name: Set windows artifact names
+      set_fact:
+        windows_artifacts: "{{ windows_matrix | community.general.json_query('[*].targetPackageName') }}"
+
+    - name: Download windows artifacts from github pre_release
+      ansible.builtin.command: "gh release download {{ pr_tag }} --pattern '{{ item }}' --skip-existing"
+      loop: "{{ windows_artifacts }}"
+
+    - name: Upload windows artifacts
+      amazon.aws.s3_object:
+        bucket: "{{ windows_bucket }}"
+        object: "{{ item }}"
+        src: "{{ item }}"
+        mode: put
+        permission: public-read
+        purge_tags: false
+      loop: "{{ windows_artifacts }}"

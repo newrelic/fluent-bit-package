@@ -34,7 +34,7 @@ jobs:
       - name: Publish linux packages to staging
         uses: newrelic/infrastructure-publish-action@v1.2.3
         env:
-          TAG: ${{ needs.get-release-tag.outputs.tag }}"
+          TAG: ${{ needs.get-release-tag.outputs.tag }}
           GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
           GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
@@ -62,3 +62,13 @@ jobs:
           # used for signing package stuff
           gpg_passphrase: ${{ env.GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ env.GPG_PRIVATE_KEY_BASE64 }}
+      # TODO: fill with prod parameters when ready
+      #- name: Publish linux packages to production
+
+  publish-windows:
+    name: Publish windows packages to logging's production bucket
+    needs: get-release-tag
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get-release-tag.outputs.tag }}"
+    secrets: inherit
