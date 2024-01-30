@@ -3,7 +3,7 @@ name: Merge to master
 on:
   push:
     branches:
-      - test_main
+      - main
 
 jobs:
   get-release-tag:
