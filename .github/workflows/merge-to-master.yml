@@ -62,8 +62,38 @@ jobs:
           # used for signing package stuff
           gpg_passphrase: ${{ env.GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ env.GPG_PRIVATE_KEY_BASE64 }}
-      # TODO: fill with prod parameters when ready
-      #- name: Publish linux packages to production
+
+      - name: Publish linux packages to production
+        uses: newrelic/infrastructure-publish-action@v1.2.3
+        env:
+          TAG: ${{ needs.get-release-tag.outputs.tag }}
+          GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
+          GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+          AWS_S3_BUCKET_NAME: "nr-downloads-ohai"
+          AWS_S3_LOCK_BUCKET_NAME: "onhost-ci-lock"
+          AWS_REGION: "us-east-1"
+          AWS_ACCESS_KEY_ID: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
+          AWS_ROLE_ARN: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
+          AWS_ROLE_SESSION_NAME: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
+        with:
+          tag: ${{env.TAG}}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.TAG }}/generated-linux-schema.yaml"
+          aws_access_key_id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws_s3_bucket_name: ${{ env.AWS_S3_BUCKET_NAME }}
+          aws_s3_lock_bucket_name: ${{ env.AWS_S3_LOCK_BUCKET_NAME }}
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: ${{ env.AWS_REGION }}
+          aws_role_session_name: ${{ env.AWS_ROLE_SESSION_NAME }}
+          aws_role_arn: ${{ env.AWS_ROLE_ARN }}
+          # used for signing package stuff
+          gpg_passphrase: ${{ env.GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ env.GPG_PRIVATE_KEY_BASE64 }}
 
   publish-windows:
     name: Publish windows packages to logging's production bucket
