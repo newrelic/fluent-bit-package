@@ -1,11 +1,11 @@
-fbVersion: 2.2.0
+fbVersion: 2.2.2
 
 #  This file, together with each distro file are processed and merged incrementally to
 #  build all the information required to download and test each package. Each package ends
 #  up having the following information fields which are later accessed by the GH workflows:
 #
 #  {
-#    "fbVersion": "2.0.8",
+#    "fbVersion": "2.2.2",
 #    "osDistro": "debian",
 #    "osVersion": "bookworm",
 #    "arch": "amd64",
