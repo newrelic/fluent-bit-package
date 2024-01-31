@@ -120,5 +120,5 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          PRODUCT_NAME: Fluentbit Linux Packages
+          PRODUCT_NAME: Fluent Bit packages for the New Relic Infrastructure Agent
           PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
