@@ -7,7 +7,7 @@ on:
 
 jobs:
   get-release-tag:
-    name: Publish linux artifacts into s3 bucket
+    name: Gets pre-release tag of the recently merged PR
     runs-on: ubuntu-latest
     outputs:
       tag: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
