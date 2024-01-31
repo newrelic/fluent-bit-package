@@ -102,3 +102,23 @@ jobs:
     with:
       container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get-release-tag.outputs.tag }}"
     secrets: inherit
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [get-release-tag,publish-linux,publish-windows]
+    steps:
+      - name: Send release details to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.get-release-tag.outputs.tag }}",
+              "releaseName": "${{ needs.get-release-tag.outputs.tag }}",
+              "productName": "${{ env.PRODUCT_NAME }}",
+              "productUrl": "${{ env.PRODUCT_URL }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PRODUCT_NAME: Fluent Bit packages for the New Relic Infrastructure Agent
+          PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
