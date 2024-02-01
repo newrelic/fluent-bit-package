@@ -73,7 +73,6 @@
       command:
         cmd: ./configure
         chdir: "{{ bison_path }}"
-        creates: "{{ bison_path }}/Makefile"
 
     - name: Build Bison {{ bison_version }}
       community.general.make:
@@ -109,7 +108,6 @@
       command:
         cmd: "{{ cmake_path }}/bin/cmake -DCMAKE_INSTALL_PREFIX=/opt/fluent-bit/ -DCMAKE_INSTALL_SYSCONFDIR=/etc/ .."
         chdir: "{{ fluent_bit_path }}/build"
-        creates: "{{ fluent_bit_path }}/Makefile"
 
     - name: Build Fluent Bit {{ fluent_bit_version }}
       community.general.make:
