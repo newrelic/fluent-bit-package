@@ -1,0 +1,100 @@
+name: Merge to main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  get-release-tag:
+    name: Gets pre-release tag commit associated with the merged PR
+    runs-on: ubuntu-latest
+    outputs:
+      tag: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
+    steps:
+      - name: Get PR number
+        uses: actions/github-script@v6
+        id: get_pr_number
+        with:
+          script: |
+            return (
+              await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                commit_sha: context.sha,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              })
+            ).data[0].number;
+          result-encoding: string
+
+  publish-linux:
+    name: Publish linux packages to staging and production buckets
+    needs: get-release-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish linux packages to staging
+        uses: newrelic/infrastructure-publish-action@v1.2.3
+        with:
+          tag: ${{ needs.get-release-tag.outputs.tag }}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ needs.get-release-tag.outputs.tag }}/generated-linux-schema.yaml"
+          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+          aws_s3_bucket_name: "nr-downloads-ohai-staging"
+          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-1"
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+
+      - name: Publish linux packages to production
+        uses: newrelic/infrastructure-publish-action@v1.2.3
+        with:
+          tag: ${{ needs.get-release-tag.outputs.tag }}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.TAG }}/generated-linux-schema.yaml"
+          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
+          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
+          aws_s3_bucket_name: "nr-downloads-ohai"
+          aws_s3_lock_bucket_name: "onhost-ci-lock"
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-1"
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
+          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+
+  publish-windows:
+    name: Publish windows packages to logging's production bucket
+    needs: get-release-tag
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get-release-tag.outputs.tag }}"
+    secrets: inherit
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [get-release-tag,publish-linux,publish-windows]
+    steps:
+      - name: Send release details to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.get-release-tag.outputs.tag }}",
+              "releaseName": "${{ needs.get-release-tag.outputs.tag }}",
+              "productName": "${{ env.PRODUCT_NAME }}",
+              "productUrl": "${{ env.PRODUCT_URL }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          PRODUCT_NAME: Fluent Bit packages for the New Relic Infrastructure Agent
+          PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
