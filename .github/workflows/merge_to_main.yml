@@ -57,7 +57,7 @@ jobs:
           tag: ${{ needs.get-release-tag.outputs.tag }}
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
-          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.TAG }}/generated-linux-schema.yaml"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ needs.get-release-tag.outputs.tag }}/generated-linux-schema.yaml"
           aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
           aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
           aws_s3_bucket_name: "nr-downloads-main"
