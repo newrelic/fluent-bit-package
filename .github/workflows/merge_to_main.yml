@@ -60,9 +60,9 @@ jobs:
           schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.TAG }}/generated-linux-schema.yaml"
           aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
           aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
-          aws_s3_bucket_name: "nr-downloads-ohai"
+          aws_s3_bucket_name: "nr-downloads-main"
           aws_s3_lock_bucket_name: "onhost-ci-lock"
-          access_point_host: "staging"
+          access_point_host: "production"
           run_id: ${{ github.run_id }}
           aws_region: "us-east-1"
           aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
