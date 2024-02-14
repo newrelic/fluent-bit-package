@@ -34,6 +34,7 @@ jobs:
       - name: Publish linux packages to staging
         uses: newrelic/infrastructure-publish-action@v1.2.3
         with:
+          app_name: fluent-bit
           tag: ${{ needs.get-release-tag.outputs.tag }}
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
@@ -54,6 +55,7 @@ jobs:
       - name: Publish linux packages to production
         uses: newrelic/infrastructure-publish-action@v1.2.3
         with:
+          app_name: fluent-bit
           tag: ${{ needs.get-release-tag.outputs.tag }}
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"

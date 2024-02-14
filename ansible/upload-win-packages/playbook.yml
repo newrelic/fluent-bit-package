@@ -16,11 +16,5 @@
       loop: "{{ windows_artifacts }}"
 
     - name: Upload windows artifacts
-      amazon.aws.s3_object:
-        bucket: "{{ windows_bucket }}"
-        object: "{{ item }}"
-        src: "{{ item }}"
-        mode: put
-        permission: public-read
-        purge_tags: false
+      ansible.builtin.command: "aws s3 cp {{ item }} s3://{{ windows_bucket }}/"
       loop: "{{ windows_artifacts }}"
