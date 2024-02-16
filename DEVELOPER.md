@@ -12,14 +12,14 @@ make target will set it up for you to the value `local-<YOUR_USERNAME>`.
 ## Terraform targets
 Example usage:
 ```
-make local target="terraform TERRAFORM_PROJECT=ec2-suse-builders"
+make local target="terraform/ec2-suse-builders"
 ```
 
 In the above example, this would create the SUSE builder VMs, and the corresponding Terraform state would be stored in
 the backend S3 bucket under the key `suse-builders-pr-local-<YOUR_USERNAME>`. To destroy the created resources, you'd need
 to then run:
 ```
-make local target="terraform-clean TERRAFORM_PROJECT=ec2-suse-builders"
+make local target="terraform/ec2-suse-builders-clean "
 ```
 
 ## Ansible targets
