@@ -1,6 +1,7 @@
 import os
 import json
 import yaml
+import requests
 
 """
 This file builds the strategy matrix to be used in the pull_request.yml. For each supported package to be built/tested,
@@ -119,8 +120,8 @@ def windows_package_details(data):
     return {
         'packageUrl': f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         'targetPackageName': target_package_name,
-        # TODO: add URL to Logging's S3 bucket holding Windows packages here
-        # 'nrPackageUrl': 'url'
+        'nrPackageUrl':
+            f"https://logging-fb-windows-packages.s3.us-east-2.amazonaws.com/{target_package_name}",
     }
 
 def get_major_minor_version(version):
@@ -172,7 +173,20 @@ def generate_matrix():
         for package_data in read_distro_packages(distro_file)
     ]
 
+
+def filter_present_in_prod(matrix):
+    missing_prod_pkgs = []
+    for pkg in matrix:
+        if 'nrPackageUrl' in pkg:
+            url = pkg['nrPackageUrl']
+            response = requests.head(url)
+            if response.status_code == 404:
+                missing_prod_pkgs.append(pkg)
+
+    return missing_prod_pkgs
+
+
 if __name__ == "__main__":
     matrix = generate_matrix()
-    print(json.dumps(matrix))
+    print(json.dumps(filter_present_in_prod(matrix)))
 
