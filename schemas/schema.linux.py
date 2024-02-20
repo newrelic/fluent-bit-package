@@ -1,13 +1,16 @@
 import json
 import yaml
+import os
 
-if __name__ == '__main__':
-    matrix = open('../versions/strategyMatrix.json')
-    matrixData = json.load(matrix)
-    schemaObjectArray = []
-    for item in matrixData:
+
+def process_matrix(file_path):
+    with open(file_path) as matrix:  # Using with is a good practice as it automatically closes the file
+        matrix_data = json.load(matrix)
+
+    schema_object_array = []
+    for item in matrix_data:
         if item['osDistro'] != 'windows-server':
-            schemaObject = {
+            schema_object = {
                 'src': item['targetPackageName'],
                 'arch': [item['pkgArch']],
                 'uploads': [
@@ -19,9 +22,19 @@ if __name__ == '__main__':
                 ]
             }
             if "srcRepo" in item:
-                schemaObject['uploads'][0]['src_repo'] = item['srcRepo']
+                schema_object['uploads'][0]['src_repo'] = item['srcRepo']
+            schema_object_array.append(schema_object)
 
-            schemaObjectArray.append(schemaObject)
+    return schema_object_array
 
-    matrix.close()
-    print(yaml.dump(schemaObjectArray))
+
+if __name__ == '__main__':
+    env = os.environ.get('ENV')
+    schema_object_array = []
+
+    if env == 'staging':
+        schema_object_array = process_matrix('../versions/stagingMatrix.json')
+    elif env == 'prod':
+        schema_object_array = process_matrix('../versions/prodMatrix.json')
+
+    print(yaml.dump(schema_object_array))

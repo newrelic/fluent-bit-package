@@ -2,4 +2,5 @@
 
 .PHONY: generateSchemas
 generateSchemas:
-	python3 schema.linux.py > generated-linux-schema.yaml
+	ENV="staging" python3 schema.linux.py > generated-linux-schema-staging.yaml
+	ENV="production" python3 schema.linux.py > generated-linux-schema-production.yaml
