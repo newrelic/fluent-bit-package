@@ -193,7 +193,7 @@ def add_presence_flags(matrix):
         if 'nrPackageUrl' in pkg:
             url = pkg['nrPackageUrl']
             response = requests.head(url)
-            pkg['isProd'] = False if response.status_code == 404 else True
+            pkg['isProduction'] = False if response.status_code == 404 else True
         if 'nrStagingPackageUrl' in pkg:
             url = pkg['nrStagingPackageUrl']
             response = requests.head(url)

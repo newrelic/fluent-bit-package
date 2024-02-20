@@ -29,12 +29,12 @@ def process_matrix(file_path):
 
 
 if __name__ == '__main__':
-    env = os.environ.get('ENV')
+    nria_env = os.environ.get('NRIA_ENV')
     schema_object_array = []
 
-    if env == 'staging':
+    if nria_env == 'staging':
         schema_object_array = process_matrix('../versions/stagingMatrix.json')
-    elif env == 'prod':
-        schema_object_array = process_matrix('../versions/prodMatrix.json')
+    elif nria_env == 'production':
+        schema_object_array = process_matrix('../versions/productionMatrix.json')
 
     print(yaml.dump(schema_object_array))

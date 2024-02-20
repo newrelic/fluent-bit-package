@@ -1,0 +1,33 @@
+- name: Process and merge test reports
+  hosts: localhost
+  vars:
+    node_version: 18.18.0
+    controller_scripts_folder: ../../integration-tests/controller-scripts
+    test_reports_dir: /tmp/test-reports
+    combined_test_report_name: "{{ lookup('ansible.builtin.env', 'TEST_REPORT_FILENAME') }}"
+    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
+  roles:
+    - andrewrothstein.gh
+  tasks:
+    - name: Install node and script dependencies
+      ansible.builtin.import_role:
+        role: morgangraphics.ansible_role_nvm
+      vars:
+        nodejs_version: "{{ node_version }}"
+        # CentOS comes without "wget", so using "curl" instead
+        nvm_install: "curl"
+        nvm_commands:
+          - "cd {{ controller_scripts_folder }} && nvm exec default npm install"
+
+    - name: Process test reports
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && nvm exec default npm start"
+      args:
+        executable: /bin/bash
+        chdir: "{{ controller_scripts_folder }}"
+      environment:
+        TEST_REPORT_ROOT_PATH: "{{ test_reports_dir }}"
+        TEST_REPORT_NAME: "{{ combined_test_report_name }}"
+
+    - name: Upload generated artifacts to release
+      command: "gh release upload {{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
+      when: pr_number is not regex('^local-.*')

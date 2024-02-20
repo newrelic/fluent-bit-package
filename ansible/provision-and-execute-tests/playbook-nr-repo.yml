@@ -1,0 +1,99 @@
+- name: (linux) Install CrowdStrike Falcon and NRIA
+  hosts: linux
+  become: true
+  gather_facts: yes
+  vars:
+    # install_crowdstrike_falcon role vars
+    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+    # newrelic_cli role vars
+    repo_endpoint: "{{ (lookup('ansible.builtin.env', 'NRIA_ENV') == 'staging') | ternary('https://nr-downloads-ohai-staging.s3.amazonaws.com/','https://nr-downloads-main.s3.amazonaws.com/') }}"
+    recipe: "newrelic-infra"
+    region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+    nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+  roles:
+    - caos.ansible_roles.install_crowdstrike_falcon
+    - caos.ansible_roles.newrelic_cli
+
+- name: (linux) Run e2e tests
+  hosts: linux
+  gather_facts: yes
+  vars:
+    node_version: 16.14.0
+    # The following information is populated using the gathered inventory variables
+    fluent_bit_package_name: "{{ tags.fb_package_name }}"
+    pr_number: "{{ tags.pr_number }}"
+    fb_version: "{{ tags.fb_version }}"
+    os_distro: "{{ tags.os_distro }}"
+    os_version: "{{ tags.os_version }}"
+    arch: "{{ tags.arch }}"
+    # The following vars are injected in the fargate task env
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+    # Test specs
+    monitored_file: /tmp/tail-log-file-test
+    monitored_syslog_rfc_5424_tcp_port: 5140
+    monitored_syslog_rfc_5424_udp_port: 6140
+    monitored_tcp_port: 5170
+    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
+
+    test_reports_dir: /tmp/test-reports
+    nr_fb_output_plugin_version: 1.17.1
+  environment:
+    NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
+    NEW_RELIC_REGION: "{{ new_relic_region }}"
+  tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
+    - name: Configure log forwarding
+      ansible.builtin.include_role:
+        name: create_logging_configs
+
+    - name: Remove previous test suite
+      ansible.builtin.file:
+        path: ~/test-suite
+        state: absent
+
+    - name: Copy test suite
+      ansible.builtin.copy:
+        src: ../../integration-tests/test-suite
+        dest: ~/
+
+    - name: Install node and test-suite dependencies
+      ansible.builtin.import_role:
+        role: morgangraphics.ansible_role_nvm
+      vars:
+        nodejs_version: "{{ node_version }}"
+        # CentOS comes without "wget", so using "curl" instead
+        nvm_install: "curl"
+        nvm_commands:
+          - "cd ~/test-suite && nvm exec default npm install"
+
+    - name: Run test-suite
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
+      args:
+        executable: /bin/bash
+        chdir: ~/test-suite
+        creates: ~/test-suite/reports
+      environment:
+        LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
+        NERD_GRAPH_URL: https://api.newrelic.com/graphql
+        API_KEY: "{{ new_relic_api_key }}"
+        ACCOUNT_ID: "{{ new_relic_account_id }}"
+        MONITORED_FILE: "{{ monitored_file }}"
+        MONITORED_TCP_PORT: "{{ monitored_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
+        MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
+        MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+
+    - name: Fetch results
+      fetch:
+        flat: true # behave like copy, we only want the file, not the whole path
+        src: ~/test-suite/reports/tests/test-report.xml
+        dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"

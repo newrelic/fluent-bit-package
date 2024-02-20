@@ -58,12 +58,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Compute matrices
+      - name: Compute and upload matrices
         id: set-matrices
         run: |
           make versions
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
+          gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
+          gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
       - name: Compute and upload schemas
         run: |
@@ -142,7 +144,7 @@ jobs:
     needs: setup_environment
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
 
   build_suse_packages:
@@ -156,7 +158,7 @@ jobs:
     needs: build_suse_packages
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-suse-builders-clean PR_NUMBER=${{ github.event.pull_request.number }}"
     secrets: inherit
 
   sign_suse_packages:
@@ -187,11 +189,50 @@ jobs:
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
-  run_e2e_tests:
+  run_e2e_tests_prerelease:
     needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
     name: Run E2E tests
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
+      infra_agent_env: prerelease
+      test_report_filename: test-report-prerelease.xml
+    secrets: inherit
+
+  publish_linux_to_staging:
+    name: Publish linux packages to staging
+    needs: [ setup_environment, run_e2e_tests_prerelease ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish linux packages to staging
+        uses: newrelic/infrastructure-publish-action@v1
+        with:
+          app_name: fluent-bit
+          tag: ${{ env.PRE_RELEASE_NAME }}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
+          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+          aws_s3_bucket_name: "nr-downloads-ohai-staging"
+          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-1"
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+
+  run_e2e_tests_staging:
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    name: Run E2E tests for all supported packages installing NRIA from staging
+    uses: ./.github/workflows/run_e2e_tests.yml
+    with:
+      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+      infra_agent_version: latest
+      infra_agent_env: staging
+      test_report_filename: test-report-staging.xml
     secrets: inherit
