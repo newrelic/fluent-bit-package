@@ -7,6 +7,7 @@ const {
   DEFAULT_SINCE,
   NRQL_QUERY_TIMEOUT_IN_SECONDS,
 } = require('./waitTimes');
+const { logAxiosError } = require("./errors");
 
 const _messageComparer = (message1, message2) => {
   // Sort first by batch index, and then by segment ID
@@ -106,8 +107,7 @@ const _findAll = async (account, options) => {
 
     return nrdbData.sort(_messageComparer);
   } catch (error) {
-    logger.error('Error querying NRQL', { url, query, payload });
-    logger.error(error); // To get stack trace in Winston, the Error needs to be the only argument to `error()`
+    logAxiosError(`Error querying NRQL for account ${account}: ${query}`, error);
     throw error;
   }
 };

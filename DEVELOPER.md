@@ -9,6 +9,7 @@ This target accepts a single argument, named "target", which specifies what targ
 as well as its arguments. Note that **the PR_NUMBER environment variable does NOT need to be provided**. Instead, the "local"
 make target will set it up for you to the value `local-<YOUR_USERNAME>`.
 
+## Terraform targets
 Example usage:
 ```
 make local target="terraform TERRAFORM_PROJECT=ec2-suse-builders"
@@ -19,4 +20,20 @@ the backend S3 bucket under the key `suse-builders-pr-local-<YOUR_USERNAME>`. To
 to then run:
 ```
 make local target="terraform-clean TERRAFORM_PROJECT=ec2-suse-builders"
+```
+
+## Ansible targets
+Each ansible playbook is contained within a project folder with it's own `Makefile`. This makes it easier to execute, since we just need
+to provide the path to that project folder.
+### Build fluent-bit SLES
+```shell
+ make local target="ansible/build-fb-suse"
+```
+### Provision and execute tests
+```shell
+ make local target="ansible/provision-and-execute-tests"
+```
+### Upload windows packages to bucket
+```shell
+ make local target="ansible/upload-win-packages"
 ```

@@ -65,6 +65,11 @@ jobs:
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
 
+      - name: Compute and upload schemas
+        run: |
+          make schemas;
+          gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema.yaml --repo newrelic/fluent-bit-package
+
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
   # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
