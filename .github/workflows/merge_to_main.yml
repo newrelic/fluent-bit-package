@@ -85,20 +85,21 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            PKG_COUNT=$(gh release view tmp-pr-110 --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
+            TAG=${{ needs.get_release_tag.outputs.tag }}
+            PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
             if [[ $PKG_COUNT -gt 0 ]]
             then
               echo "Promoting pre_release to release"
-              gh release edit ${{ needs.get_release_tag.outputs.tag }} --draft=false --prerelease=false
+              gh release edit $TAG --draft=false --prerelease=false
             fi
 
   notify:
     runs-on: ubuntu-latest
-    needs: [get_release_tag,publish_linux_to_prod,run_e2e_tests_production]
+    needs: [get_release_tag,publish_linux_to_prod,run_e2e_tests_production,promote_pre_release_to_release]
     steps:
       - name: Send release details to Slack workflow
         id: slack
-        uses: slackapi/slack-github-action@v1.25.0
+        uses: slackapi/slack-github-action@v1
         with:
           payload: |
             {
