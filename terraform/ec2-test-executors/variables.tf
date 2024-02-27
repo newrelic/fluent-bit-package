@@ -4,6 +4,7 @@ variable "pr_number" {
 }
 
 variable "NRIA_ENV" {
-  type = string
+  type        = string
   description = "Where to download NRIA from; staging or production. This changes the instances to be tested"
+  default     = "prerelease"
 }
