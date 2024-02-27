@@ -1,10 +1,10 @@
-variable "pr_number" {
+variable "pre_release_name" {
   type = string
-  description = "Pull request number"
+  description = "Pull request's release name"
 }
 
-variable "NRIA_ENV" {
+variable "matrix" {
   type        = string
-  description = "Where to download NRIA from; staging or production. This changes the instances to be tested"
+  description = "Two values; prerelease or all. Prerelease will spin up instances for which we are processing packages. All will spin up all supported instances."
   default     = "prerelease"
 }

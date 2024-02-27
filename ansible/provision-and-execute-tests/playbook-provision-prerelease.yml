@@ -1,0 +1,37 @@
+- name: (linux) (prerelease) Install CrowdStrike Falcon, NRIA and fluent-bit from GH prerelease
+  hosts: linux
+  vars:
+    node_version: 16.14.0
+    # The following information is populated using the gathered inventory variables
+    fluent_bit_package_name: "{{ tags.fb_package_name }}"
+    pre_release_name: "{{ tags.pre_release_name }}"
+    fb_version: "{{ tags.fb_version }}"
+    os_distro: "{{ tags.os_distro }}"
+    os_version: "{{ tags.os_version }}"
+    arch: "{{ tags.arch }}"
+    # The following vars are injected in the fargate task env
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+  environment:
+    NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
+    NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
+    NEW_RELIC_REGION: "{{ new_relic_region }}"
+  tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
+    - name: Install Fluent Bit package to be tested for this distro
+      ansible.builtin.include_role:
+        name: install_fluent_bit_from_gh_prerelease
+      vars:
+        fb_package_name: "{{ fluent_bit_package_name }}"
+        gh_prerelease_tag: "{{ pre_release_name }}"
+      when: pre_release_name is not regex('^local-.*')
+
+    - name: Install NR Fluent Bit output
+      ansible.builtin.include_role:
+        name: install_nr_fluent_bit_output
+      vars:
+        plugin_arch: "{{ (arch == 'x86_64' or arch == 'amd64') | ternary('amd64','arm64') }}"
+        plugin_version: "{{ nr_fb_output_plugin_version }}"

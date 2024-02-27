@@ -1,7 +1,7 @@
 - name: Publish SUSE packages to GH pre-release
   hosts: localhost
   vars:
-    pr_number: PR_NUMBER
+    pre_release_name: PRE_RELEASE_NAME
     suse_packages_dir: /tmp/fluent-bit-suse-packages
   roles:
     - andrewrothstein.gh
@@ -13,6 +13,6 @@
       register: directory_contents
 
     - name: Upload generated artifacts to release
-      command: "gh release upload tmp-pr-{{ pr_number }} {{ item.path }} --clobber"
+      command: "gh release upload {{ pre_release_name }} {{ item.path }} --clobber"
       loop: "{{ directory_contents.files }}"
-      when: pr_number is not regex('^local-.*')
+      when: pre_release_name is not regex('^local-.*')

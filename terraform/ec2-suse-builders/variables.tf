@@ -1,4 +1,4 @@
-variable "pr_number" {
+variable "pre_release_name" {
   type = string
-  description = "Pull request number"
+  description = "Pull request's release name"
 }

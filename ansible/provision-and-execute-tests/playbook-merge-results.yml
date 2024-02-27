@@ -4,8 +4,8 @@
     node_version: 18.18.0
     controller_scripts_folder: ../../integration-tests/controller-scripts
     test_reports_dir: /tmp/test-reports
-    combined_test_report_name: "{{ lookup('ansible.builtin.env', 'TEST_REPORT_FILENAME') }}"
-    pr_number: "{{ lookup('ansible.builtin.env', 'PR_NUMBER') }}"
+    combined_test_report_name:  "{{ lookup('ansible.builtin.env', 'TEST_REPORT_NAME') }}"
+    pre_release_name: "{{ lookup('ansible.builtin.env', 'PRE_RELEASE_NAME') }}"
   roles:
     - andrewrothstein.gh
   tasks:
@@ -29,5 +29,5 @@
         TEST_REPORT_NAME: "{{ combined_test_report_name }}"
 
     - name: Upload generated artifacts to release
-      command: "gh release upload {{ pr_number }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
-      when: pr_number is not regex('^local-.*')
+      command: "gh release upload {{ pre_release_name }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
+      when: pre_release_name is not regex('^local-.*')

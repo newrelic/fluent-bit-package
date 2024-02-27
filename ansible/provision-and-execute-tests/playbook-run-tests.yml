@@ -1,40 +1,20 @@
-- name: (linux) Install CrowdStrike Falcon and NRIA
+- name: (linux) Run e2e tests on the built packages
   hosts: linux
-  become: true
-  gather_facts: yes
-  vars:
-    # install_crowdstrike_falcon role vars
-    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
-    # newrelic_cli role vars
-    repo_endpoint: "{{ (lookup('ansible.builtin.env', 'NRIA_ENV') == 'staging') | ternary('https://nr-downloads-ohai-staging.s3.amazonaws.com/','https://nr-downloads-main.s3.amazonaws.com/') }}"
-    recipe: "newrelic-infra"
-    region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-    nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-  roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
-    - caos.ansible_roles.newrelic_cli
-
-- name: (linux) Run e2e tests
-  hosts: linux
-  gather_facts: yes
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
-    pr_number: "{{ tags.pr_number }}"
+    pre_release_name: "{{ tags.pre_release_name }}"
     fb_version: "{{ tags.fb_version }}"
     os_distro: "{{ tags.os_distro }}"
     os_version: "{{ tags.os_version }}"
     arch: "{{ tags.arch }}"
+
     # The following vars are injected in the fargate task env
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
     new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
-    # Test specs
+
     monitored_file: /tmp/tail-log-file-test
     monitored_syslog_rfc_5424_tcp_port: 5140
     monitored_syslog_rfc_5424_udp_port: 6140
@@ -73,7 +53,7 @@
         # CentOS comes without "wget", so using "curl" instead
         nvm_install: "curl"
         nvm_commands:
-          - "cd ~/test-suite && nvm exec default npm install"
+            - "cd ~/test-suite && nvm exec default npm install"
 
     - name: Run test-suite
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"

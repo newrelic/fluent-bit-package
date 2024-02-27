@@ -1,16 +1,25 @@
 include ../Ansible.common.mk
 
-.DEFAULT_GOAL := provision-and-execute-tests
+.PHONY: prerelease
+prerelease: dependencies prepare-inventory
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-prerelease.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
-.PHONY: provision-and-execute-tests
-provision-and-execute-tests: ansible/dependencies ansible/prepare-inventory
-	@echo "Running commands for $(NRIA_ENV)"
-ifeq ($(NRIA_ENV),prerelease)
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-prerelease.yml -i $(ANSIBLE_INVENTORY)
-else ifneq (,$(findstring $(NRIA_ENV),staging production))
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-nr-repo.yml -i $(ANSIBLE_INVENTORY)
-endif
-	TEST_REPORT_FILENAME="test-report-$(NRIA_ENV).xml" ansible-playbook $(ANSIBLE_FOLDER)/playbook-localhost.yml -i $(ANSIBLE_INVENTORY)
+.PHONY: staging
+staging: dependencies prepare-inventory
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-staging.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
+.PHONY: production
+production: dependencies prepare-inventory
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-production.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
+
+# Removes "collections" and "roles" folders
 .PHONY: clean
-clean: ansible/clean
+clean:
+	rm -rf $(ROLES_PATH) $(COLLECTIONS_PATH)

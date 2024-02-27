@@ -1,5 +1,3 @@
-.DEFAULT_GOAL := generateSchemas
-
 .PHONY: generateSchemas
 generateSchemas:
 	NRIA_ENV="staging" python3 schema.linux.py > generated-linux-schema-staging.yaml

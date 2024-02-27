@@ -61,7 +61,7 @@ jobs:
       - name: Compute and upload matrices
         id: set-matrices
         run: |
-          make versions
+          make versions/generateMatrices
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
@@ -69,7 +69,7 @@ jobs:
 
       - name: Compute and upload schemas
         run: |
-          make schemas;
+          make schemas/generateSchemas;
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.yaml --repo newrelic/fluent-bit-package
 
@@ -144,21 +144,21 @@ jobs:
     needs: setup_environment
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform/ec2-suse-builders PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
     secrets: inherit
 
   build_suse_packages:
-    needs: spin_up_suse
+    needs: [setup_environment,spin_up_suse]
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/build-fb-suse PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
     secrets: inherit
 
   tear_down_suse:
-    needs: build_suse_packages
+    needs: [setup_environment,build_suse_packages]
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform/ec2-suse-builders-clean PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
     secrets: inherit
 
   sign_suse_packages:

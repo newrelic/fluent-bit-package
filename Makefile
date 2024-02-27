@@ -1,21 +1,24 @@
-##########################################
-# 		     Dynamic targets 			 #
-##########################################
-# Exclude current and hidden directories
-FIND_PATH = . -mindepth 2 -not -path '*/\.*'
-# Define the list of subdirectories that contain a Makefile
-SUBDIRS := $(patsubst ./%/Makefile,%,$(shell find $(FIND_PATH) -name Makefile))
-TARGETS := $(SUBDIRS)
+# Root Makefile
 
-.PHONY: all $(TARGETS) clean $(addsuffix -clean,$(TARGETS)) help local
+# Find all subdirectory Makefiles
+MAKEFILES := $(shell find . -name Makefile -not -path "./Makefile")
 
-$(TARGETS):
-	$(MAKE) -C $@
+# Function to extract targets from a Makefile
+define get_targets
+$(shell grep '^[^(#|.|$)[:space:]].*:' $(1) | grep -v '=' | cut -d ':' -f 1)
+endef
 
-clean: $(addsuffix -clean,$(SUBDIRS))
+# Function to create a target string for each target in a sub-Makefile
+define create_target
+$(foreach target,$(call get_targets,$(1)),$(patsubst %/Makefile,%,$(dir $(1)))$(target))
+endef
 
-$(addsuffix -clean,$(TARGETS)):
-	$(MAKE) -C $(patsubst %-clean,%,$@) clean
+# Collect all targets from all sub-Makefiles
+SUBDIR_TARGETS := $(foreach mkfile,$(MAKEFILES),$(call create_target,$(mkfile)))
+
+# Define the targets
+$(SUBDIR_TARGETS):
+	$(MAKE) -C $(dir $@) $(notdir $@)
 
 local:
 	docker run -it --platform=linux/amd64 \
@@ -33,10 +36,8 @@ local:
 		-e CROWDSTRIKE_CLIENT_SECRET=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/CROWDSTRIKE_CLIENT_SECRET) \
 		-e CROWDSTRIKE_CUSTOMER_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/CROWDSTRIKE_CUSTOMER_ID) \
 		ghcr.io/newrelic/fargate-runner-action:latest \
-		$(target) PR_NUMBER=local-$(USER)
+		$(target) PRE_RELEASE_NAME=local-$(USER)
 
 help:
 	@echo "## Available targets:"
-	@echo $(TARGETS)
-	@echo "## Available clean targets:"
-	@echo $(addsuffix -clean,$(TARGETS))
+	@echo $(SUBDIR_TARGETS)

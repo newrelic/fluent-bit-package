@@ -3,9 +3,9 @@ variable "instance_matrix_file" {
   description = "File from where the instance matrix in JSON format will be loaded from."
 }
 
-variable "pr_number" {
+variable "pre_release_name" {
   type = string
-  description = "Pull request number"
+  description = "Pull request's release name"
 }
 
 variable "instance_type" {

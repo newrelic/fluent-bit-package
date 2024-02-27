@@ -1,5 +1,3 @@
-.DEFAULT_GOAL := generateMatrices
-
 .PHONY: generateMatrices
 generateMatrices:
 	pip3 install -r requirements.txt
