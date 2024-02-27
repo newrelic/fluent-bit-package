@@ -90,7 +90,7 @@ jobs:
             if [[ $PKG_COUNT -gt 0 ]]
             then
               echo "Promoting pre_release to release"
-              gh release edit $TAG --draft=false --prerelease=false
+              gh release edit $TAG --draft=false --prerelease=false --title "Release $TAG"
             fi
 
   notify:
