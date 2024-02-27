@@ -9,7 +9,10 @@
     falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
     api_base_url: "https://api.laggar.gcw.crowdstrike.com"
     # newrelic_cli role vars
-    repo_endpoint: "{{ (lookup('ansible.builtin.env', 'NRIA_ENV') == 'staging') | ternary('https://nr-downloads-ohai-staging.s3.amazonaws.com/','https://nr-downloads-main.s3.amazonaws.com/') }}"
+    # for this playbook we use the newrelic_cli role to install the infrastructure agent from the production repo
+    # we then override the fluent-bit installed by the NRIA with the one from the PR (pre_release) (see task
+    # install_fluent_bit_from_gh_prerelease below)
+    repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
     recipe: "newrelic-infra"
     region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
     nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
@@ -17,19 +20,6 @@
   roles:
     - caos.ansible_roles.install_crowdstrike_falcon
     - caos.ansible_roles.newrelic_cli
-
-# We need to have a separate playbook for windows since `become` is not supported
-- name: (windows) Install CrowdStrike Falcon
-  hosts: windows
-  gather_facts: yes
-  vars:
-    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
-    win_download_path: 'C:\Windows\Temp\falcon-sensor.exe'
-  roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
 
 - name: (linux) Run e2e tests on the built packages
   hosts: linux
@@ -125,6 +115,19 @@
         flat: true # behave like copy, we only want the file, not the whole path
         src: ~/test-suite/reports/tests/test-report.xml
         dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+
+# We need to have a separate playbook for windows since `become` is not supported
+- name: (windows) Install CrowdStrike Falcon
+  hosts: windows
+  gather_facts: yes
+  vars:
+    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+    win_download_path: 'C:\Windows\Temp\falcon-sensor.exe'
+  roles:
+    - caos.ansible_roles.install_crowdstrike_falcon
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
