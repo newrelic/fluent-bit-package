@@ -21,7 +21,7 @@ all: backend vars generateMatrices
 
 # Terraform-destroys
 .PHONY: clean
-clean: clean
+clean: backend vars generateMatrices
 	terraform init -reconfigure && \
 	terraform destroy -auto-approve -var-file="variables.tfvars"
 	@echo "Removing Terraform backend file {$TERRAFORM_PROJECT}/terraform.backend.tf"

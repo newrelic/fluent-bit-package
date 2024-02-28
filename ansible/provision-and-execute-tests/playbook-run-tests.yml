@@ -1,4 +1,4 @@
-- name: (linux) Run e2e tests on the built packages
+- name: (linux) Run e2e tests
   hosts: linux
   vars:
     node_version: 16.14.0
@@ -29,6 +29,16 @@
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
+
+    - name: Register fluent-bit version
+      ansible.builtin.shell: "/opt/fluent-bit/bin/fluent-bit --version | head -n1 | cut -d'v' -f2"
+      register: installed_fb_version
+
+    - name: Make sure we run the expected fluent-bit version
+      ansible.builtin.assert:
+        that:
+          - "{{ fb_version == installed_fb_version.stdout }}"
+        fail_msg: "Expected fluent-bit version {{ fb_version }}, but got {{ installed_fb_version.stdout }}"
 
     - name: Configure log forwarding
       ansible.builtin.include_role:

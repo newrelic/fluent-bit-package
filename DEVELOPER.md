@@ -15,9 +15,10 @@ be available in the root `Makefile` as;
 - `ansible/build-fb-suse/run`
 - `ansible/build-fb-suse/clean`
 
-Note that the targets included in `Ansible.common.mk` or `Terraform.common.mk` are not included in the root `Makefile`.
-This happens because the root `Makefile` can only identify targets that are present in the sub-projects `Makefile`s, and
-not in any referenced files (like `Ansible.common.mk` or `Terraform.common.mk`).
+> CAUTION  
+> Targets included in `Ansible.common.mk` or `Terraform.common.mk` are not included in the root `Makefile`.
+> This happens because **the root `Makefile` can only identify targets that are present in the sub-projects `Makefile`s**
+> , and not in any referenced files (like `Ansible.common.mk` or `Terraform.common.mk`).
 
 # How to test make targets locally
 The "local" make target allows you to test any make target like you were executing it remotely in a Fargate task. Instead,
