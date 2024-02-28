@@ -19,6 +19,12 @@ all: backend vars generateMatrices
 	terraform apply -auto-approve -var-file="variables.tfvars"
 	# terraform plan -var-file="variables.tfvars"
 
+.PHONY: staging
+staging: all
+
+.PHONY: production
+production: all
+
 # Terraform-destroys
 .PHONY: clean
 clean: backend vars generateMatrices
