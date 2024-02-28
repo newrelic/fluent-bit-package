@@ -38,7 +38,7 @@
 
     node_path: 'C:\Program Files\nodejs\'
 
-    nr_fb_output_plugin_version: '1.17.1'
+    nr_fb_output_plugin_version: '1.19.2'
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"

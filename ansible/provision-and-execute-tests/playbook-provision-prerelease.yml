@@ -29,6 +29,7 @@
     os_distro: "{{ tags.os_distro }}"
     os_version: "{{ tags.os_version }}"
     arch: "{{ tags.arch }}"
+    nr_fb_output_plugin_version: 1.19.2
     # The following vars are injected in the fargate task env
     new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
     new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"

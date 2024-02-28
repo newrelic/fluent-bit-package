@@ -22,7 +22,6 @@
     monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
 
     test_reports_dir: /tmp/test-reports
-    nr_fb_output_plugin_version: 1.17.1
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
