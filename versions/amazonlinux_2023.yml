@@ -1,0 +1,8 @@
+osDistro: amazonlinux
+osVersion: 2023
+fbVersion: 2.2.2
+packages:
+  - arch: x86_64
+    ami: ami-01103fb68b3569475
+  - arch: aarch64
+    ami: ami-01416d11f88e7cb55

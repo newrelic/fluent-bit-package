@@ -1,7 +1,5 @@
 collections:
   - name: community.aws
-    # Fixes https://github.com/ansible-collections/community.aws/pull/558
-    version: 6.3.0
   - name: ansible.windows
     version: 1.14.0
   - name: ansible.utils

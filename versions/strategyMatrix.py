@@ -188,19 +188,19 @@ def generate_matrix():
     ]
 
 
-def add_presence_flags(matrix):
+def add_availability_flags(matrix):
     for pkg in matrix:
         if 'nrPackageUrl' in pkg:
             url = pkg['nrPackageUrl']
             response = requests.head(url)
-            pkg['isProduction'] = False if response.status_code == 404 else True
+            pkg['isProduction'] = True if response.status_code == 200 else False
         if 'nrStagingPackageUrl' in pkg:
             url = pkg['nrStagingPackageUrl']
             response = requests.head(url)
-            pkg['isStaging'] = False if response.status_code == 404 else True
+            pkg['isStaging'] = True if response.status_code == 200 else False
 
 
 if __name__ == "__main__":
     matrix = generate_matrix()
-    add_presence_flags(matrix)
+    add_availability_flags(matrix)
     print(json.dumps(matrix))

@@ -53,7 +53,7 @@ jobs:
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_production:
-    needs: [ publish_linux_to_prod ]
+    needs: [ get_release_tag, publish_linux_to_prod ]
     name: Run E2E tests for all supported packages installing NRIA from production
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -73,7 +73,7 @@ jobs:
 
   promote_pre_release_to_release:
     name: If there are packages in the pre_release, promote it to release
-    needs: [ get_release_tag, publish_linux_to_prod, run_e2e_tests_production ]
+    needs: [ get_release_tag, run_e2e_tests_production ]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -95,7 +95,7 @@ jobs:
 
   notify:
     runs-on: ubuntu-latest
-    needs: [get_release_tag,publish_linux_to_prod,run_e2e_tests_production,promote_pre_release_to_release]
+    needs: [ get_release_tag, promote_prerelease_to_release ]
     steps:
       - name: Send release details to Slack workflow
         id: slack
