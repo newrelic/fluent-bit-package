@@ -1,4 +1,4 @@
-- name: (linux) (production) Install CrowdStrike Falcon and NRIA
+- name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
   become: true
   gather_facts: yes
