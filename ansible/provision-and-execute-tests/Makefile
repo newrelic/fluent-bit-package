@@ -9,13 +9,13 @@ prerelease: dependencies prepare-inventory
 
 .PHONY: staging
 staging: dependencies prepare-inventory
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-staging.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
 .PHONY: production
 production: dependencies prepare-inventory
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-production.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 

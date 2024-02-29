@@ -1,4 +1,4 @@
-- name: (linux) (staging) Install CrowdStrike Falcon and NRIA
+- name: (linux) (production) Install CrowdStrike Falcon and NRIA
   hosts: linux
   become: true
   gather_facts: yes
@@ -9,7 +9,7 @@
     falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
     api_base_url: "https://api.laggar.gcw.crowdstrike.com"
     # newrelic_cli role vars
-    repo_endpoint: "https://nr-downloads-ohai-staging.s3.amazonaws.com/"
+    repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
     recipe: "newrelic-infra"
     region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
     nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"

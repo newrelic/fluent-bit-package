@@ -5,10 +5,8 @@ include ../Terraform.common.mk
 prerelease: backend vars generateMatrices
 	@echo "Provisioning prerelease instances for PRE_RELEASE_NAME=${PRE_RELEASE_NAME}"
 	echo "matrix = \"prerelease\"" >> "./variables.tfvars"
-	cat "./variables.tfvars"
 	terraform init -reconfigure && \
 	terraform apply -auto-approve -var-file="variables.tfvars"
-	# terraform plan -var-file="variables.tfvars"
 
 # Terraform-applies
 .PHONY: all
@@ -17,7 +15,6 @@ all: backend vars generateMatrices
 	echo "matrix = \"all\"" >> "./variables.tfvars"
 	terraform init -reconfigure && \
 	terraform apply -auto-approve -var-file="variables.tfvars"
-	# terraform plan -var-file="variables.tfvars"
 
 .PHONY: staging
 staging: all
@@ -30,5 +27,5 @@ production: all
 clean: backend vars generateMatrices
 	terraform init -reconfigure && \
 	terraform destroy -auto-approve -var-file="variables.tfvars"
-	@echo "Removing Terraform backend file {$TERRAFORM_PROJECT}/terraform.backend.tf"
+	@echo "Removing Terraform backend file ${TERRAFORM_PROJECT}/terraform.backend.tf"
 	@rm "./terraform.backend.tf"
