@@ -11,7 +11,7 @@ hostnames:
     - tag:Name
 filters:
     # Select instances to run this playbook on
-    tag:pr_number: PR_NUMBER
+    tag:pre_release_name: PRE_RELEASE_NAME
     tag:os_distro: sles
     tag:instance_type: fluentbit-builder
 groups:

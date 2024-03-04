@@ -14,7 +14,16 @@ on:
         required: true
         default: latest
         type: string
-  # To be able to launch it from the Actions UI, on-demand
+      infra_agent_env:
+        description: Repository used to download infra-agent
+        required: false
+        default: staging
+        type: string  # To be able to launch it from the Actions UI, on-demand
+      test_report_filename:
+        description: Test report to process and act upon by the actions
+        required: false
+        default: test-report-prerelease.xml
+        type: string  # To be able to launch it from the Actions UI, on-demand
   workflow_dispatch:
     inputs:
       gh_release_name:
@@ -27,6 +36,16 @@ on:
         required: true
         default: latest
         type: string
+      infra_agent_env:
+        description: Repository used to download infra-agent
+        required: false
+        default: production
+        type: string  # To be able to launch it from the Actions UI, on-demand
+      test_report_filename:
+        description: Test report to process and act upon by the actions
+        required: false
+        default: test-report-prerelease.xml
+        type: string  # To be able to launch it from the Actions UI, on-demand
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
 # be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
@@ -39,7 +58,7 @@ jobs:
     name: Spin up test executor instances
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-test-executors/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
     secrets: inherit
 
   provision_and_execute_tests:
@@ -47,7 +66,7 @@ jobs:
     needs: spin_up_test_executor_instances
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}"
     secrets: inherit
 
   report_test_results:
@@ -56,20 +75,19 @@ jobs:
     needs: provision_and_execute_tests
     env:
       GH_TOKEN: ${{ github.token }}
-      PRE_RELEASE_NAME: tmp-pr-${{ github.event.pull_request.number }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Download report from pre-release
         run: |
-          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern 'tests-report.xml'
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}
 
       - name: Tests Report Details
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
-          path: tests-report.xml # Path to test results
+          path: ${{ inputs.test_report_filename }} # Path to test results
           reporter: jest-junit
 
       - name: Tests Report Summary
@@ -77,12 +95,12 @@ jobs:
         if: always()
         with:
           files: |
-            tests-report.xml
+            ${{ inputs.test_report_filename }}
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
     needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform-clean TERRAFORM_PROJECT=ec2-test-executors PR_NUMBER=${{ github.event.pull_request.number }}"
+      container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
     secrets: inherit

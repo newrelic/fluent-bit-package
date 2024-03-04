@@ -21,5 +21,5 @@ Example usage:
       ansible.builtin.include_role:
         name: install_fluent_bit_from_gh_prerelease
       vars:
-        gh_prerelease_tag: "tmp-pr-{{ pr_number }}"
+        gh_prerelease_tag: "{{ pre_release_name }}"
         fb_package_name: "package-name" # This is typically provided as a tag in the EC2 instance

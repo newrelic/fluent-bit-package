@@ -17,16 +17,11 @@ $(ROLES_PATH) $(COLLECTIONS_PATH):
 	@mkdir -p $@
 
 # Installs dependencies into "collections" and "roles" folders
-.PHONY: ansible/dependencies
-ansible/dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
+.PHONY: dependencies
+dependencies: $(ROLES_PATH) $(COLLECTIONS_PATH)
 	ansible-galaxy role install -r $(REQUIREMENTS_FILE) -p $(ROLES_PATH)
 	ansible-galaxy collection install -r $(REQUIREMENTS_FILE) -p $(COLLECTIONS_PATH)
 
-.PHONY: ansible/prepare-inventory
-ansible/prepare-inventory:
-	@sed "s/PR_NUMBER/${PR_NUMBER}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)
-
-# Removes "collections" and "roles" folders
-.PHONY: ansible/clean
-ansible/clean:
-	rm -rf $(ROLES_PATH) $(COLLECTIONS_PATH)
+.PHONY: prepare-inventory
+prepare-inventory:
+	@sed "s/PRE_RELEASE_NAME/${PRE_RELEASE_NAME}/g" $(ANSIBLE_INVENTORY_TEMPLATE) > $(ANSIBLE_INVENTORY)

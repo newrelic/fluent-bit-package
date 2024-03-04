@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  get-release-tag:
+  get_release_tag:
     name: Gets pre-release tag commit associated with the merged PR
     runs-on: ubuntu-latest
     outputs:
@@ -26,73 +26,85 @@ jobs:
             ).data[0].number;
           result-encoding: string
 
-#  publish-linux:
-#    name: Publish linux packages to staging and production buckets
-#    needs: get-release-tag
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Publish linux packages to staging
-#        uses: newrelic/infrastructure-publish-action@v1
-#        with:
-#          app_name: fluent-bit
-#          tag: ${{ needs.get-release-tag.outputs.tag }}
-#          repo_name: "newrelic/fluent-bit-package"
-#          schema: "custom"
-#          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ needs.get-release-tag.outputs.tag }}/generated-linux-schema.yaml"
-#          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
-#          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
-#          aws_s3_bucket_name: "nr-downloads-ohai-staging"
-#          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
-#          access_point_host: "staging"
-#          run_id: ${{ github.run_id }}
-#          aws_region: "us-east-1"
-#          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
-#          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
-#          # used for signing package stuff
-#          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
-#          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-#
-#      - name: Publish linux packages to production
-#        uses: newrelic/infrastructure-publish-action@v1
-#        with:
-#          app_name: fluent-bit
-#          tag: ${{ needs.get-release-tag.outputs.tag }}
-#          repo_name: "newrelic/fluent-bit-package"
-#          schema: "custom"
-#          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ needs.get-release-tag.outputs.tag }}/generated-linux-schema.yaml"
-#          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
-#          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
-#          aws_s3_bucket_name: "nr-downloads-main"
-#          aws_s3_lock_bucket_name: "onhost-ci-lock"
-#          access_point_host: "production"
-#          run_id: ${{ github.run_id }}
-#          aws_region: "us-east-1"
-#          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
-#          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
-#          # used for signing package stuff
-#          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
-#          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+  publish_linux_to_prod:
+    name: Publish linux packages to production
+    needs: get_release_tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish linux packages to production
+        uses: newrelic/infrastructure-publish-action@v1
+        with:
+          app_name: fluent-bit
+          tag: ${{ needs.get_release_tag.outputs.tag }}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ needs.get_release_tag.outputs.tag }}/generated-linux-schema-production.yaml"
+          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_PRODUCTION }}
+          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_PRODUCTION }}
+          aws_s3_bucket_name: "nr-downloads-main"
+          aws_s3_lock_bucket_name: "onhost-ci-lock"
+          access_point_host: "production"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-1"
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_PRODUCTION }}
+          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_PRODUCTION }}
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
-  publish-windows:
-    name: Publish windows packages to logging's production bucket
-    needs: get-release-tag
-    uses: ./.github/workflows/run_task.yml
+  run_e2e_tests_production:
+    needs: [ get_release_tag, publish_linux_to_prod ]
+    name: Run E2E tests for all supported packages installing NRIA from production
+    uses: ./.github/workflows/run_e2e_tests.yml
     with:
-      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get-release-tag.outputs.tag }}"
+      gh_release_name: ${{ needs.get_release_tag.outputs.tag }}
+      infra_agent_version: latest
+      infra_agent_env: production
+      test_report_filename: test-report-production.xml
     secrets: inherit
+
+#  publish_windows:
+#    name: Publish windows packages to logging's production bucket
+#    needs: get_release_tag
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
+#    secrets: inherit
+
+  promote_pre_release_to_release:
+    name: If there are packages in the pre_release, promote it to release
+    needs: [ get_release_tag, run_e2e_tests_production ]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check if pre_release has artifacts, if so, upgrade to release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            TAG=${{ needs.get_release_tag.outputs.tag }}
+            PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
+            if [[ $PKG_COUNT -gt 0 ]]
+            then
+              echo "Promoting pre_release to release"
+              gh release edit $TAG --draft=false --prerelease=false --title "Release $TAG"
+            fi
 
   notify:
     runs-on: ubuntu-latest
-    needs: [get-release-tag,publish-linux,publish-windows]
+    needs: [ get_release_tag, promote_prerelease_to_release ]
     steps:
       - name: Send release details to Slack workflow
         id: slack
-        uses: slackapi/slack-github-action@v1.25.0
+        uses: slackapi/slack-github-action@v1
         with:
           payload: |
             {
-              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.get-release-tag.outputs.tag }}",
-              "releaseName": "${{ needs.get-release-tag.outputs.tag }}",
+              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.get_release_tag.outputs.tag }}",
+              "releaseName": "${{ needs.get_release_tag.outputs.tag }}",
               "productName": "${{ env.PRODUCT_NAME }}",
               "productUrl": "${{ env.PRODUCT_URL }}"
             }

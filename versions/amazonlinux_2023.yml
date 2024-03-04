@@ -1,0 +1,10 @@
+osDistro: amazonlinux
+osVersion: 2023
+fbVersion: 2.2.2
+packages:
+  - arch: x86_64
+    ami: ami-01103fb68b3569475
+# Infra-agent needs to first enable al2023_arm64's use of fluent-bit
+# https://github.com/newrelic/infrastructure-agent/blob/a9e09271ae4c7ebd30271591a8f597e21fca151a/build/goreleaser/linux/al2023_arm64.yml#L76
+#  - arch: aarch64
+#    ami: ami-01416d11f88e7cb55
