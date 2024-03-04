@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: "tmp-pr-${{ steps.get_pr_number.outputs.result }}"
+      pr_number: "${{ steps.get_pr_number.outputs.result }}"
     steps:
       - name: Get PR number
         uses: actions/github-script@v6
@@ -71,7 +72,7 @@ jobs:
 #      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
 #    secrets: inherit
 
-  promote_pre_release_to_release:
+  promote_prerelease_to_release:
     name: If there are packages in the pre_release, promote it to release
     needs: [ get_release_tag, run_e2e_tests_production ]
     runs-on: ubuntu-latest
@@ -85,12 +86,13 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            PR_NUMBER=${{ needs.get_release_tag.outputs.pr_number }}
             TAG=${{ needs.get_release_tag.outputs.tag }}
             PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
             if [[ $PKG_COUNT -gt 0 ]]
             then
               echo "Promoting pre_release to release"
-              gh release edit $TAG --draft=false --prerelease=false --title "Release $TAG"
+              gh release edit $TAG --draft=false --prerelease=false --title "Release $PR_NUMBER"
             fi
 
   notify:
