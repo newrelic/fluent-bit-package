@@ -55,6 +55,8 @@ jobs:
 
   run_e2e_tests_production:
     needs: [ get_release_tag, publish_linux_to_prod ]
+    if: |
+      always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA from production
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -64,13 +66,13 @@ jobs:
       test_report_filename: test-report-production.xml
     secrets: inherit
 
-#  publish_windows:
-#    name: Publish windows packages to logging's production bucket
-#    needs: get_release_tag
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
-#    secrets: inherit
+  publish_windows:
+    name: Publish windows packages to logging's production bucket
+    needs: get_release_tag
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/upload-win-packages/run PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
+    secrets: inherit
 
   promote_prerelease_to_release:
     name: If there are packages in the pre_release, promote it to release
@@ -83,17 +85,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Check if pre_release has artifacts, if so, upgrade to release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            PR_NUMBER=${{ needs.get_release_tag.outputs.pr_number }}
-            TAG=${{ needs.get_release_tag.outputs.tag }}
-            PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
-            if [[ $PKG_COUNT -gt 0 ]]
-            then
-              echo "Promoting pre_release to release"
-              gh release edit $TAG --draft=false --prerelease=false --title "Release $PR_NUMBER"
-            fi
+        run: |
+          PR_NUMBER=${{ needs.get_release_tag.outputs.pr_number }}
+          TAG=${{ needs.get_release_tag.outputs.tag }}
+          PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows|fluent-bit)' | wc -l)
+          if [[ $PKG_COUNT -gt 0 ]]
+          then
+            echo "Promoting pre_release to release"
+            gh release edit $TAG --draft=false --prerelease=false --title "Release $PR_NUMBER"
+          fi
 
   notify:
     runs-on: ubuntu-latest
