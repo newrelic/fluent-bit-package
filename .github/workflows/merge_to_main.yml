@@ -88,7 +88,7 @@ jobs:
         run: |
           PR_NUMBER=${{ needs.get_release_tag.outputs.pr_number }}
           TAG=${{ needs.get_release_tag.outputs.tag }}
-          PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows-|fluent-bit-)' | wc -l)
+          PKG_COUNT=$(gh release view $TAG --repo newrelic/fluent-bit-package --json assets --jq '.assets[].name' | grep -E '^(fb-windows|fluent-bit)' | wc -l)
           if [[ $PKG_COUNT -gt 0 ]]
           then
             echo "Promoting pre_release to release"
