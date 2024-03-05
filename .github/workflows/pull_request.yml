@@ -231,6 +231,8 @@ jobs:
 
   run_e2e_tests_staging:
     needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    if: |
+      always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
