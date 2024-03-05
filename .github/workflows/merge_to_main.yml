@@ -66,13 +66,13 @@ jobs:
       test_report_filename: test-report-production.xml
     secrets: inherit
 
-#  publish_windows:
-#    name: Publish windows packages to logging's production bucket
-#    needs: get_release_tag
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/upload-win-packages PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
-#    secrets: inherit
+  publish_windows:
+    name: Publish windows packages to logging's production bucket
+    needs: get_release_tag
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/upload-win-packages/run PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
+    secrets: inherit
 
   promote_prerelease_to_release:
     name: If there are packages in the pre_release, promote it to release

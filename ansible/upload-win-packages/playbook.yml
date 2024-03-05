@@ -16,5 +16,5 @@
       loop: "{{ windows_artifacts }}"
 
     - name: Upload windows artifacts
-      ansible.builtin.command: "aws s3 cp {{ item }} s3://{{ windows_bucket }}/"
+      ansible.builtin.command: "aws s3 cp {{ item }} s3://{{ windows_bucket }}/ --sse AES256"
       loop: "{{ windows_artifacts }}"
