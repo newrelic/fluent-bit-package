@@ -79,6 +79,7 @@ jobs:
   download_official_packages:
     needs: [setup_environment]
     runs-on: ubuntu-latest
+    if: ${{ needs.setup_environment.outputs.linux_and_windows_matrix != '[]' }}
     strategy:
       fail-fast: true
       matrix:
@@ -142,6 +143,7 @@ jobs:
 
   spin_up_suse:
     needs: setup_environment
+    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
@@ -164,6 +166,7 @@ jobs:
   sign_suse_packages:
     needs: [setup_environment, build_suse_packages]
     runs-on: ubuntu-latest
+    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
     strategy:
       fail-fast: true
       matrix:
