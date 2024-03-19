@@ -1,7 +1,8 @@
-import os
 import json
-import yaml
+import os
+
 import requests
+import yaml
 
 """
 This file builds the strategy matrix to be used in the pull_request.yml. For each supported package to be built/tested,
@@ -66,81 +67,90 @@ This script file takes care of computing the following attributes for each suppo
        (Linux packages) or Logging S3 bucket (Windows packages)
 """
 
-NR_PROD_REPO_URL = 'https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux'
-NR_STG_REPO_URL = 'https://nr-downloads-ohai-staging.s3.amazonaws.com/infrastructure_agent/linux'
+NR_PROD_REPO_URL = (
+    "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux"
+)
+NR_STG_REPO_URL = (
+    "https://nr-downloads-ohai-staging.s3.amazonaws.com/infrastructure_agent/linux"
+)
 
-DEB_DISTROS = ['debian', 'ubuntu']
-RPM_DISTROS = ['amazonlinux', 'centos']
-WINDOWS_DISTRO = 'windows-server'
+DEB_DISTROS = ["debian", "ubuntu"]
+RPM_DISTROS = ["amazonlinux", "centos"]
+WINDOWS_DISTRO = "windows-server"
 
 
 def deb_package_details(pkg):
     target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
-        'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
-        'targetPackageName': target_package_name,
-        'nrPackageUrl': f"{NR_PROD_REPO_URL}/apt/pool/main/f/fluent-bit/{target_package_name}",
-        'nrStagingPackageUrl': f"{NR_STG_REPO_URL}/apt/pool/main/f/fluent-bit/{target_package_name}",
-        'pkgArch': f"{pkg['arch']}",
-        'packageManagerType': 'apt',
-        'uploadDest': '{dest_prefix}linux/apt/',
-        'srcRepo': '{access_point_host}/infrastructure_agent/linux/apt'
+        "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
+        "targetPackageName": target_package_name,
+        "nrPackageUrl": f"{NR_PROD_REPO_URL}/apt/pool/main/f/fluent-bit/{target_package_name}",
+        "nrStagingPackageUrl": f"{NR_STG_REPO_URL}/apt/pool/main/f/fluent-bit/{target_package_name}",
+        "pkgArch": f"{pkg['arch']}",
+        "packageManagerType": "apt",
+        "uploadDest": "{dest_prefix}linux/apt/",
+        "srcRepo": "{access_point_host}/infrastructure_agent/linux/apt",
     }
 
 
 def rpm_package_details(pkg):
-    rpm_os_family = {'amazonlinux': 'amazonlinux', 'centos': 'el'}[pkg['osDistro']]
-    pkg_arch = 'arm64' if pkg['arch'] == 'aarch64' else 'x86_64'
-    repo_arch = pkg['arch']
+    rpm_os_family = {"amazonlinux": "amazonlinux", "centos": "el"}[pkg["osDistro"]]
+    pkg_arch = "arm64" if pkg["arch"] == "aarch64" else "x86_64"
+    repo_arch = pkg["arch"]
     target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"
-    package_manager_type = 'yum'
-    upload_dest = "{dest_prefix}linux/" + f"{package_manager_type}/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/"
+    package_manager_type = "yum"
+    upload_dest = (
+        "{dest_prefix}linux/"
+        + f"{package_manager_type}/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/"
+    )
 
     return {
-        'packageUrl': f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
-        'targetPackageName': target_package_name,
-        'nrPackageUrl': f"{NR_PROD_REPO_URL}/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
-        'nrStagingPackageUrl': f"{NR_STG_REPO_URL}/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
-        'pkgArch': pkg_arch,
-        'packageManagerType': package_manager_type,
-        'uploadDest': upload_dest
+        "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit-{pkg['fbVersion']}-1.{pkg['arch']}.rpm",
+        "targetPackageName": target_package_name,
+        "nrPackageUrl": f"{NR_PROD_REPO_URL}/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
+        "nrStagingPackageUrl": f"{NR_STG_REPO_URL}/yum/{rpm_os_family}/{pkg['osVersion']}/{repo_arch}/{target_package_name}",
+        "pkgArch": pkg_arch,
+        "packageManagerType": package_manager_type,
+        "uploadDest": upload_dest,
     }
 
 
 def sles_package_details(pkg):
     target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
-    package_manager_type = 'zypp'
-    upload_dest = "{dest_prefix}linux/" + f"{package_manager_type}/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/"
+    package_manager_type = "zypp"
+    upload_dest = (
+        "{dest_prefix}linux/"
+        + f"{package_manager_type}/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/"
+    )
 
     return {
         # SLES packages are not officially available in Fluent Bit repos (we compile them ourselves), so no 'packageUrl' is available for them.
-        'targetPackageName': target_package_name,
-        'nrPackageUrl': f"{NR_PROD_REPO_URL}/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
-        'nrStagingPackageUrl': f"{NR_STG_REPO_URL}/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
-        'pkgArch': f"{pkg['arch']}",
-        'packageManagerType': package_manager_type,
-        'uploadDest': upload_dest
+        "targetPackageName": target_package_name,
+        "nrPackageUrl": f"{NR_PROD_REPO_URL}/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
+        "nrStagingPackageUrl": f"{NR_STG_REPO_URL}/zypp/{pkg['osDistro']}/{pkg['osVersion']}/{pkg['arch']}/{target_package_name}",
+        "pkgArch": f"{pkg['arch']}",
+        "packageManagerType": package_manager_type,
+        "uploadDest": upload_dest,
     }
 
 
 def windows_package_details(data):
-    windows_target_arch = {'win32': '386', 'win64': 'amd64'}[data['arch']]
+    windows_target_arch = {"win32": "386", "win64": "amd64"}[data["arch"]]
     target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
     return {
-        'packageUrl': f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
-        'targetPackageName': target_package_name,
-        'nrPackageUrl':
-            f"https://logging-fb-windows-packages.s3.us-east-2.amazonaws.com/{target_package_name}",
+        "packageUrl": f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
+        "targetPackageName": target_package_name,
+        "nrPackageUrl": f"https://logging-fb-windows-packages.s3.us-east-2.amazonaws.com/{target_package_name}",
     }
 
 
 def get_major_minor_version(version):
-    """ Returns only the major and minor version of a string. If version is "2.1.7", this returns "2.1" """
-    return '.'.join(version.split('.')[:2])
+    """Returns only the major and minor version of a string. If version is "2.1.7", this returns "2.1" """
+    return ".".join(version.split(".")[:2])
 
 
 def add_package_details(package_data):
-    os_distro = package_data['osDistro']
+    os_distro = package_data["osDistro"]
 
     if os_distro == WINDOWS_DISTRO:
         package_details = windows_package_details(package_data)
@@ -155,16 +165,18 @@ def add_package_details(package_data):
 
 
 def read_distro_packages(distro_file):
-    with open('common.yml', 'r') as common_file:
+    with open("common.yml", "r") as common_file:
         common_data = yaml.safe_load(common_file)
 
-    with open(distro_file, 'r') as distro_file:
+    with open(distro_file, "r") as distro_file:
         distro_data = yaml.safe_load(distro_file)
-        common_distro_data = {key: value for key, value in distro_data.items() if key != 'packages'}
+        common_distro_data = {
+            key: value for key, value in distro_data.items() if key != "packages"
+        }
 
     return [
         {**common_data, **common_distro_data, **package_data}
-        for package_data in distro_data['packages']
+        for package_data in distro_data["packages"]
     ]
 
 
@@ -172,8 +184,9 @@ def list_distro_files():
     try:
         return [
             filename
-            for filename in os.listdir('.')
-            if (filename.endswith('.yml') or filename.endswith('.yaml')) and filename != 'common.yml'
+            for filename in os.listdir(".")
+            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            and filename != "common.yml"
         ]
     except Exception as e:
         print(f"Error while reading distribution package files: {e}")
@@ -190,14 +203,14 @@ def generate_matrix():
 
 def add_availability_flags(matrix):
     for pkg in matrix:
-        if 'nrPackageUrl' in pkg:
-            url = pkg['nrPackageUrl']
+        if "nrPackageUrl" in pkg:
+            url = pkg["nrPackageUrl"]
             response = requests.head(url)
-            pkg['isProduction'] = True if response.status_code == 200 else False
-        if 'nrStagingPackageUrl' in pkg:
-            url = pkg['nrStagingPackageUrl']
+            pkg["isProduction"] = True if response.status_code == 200 else False
+        if "nrStagingPackageUrl" in pkg:
+            url = pkg["nrStagingPackageUrl"]
             response = requests.head(url)
-            pkg['isStaging'] = True if response.status_code == 200 else False
+            pkg["isStaging"] = True if response.status_code == 200 else False
 
 
 if __name__ == "__main__":
