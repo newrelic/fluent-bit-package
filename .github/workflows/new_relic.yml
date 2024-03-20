@@ -8,6 +8,7 @@ on:
 env:
   GHA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+  OTEL_EXPORTER_OTEL_ENDPOINT: ${{ secrets.NEW_RELIC_OTEL_STAGING_ENDPOINT }}
   GHA_RUN_ID: ${{ github.event.workflow_run.id }}
   GHA_RUN_NAME: ${{ github.event.workflow_run.name }}
 
