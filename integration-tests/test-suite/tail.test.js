@@ -44,7 +44,9 @@ describe('TAIL input', () => {
     const line = `fluent-bit-tests: tail ${uuid}`;
 
     // Append that string to our test log file
-    const file = requireEnvironmentVariable('MONITORED_FILE');
+    // const file = requireEnvironmentVariable('MONITORED_FILE');
+    // FAIL!
+    const file = "/tmp/noop"
     appendTo(file, line);
 
     // Wait for that log line to show up in NRDB
