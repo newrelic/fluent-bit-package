@@ -2,12 +2,13 @@ name: new-relic
 
 on:
   workflow_run:
-    workflows: ['*']
+    workflows: ['Merge to main','Pull Request Workflow']
     types: [completed]
 
 env:
   GHA_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+  NEW_RELIC_ACCOUNT_ID: ${{ secrets.NEW_RELIC_ACCOUNT_ID }}
   OTEL_EXPORTER_OTEL_ENDPOINT: ${{ secrets.NEW_RELIC_OTEL_STAGING_ENDPOINT }}
   GHA_RUN_ID: ${{ github.event.workflow_run.id }}
   GHA_RUN_NAME: ${{ github.event.workflow_run.name }}
@@ -23,3 +24,31 @@ jobs:
         uses: actions/checkout@v3
       - name: new-relic-exporter
         uses: newrelic-experimental/gha-new-relic-exporter@latest
+
+  custom:
+    name: Report custom event
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Setup jq
+        run: sudo apt-get install -y jq
+
+      - name: Send workflow run details to new relic
+        run: |
+          id="${{ github.event.workflow_run.id }}"
+          workflow_name="${{ github.event.workflow_run.name }}"
+          conclusion="${{ github.event.workflow_run.conclusion }}"
+          run_number="${{ github.event.workflow_run.run_number }}"
+          html_url="${{ github.event.workflow_run.html_url }}"
+          
+          WORKFLOW_RUN_DETAILS=$(jq -n \
+            --arg id "$id" \
+            --arg workflow_name "$workflow_name" \
+            --arg conclusion "$conclusion" \
+            --arg run_number "$run_number" \
+            --arg html_url "$html_url" \
+          '{id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }')
+
+          gzip -c $WORKFLOW_RUN_DETAILS | curl -X POST -H "Content-Type: application/json" \
+          -H "Api-Key: ${{ env.NEW_RELIC_LICENSE_KEY }}" -H "Content-Encoding: gzip" \
+          https://staging-insights-collector.newrelic.com/v1/accounts/${{ env.NEW_RELIC_ACCOUNT_ID }}/events --data-binary @-
