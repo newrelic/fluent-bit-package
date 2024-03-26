@@ -51,7 +51,7 @@ jobs:
             --arg conclusion "$conclusion" \
             --arg run_number "$run_number" \
             --arg html_url "$html_url" \
-          '{eventType: $event_type, entity.name: $entity_name, id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }') \
+          '{eventType: $event_type, "entity.name": $entity_name, id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }') \
           > workflow_run.json
 
 
