@@ -41,14 +41,16 @@ jobs:
           run_number="${{ github.event.workflow_run.run_number }}"
           html_url="${{ github.event.workflow_run.html_url }}"
           
-          WORKFLOW_RUN_DETAILS=$(jq -n \
+          echo $(jq -n \
             --arg id "$id" \
             --arg workflow_name "$workflow_name" \
             --arg conclusion "$conclusion" \
             --arg run_number "$run_number" \
             --arg html_url "$html_url" \
-          '{id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }')
+          '{id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }') \
+          > workflow_run.json
 
-          gzip -c $WORKFLOW_RUN_DETAILS | curl -X POST -H "Content-Type: application/json" \
+
+          gzip -c workflow_run.json | curl -X POST -H "Content-Type: application/json" \
           -H "Api-Key: ${{ env.NEW_RELIC_LICENSE_KEY }}" -H "Content-Encoding: gzip" \
           https://staging-insights-collector.newrelic.com/v1/accounts/${{ env.NEW_RELIC_ACCOUNT_ID }}/events --data-binary @-
