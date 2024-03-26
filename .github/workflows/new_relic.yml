@@ -35,7 +35,8 @@ jobs:
 
       - name: Send workflow run details to new relic
         run: |
-          eventType="FluentBitPackageWorkflowRun"
+          event_type="FluentBitPackageWorkflowRun"
+          entity_name="${{ github.repository }}"
           id="${{ github.event.workflow_run.id }}"
           workflow_name="${{ github.event.workflow_run.name }}"
           conclusion="${{ github.event.workflow_run.conclusion }}"
@@ -43,13 +44,14 @@ jobs:
           html_url="${{ github.event.workflow_run.html_url }}"
           
           echo $(jq -n \
-            --arg eventType "$eventType" \
+            --arg event_type "$event_type" \
+            --arg entity_name "$entity_name" \
             --arg id "$id" \
             --arg workflow_name "$workflow_name" \
             --arg conclusion "$conclusion" \
             --arg run_number "$run_number" \
             --arg html_url "$html_url" \
-          '{eventType: $eventType, id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }') \
+          '{eventType: $event_type, entity.name: $entity_name, id: $id, workflow_name: $workflow_name, conclusion: $conclusion, run_number: $run_number, html_url: $html_url }') \
           > workflow_run.json
 
 
