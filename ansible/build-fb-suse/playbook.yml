@@ -17,7 +17,7 @@
     falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
     api_base_url: "https://api.laggar.gcw.crowdstrike.com"
   roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
+    - newrelic.crowdstrike_provision.install_crowdstrike_falcon
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
