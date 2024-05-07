@@ -8,9 +8,10 @@
 ANSIBLE_FOLDER := $(CURDIR)
 ANSIBLE_INVENTORY_TEMPLATE := $(ANSIBLE_FOLDER)/aws_ec2.yml.dist
 ANSIBLE_INVENTORY := $(ANSIBLE_FOLDER)/aws_ec2.yml
-REQUIREMENTS_FILE := $(ANSIBLE_FOLDER)/requirements.yml
-ROLES_PATH := $(ANSIBLE_FOLDER)/roles
-COLLECTIONS_PATH := $(ANSIBLE_FOLDER)/collections
+export REQUIREMENTS_FILE ?= $(ANSIBLE_FOLDER)/requirements.yml
+export ROLES_PATH:=$(ANSIBLE_FOLDER)/roles
+export COLLECTIONS_PATH:=$(ANSIBLE_FOLDER)/collections
+export CROWDSTRIKE_ROLE_PULL_KEY := $(HOME)/.ssh/crowdstrike_ansible_role_key
 
 # Creates "collections" and "roles" folders inside the calling Ansible project
 $(ROLES_PATH) $(COLLECTIONS_PATH):

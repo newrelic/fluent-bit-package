@@ -1,8 +1,7 @@
 collections:
   - name: community.aws
   - name: community.general
-  - name: git+https://github.com/newrelic/shared-crowdstrike-ansible-role
-    type: git
+  - name: git@github.com:/newrelic/shared-crowdstrike-ansible-role.git
 roles:
   - name: andrewrothstein.gh
     version: v0.2.0
