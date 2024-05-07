@@ -6,7 +6,8 @@ collections:
     version: 2.11.0
   - name: chocolatey.chocolatey
     version: 1.5.1
-  - name: git@github.com:/newrelic/shared-crowdstrike-ansible-role.git
+  - name: git+https://github.com/newrelic/shared-crowdstrike-ansible-role
+    type: git
 
 roles:
   - name: morgangraphics.ansible_role_nvm
