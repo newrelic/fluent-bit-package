@@ -55,7 +55,7 @@
         dest: ~/
 
     - name: Install node and test-suite dependencies
-      ansible.builtin.include_role:
+      ansible.builtin.import_role:
         role: morgangraphics.ansible_role_nvm
       vars:
         nodejs_version: "{{ node_version }}"
