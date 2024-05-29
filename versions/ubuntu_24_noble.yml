@@ -1,0 +1,7 @@
+osDistro: ubuntu
+osVersion: noble
+packages:
+  - arch: amd64
+    ami: ami-08523f0f4ee29dbfc
+  - arch: arm64
+    ami: ami-092c6102f0e2fb797
