@@ -1,6 +1,11 @@
 #!/bin/bash
 
 %{if os_distro == "centos"}
+%{if os_version == 8}
+sudo sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+sudo sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+sudo dnf distro-sync
+%{endif}
 sudo %{if os_version == 7}yum%{else}dnf%{endif} install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_%{if arch == "x86_64"}amd64%{else}arm64%{endif}/amazon-ssm-agent.rpm
 %{endif}
 
