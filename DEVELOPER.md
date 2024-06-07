@@ -91,3 +91,37 @@ to make sure everything is working as expected.
 ```shell
  make local target="ansible/upload-win-packages"
 ```
+### Use local ansible roles
+If you happen to develop changes in a role used by any ansible playbook, here is an example on
+how to do that for `git+https://github.com/Sivakumar3695/caos-ansible-roles#/caos.ansible_roles/`;
+1. Clone the repo
+```sh
+git clone https://github.com/Sivakumar3695/caos-ansible-roles ~/
+```
+2. Modify the dependency in your playbook's `requirements.txt`, in this case `ansible/provision-and-execute-tests/requirements.yml`;
+```yml
+  - name: git+file:///caos-ansible-roles/
+    type: git
+```
+3. Mount your local repo in the container's `/caos-ansible-role` volume in `Makefile`;
+```makefile
+local:
+	docker run -it --platform=linux/amd64 \
+    -v $(shell pwd)/tools/local_testing_entrypoint.sh:/entrypoint.sh \
+		-v $(shell pwd):/srv/fluent-bit-package \
+		-v ~/caos-ansible-roles:/caos-ansible-roles \ // <<<<< THIS
+		-v /tmp/test-reports:/tmp/test-reports \
+		-e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+		-e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+		-e AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN} \
+		-e AWS_DEFAULT_REGION=us-east-2 \
+		-e NEW_RELIC_API_KEY=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_API_KEY) \
+		-e NEW_RELIC_ACCOUNT_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_ACCOUNT_ID) \
+		-e NEW_RELIC_REGION=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/NEW_RELIC_REGION) \
+		-e CROWDSTRIKE_CLIENT_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/CROWDSTRIKE_CLIENT_ID) \
+		-e CROWDSTRIKE_CLIENT_SECRET=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/CROWDSTRIKE_CLIENT_SECRET) \
+		-e CROWDSTRIKE_CUSTOMER_ID=$(shell newrelic-vault us read -field=value terraform/logging/logging-e2e-testing-infra/CROWDSTRIKE_CUSTOMER_ID) \
+		ghcr.io/newrelic/fargate-runner-action:latest \
+		$(target) PRE_RELEASE_NAME=local-$(USER)
+```
+4. Done!
