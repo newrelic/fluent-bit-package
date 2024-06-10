@@ -95,7 +95,7 @@ jobs:
           if [[ $PKG_COUNT -gt 0 ]]
           then
             gh release edit $TAG --draft=false --prerelease=false --title "Release $PR_NUMBER"
-            echo "is_release=true"
+            echo "is_release=true" >> $GITHUB_OUTPUT
           fi
 
   notify:
