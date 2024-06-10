@@ -6,7 +6,7 @@ collections:
     version: 2.11.0
   - name: chocolatey.chocolatey
     version: 1.5.1
-  - name: git+https://github.com/luckslovez/caos-ansible-roles.git#/caos.ansible_roles/
+  - name: git+https://github.com/Sivakumar3695/caos-ansible-roles#/caos.ansible_roles/
     type: git
 
 roles:
