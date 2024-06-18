@@ -1,10 +1,17 @@
-const logger = require('./lib/logger');
-const Nrdb = require('./lib/nrdb');
 const { Socket } = require('net');
 const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
-const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const { testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util");
+
+
+const {
+  logger,
+  nrdb,
+  requireEnvironmentVariable,
+  testUtils: {
+    testOnlyIfSet,
+    waitForLogMessageContaining
+  }
+} = require('logging-integrations-test-lib');
 
 /**
  * The newline is important -- Fluent Bit will wait
@@ -44,7 +51,7 @@ const writeToUdpSocket = (port, line) => {
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
 describe('TCP input', () => {
-  let nrdb;
+  let nrdb_instance;
 
   beforeAll(() => {
     const accountId = requireEnvironmentVariable('ACCOUNT_ID');
@@ -52,7 +59,7 @@ describe('TCP input', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb = new Nrdb({
+    nrdb_instance = new nrdb({
       accountId,
       apiKey,
       nerdGraphUrl,
@@ -70,7 +77,7 @@ describe('TCP input', () => {
     writeToTcpSocket(port, line);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb_instance, uuid);
   });
 
 });

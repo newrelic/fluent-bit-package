@@ -1,7 +1,14 @@
-const Nrdb = require('./lib/nrdb');
 const { v4: uuidv4 } = require('uuid');
-const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const { executeSync, testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util");
+
+const {
+  nrdb,
+  requireEnvironmentVariable,
+  testUtils: {
+    executeSync,
+    testOnlyIfSet,
+    waitForLogMessageContaining
+  }
+} = require('logging-integrations-test-lib');
 
 const causeJournaldMessageToBeWrittenForSsh = (uuid) => {
   // This _attempts_ to make an SSH connecting using the UUID as a user.
@@ -32,7 +39,7 @@ const causeJournaldMessageToBeWrittenForSsh = (uuid) => {
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
 describe('SYSTEMD unit input', () => {
-  let nrdb;
+  let nrdb_instance;
 
   beforeAll(() => {
     const accountId = requireEnvironmentVariable('ACCOUNT_ID');
@@ -40,7 +47,7 @@ describe('SYSTEMD unit input', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb = new Nrdb({
+    nrdb_instance = new nrdb({
         accountId,
         apiKey,
         nerdGraphUrl,
@@ -61,7 +68,7 @@ describe('SYSTEMD unit input', () => {
     causeJournaldMessageToBeWrittenForSsh(uuid);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb_instance, uuid);
   });
 
 });
