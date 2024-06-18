@@ -36,44 +36,64 @@ locals {
 module "ec2_instance" {
   source = "terraform-aws-modules/ec2-instance/aws"
 
-  for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
+  name = "spot-instance"
 
-  create_spot_instance = false
+  create_spot_instance = true
+  spot_price           = "0.60"
   spot_type            = "one-time"
   spot_launch_group    = var.pre_release_name
 
-  name = each.key
-
-  ami                    = each.value.ami
-  instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
+  instance_type          = "t2.micro"
+  monitoring             = true
   vpc_security_group_ids = [local.ec2_instances_security_group]
   subnet_id              = local.aws_vpc_subnet
 
-  iam_instance_profile = local.ec2_instance_profile
-
-  user_data = contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
-
-  # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
-  # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the
-  # Ansible playbooks as variables.
-  tags = merge(local.default_tags, {
-    pre_release_name = var.pre_release_name
-    os_distro        = each.value.osDistro
-    os_version       = each.value.osVersion
-    arch             = each.value.arch
-    fb_version       = each.value.fbVersion
-    instance_type    = var.instance_type
-    fb_package_name  = each.value.targetPackageName
-  })
-
-  volume_tags = merge(local.default_tags, {
-    pre_release_name = var.pre_release_name
-    os_distro        = each.value.osDistro
-    os_version       = each.value.osVersion
-    arch             = each.value.arch
-    fb_version       = each.value.fbVersion
-    instance_type    = var.instance_type
-    fb_package_name  = each.value.targetPackageName
-  })
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+  }
 }
-
+# module "ec2_instance" {
+#   source = "terraform-aws-modules/ec2-instance/aws"
+#
+#   for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
+#
+#   create_spot_instance = false
+#   spot_type            = "one-time"
+#   spot_launch_group    = var.pre_release_name
+#
+#   name = each.key
+#
+#   ami                    = each.value.ami
+#   instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
+#   vpc_security_group_ids = [local.ec2_instances_security_group]
+#   subnet_id              = local.aws_vpc_subnet
+#
+#   iam_instance_profile = local.ec2_instance_profile
+#
+#   user_data = contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
+#
+#   # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
+#   # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the
+#   # Ansible playbooks as variables.
+#   tags = merge(local.default_tags, {
+#     pre_release_name = var.pre_release_name
+#     os_distro        = each.value.osDistro
+#     os_version       = each.value.osVersion
+#     arch             = each.value.arch
+#     fb_version       = each.value.fbVersion
+#     instance_type    = var.instance_type
+#     fb_package_name  = each.value.targetPackageName
+#   })
+#
+#   volume_tags = merge(local.default_tags, {
+#     pre_release_name = var.pre_release_name
+#     os_distro        = each.value.osDistro
+#     os_version       = each.value.osVersion
+#     arch             = each.value.arch
+#     fb_version       = each.value.fbVersion
+#     instance_type    = var.instance_type
+#     fb_package_name  = each.value.targetPackageName
+#   })
+# }
+#
