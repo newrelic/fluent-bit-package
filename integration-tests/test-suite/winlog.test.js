@@ -1,9 +1,17 @@
-const Nrdb = require('./lib/nrdb');
+
 const { v4: uuidv4 } = require('uuid');
-const { requireEnvironmentVariable } = require('./lib/environmentVariables');
 const { spawnSync} = require("child_process");
-const logger = require("./lib/logger");
-const { testOnlyIfSet, waitForLogMessageContaining, executeSync } = require("./lib/test-util");
+
+const {
+  logger,
+  nrdb,
+  requireEnvironmentVariable,
+  testUtils: {
+    testOnlyIfSet,
+    waitForLogMessageContaining,
+    executeSync
+  }
+} = require('logging-integrations-test-lib');
 
 const createWindowsEventLogSource = (logName, source) => {
   const createEventSourceCommand = `[System.Diagnostics.EventLog]::CreateEventSource("${source}", "${logName}")`
@@ -36,7 +44,7 @@ const causeEventToBeWrittenToWindowsApplicationLog = (logName, source, message) 
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
 describe('WINLOG & WINEVTLOG inputs', () => {
-  let nrdb;
+  let nrdb_instance;
 
   beforeAll(() => {
     const accountId = requireEnvironmentVariable('ACCOUNT_ID');
@@ -44,7 +52,7 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb = new Nrdb({ accountId, apiKey, nerdGraphUrl });
+    nrdb_instance = new nrdb({ accountId, apiKey, nerdGraphUrl });
 
   });
 
@@ -62,7 +70,7 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     //
     // NOTE: this may take a while, since unlike winevtlog (which just reads
     // new events by default), winlog will read all events in the monitored log
-    await waitForLogMessageContaining(nrdb, message);
+    await waitForLogMessageContaining(nrdb_instance, message);
   });
 
   testOnlyIfSet('MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG')('detects a Windows event using "winevtlog" input plugin', async () => {
@@ -76,6 +84,6 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     await causeEventToBeWrittenToWindowsApplicationLog(monitoredLogName, source, message);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, message);
+    await waitForLogMessageContaining(nrdb_instance, message);
   });
 });
