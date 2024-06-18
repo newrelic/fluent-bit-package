@@ -38,6 +38,10 @@ module "ec2_instance" {
 
   for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
 
+  create_spot_instance = false
+  spot_type            = "one-time"
+  spot_launch_group    = var.pre_release_name
+
   name = each.key
 
   ami                    = each.value.ami
