@@ -11,9 +11,9 @@ locals {
   #  }
   instance_matrix = jsondecode(file(var.instance_matrix_file))
 
-  aws_vpc_subnet = "subnet-0d99e0c3f57f87c58"
+  aws_vpc_subnet               = "subnet-0d99e0c3f57f87c58"
   ec2_instances_security_group = "sg-0de7ca06bb5972dcb"
-  ec2_instance_profile = "logging-e2e-testing-ec2-ssm-instance-profile"
+  ec2_instance_profile         = "logging-e2e-testing-ec2-ssm-instance-profile"
 
   # See: https://docs.aws.amazon.com/systems-manager/latest/userguide/ssm-agent-status-and-restart.html
 
@@ -23,18 +23,18 @@ locals {
   # Debian AMIs do not come with the SSM Agent installed by default: https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-deb.html
   # The user data script referenced below takes care of installing the SSM Agent and starting it on boot for the aforementioned OSes.
   os_distros_requiring_user_data_script_for_ssm = ["sles", "centos", "debian"]
-  user_data_script_for_ssm_path = "${path.module}/user_data_script_for_ssm.tftpl"
+  user_data_script_for_ssm_path                 = "${path.module}/user_data_script_for_ssm.tftpl"
 
   # Default tags applied to all created resources
   default_tags = {
-    product = "logging"
+    product     = "logging"
     owning_team = "logging"
-    project = "fluent-bit-packaging-and-testing"
+    project     = "fluent-bit-packaging-and-testing"
   }
 }
 
 module "ec2_instance" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
+  source = "terraform-aws-modules/ec2-instance/aws"
 
   for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
 
@@ -45,7 +45,7 @@ module "ec2_instance" {
   vpc_security_group_ids = [local.ec2_instances_security_group]
   subnet_id              = local.aws_vpc_subnet
 
-  iam_instance_profile   = local.ec2_instance_profile
+  iam_instance_profile = local.ec2_instance_profile
 
   user_data = contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
 
@@ -54,21 +54,22 @@ module "ec2_instance" {
   # Ansible playbooks as variables.
   tags = merge(local.default_tags, {
     pre_release_name = var.pre_release_name
-    os_distro = each.value.osDistro
-    os_version = each.value.osVersion
-    arch = each.value.arch
-    fb_version = each.value.fbVersion
-    instance_type = var.instance_type
-    fb_package_name = each.value.targetPackageName
+    os_distro        = each.value.osDistro
+    os_version       = each.value.osVersion
+    arch             = each.value.arch
+    fb_version       = each.value.fbVersion
+    instance_type    = var.instance_type
+    fb_package_name  = each.value.targetPackageName
   })
 
   volume_tags = merge(local.default_tags, {
     pre_release_name = var.pre_release_name
-    os_distro = each.value.osDistro
-    os_version = each.value.osVersion
-    arch = each.value.arch
-    fb_version = each.value.fbVersion
-    instance_type = var.instance_type
-    fb_package_name = each.value.targetPackageName
+    os_distro        = each.value.osDistro
+    os_version       = each.value.osVersion
+    arch             = each.value.arch
+    fb_version       = each.value.fbVersion
+    instance_type    = var.instance_type
+    fb_package_name  = each.value.targetPackageName
   })
 }
+
