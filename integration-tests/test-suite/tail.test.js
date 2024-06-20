@@ -39,7 +39,7 @@ describe('TAIL input', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb_instance = new nrdb({
+    nrdb_instance = new NRDB({
       accountId,
       apiKey,
       nerdGraphUrl,
