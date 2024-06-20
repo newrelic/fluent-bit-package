@@ -5,10 +5,12 @@ const { v4: uuidv4 } = require('uuid');
 const {    
   requireEnvironmentVariable,
   NRDB,
-  logger,
+  logger: {getLogger},
   testUtils: {waitForLogMessageContaining, testOnlyIfSet},
   timeUtils: {currentTimeAsIso8601}
 } = require('logging-integrations-test-lib')({serviceName: 'fluent-bit-tests'});
+
+const logger = getLogger();
 
 /**
  * The newline is important -- Fluent Bit will wait
