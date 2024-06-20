@@ -1,14 +1,14 @@
 const { v4: uuidv4 } = require('uuid');
 
 const {
-  nrdb,
+  NRDB,
   requireEnvironmentVariable,
   testUtils: {
     executeSync,
     testOnlyIfSet,
     waitForLogMessageContaining
   }
-} = require('logging-integrations-test-lib');
+} = require('logging-integrations-test-lib')({serviceName: 'fluent-bit-tests'});
 
 const causeJournaldMessageToBeWrittenForSsh = (uuid) => {
   // This _attempts_ to make an SSH connecting using the UUID as a user.
@@ -47,7 +47,7 @@ describe('SYSTEMD unit input', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb_instance = new nrdb({
+    nrdb_instance = new NRDB({
         accountId,
         apiKey,
         nerdGraphUrl,

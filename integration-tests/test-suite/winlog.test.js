@@ -1,17 +1,20 @@
 
 const { v4: uuidv4 } = require('uuid');
 const { spawnSync} = require("child_process");
+const { getLogger } = require('logging-integrations-test-lib/src/logger');
 
 const {
-  logger,
-  nrdb,
+  logger: { getLogger },
+  NRDB,
   requireEnvironmentVariable,
   testUtils: {
     testOnlyIfSet,
     waitForLogMessageContaining,
     executeSync
   }
-} = require('logging-integrations-test-lib');
+} = require('logging-integrations-test-lib')({serviceName: 'fluent-bit-tests'});
+
+const logger = getLogger();
 
 const createWindowsEventLogSource = (logName, source) => {
   const createEventSourceCommand = `[System.Diagnostics.EventLog]::CreateEventSource("${source}", "${logName}")`
@@ -52,7 +55,7 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb_instance = new nrdb({ accountId, apiKey, nerdGraphUrl });
+    nrdb_instance = new NRDB({ accountId, apiKey, nerdGraphUrl });
 
   });
 

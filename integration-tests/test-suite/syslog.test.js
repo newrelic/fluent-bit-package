@@ -4,11 +4,11 @@ const { v4: uuidv4 } = require('uuid');
 
 const {    
   requireEnvironmentVariable,
-  nrdb,
+  NRDB,
   logger,
   testUtils: {waitForLogMessageContaining, testOnlyIfSet},
   timeUtils: {currentTimeAsIso8601}
-} = require('logging-integrations-test-lib');
+} = require('logging-integrations-test-lib')({serviceName: 'fluent-bit-tests'});
 
 /**
  * The newline is important -- Fluent Bit will wait
@@ -60,7 +60,7 @@ describe('SYSLOG tests', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb_instance = new nrdb({
+    nrdb_instance = new NRDB({
       accountId,
       apiKey,
       nerdGraphUrl,
