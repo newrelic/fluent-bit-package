@@ -1,19 +1,29 @@
 - name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
   become: true
-  gather_facts: yes
-  vars:
-    # install_crowdstrike_falcon role vars
-    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
-    # newrelic_cli role vars
-    repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
-    recipe: "newrelic-infra"
-    region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-    nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-  roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
-    - caos.ansible_roles.newrelic_cli
+  gather_facts: no
+  tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
+    - name: Gather facts for first time
+      ansible.builtin.setup:
+
+    - name: Install crowdstrike falcon
+      ansible.builtin.include_role:
+        name: caos.ansible_roles.install_crowdstrike_falcon
+      vars:
+        falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+        falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+
+    - name: Install newrelic-infra agent
+      ansible.builtin.include_role:
+        name: caos.ansible_roles.newrelic_cli
+      vars:
+        repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+        recipe: "newrelic-infra"
+        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
