@@ -194,6 +194,7 @@ jobs:
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
     needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
+    if: ${{ !failure() }}
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -206,6 +207,7 @@ jobs:
   publish_linux_to_staging:
     name: Publish linux packages to staging
     needs: [ setup_environment, run_e2e_tests_prerelease ]
+    if: ${{ !failure() }}
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to staging
