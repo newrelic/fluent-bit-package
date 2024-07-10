@@ -23,6 +23,8 @@ jobs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
+      to_staging_packages: ${{ steps.set-schemas.outputs.to_staging_packages }}
+      to_prod_packages: ${{ steps.set-schemas.outputs.to_prod_packages }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -68,6 +70,7 @@ jobs:
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json
 
       - name: Compute and upload schemas
+        id: set-schemas
         run: |
           make schemas/generateSchemas;
           echo "to_staging_packages=$( cat schemas/generated-linux-schema-staging.json )" >> "$GITHUB_OUTPUT"
@@ -198,7 +201,7 @@ jobs:
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
     needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
-    if: ${{ !failure() && (needs.setup_environment.outputs.to_staging_packages != '[]' || needs.setup_environment.outputs.to_prod_packages != '[]') }}
+    if: ${{ needs.setup_environment.outputs.to_staging_packages != '[]' || needs.setup_environment.outputs.to_prod_packages != '[]' }}
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
