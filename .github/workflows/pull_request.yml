@@ -73,7 +73,7 @@ jobs:
         id: set-schemas
         run: |
           make schemas/generateSchemas;
-          echo "to_staging_packages=$( cat schemas/generated-linux-schema-staging.json )" >> "$GITHUB_OUTPUT"
+          echo "to_staging_packages=jsfojafjsdf" >> "$GITHUB_OUTPUT"
           echo "to_prod_packages=$( cat schemas/generated-linux-schema-production.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.yaml
