@@ -70,10 +70,12 @@ jobs:
       - name: Compute and upload schemas
         run: |
           make schemas/generateSchemas;
-          echo "to_staging_packages=$( cat schemas/generated-linux-schema-staging.yaml )" >> "$GITHUB_OUTPUT"
-          echo "to_prod_packages=$( cat schemas/generated-linux-schema-production.yaml )" >> "$GITHUB_OUTPUT"
+          echo "to_staging_packages=$( cat schemas/generated-linux-schema-staging.json )" >> "$GITHUB_OUTPUT"
+          echo "to_prod_packages=$( cat schemas/generated-linux-schema-production.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.yaml
+          gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.json
+          gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.json
 
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
