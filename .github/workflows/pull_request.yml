@@ -241,3 +241,19 @@ jobs:
       infra_agent_env: staging
       test_report_filename: test-report-staging.xml
     secrets: inherit
+
+  destroy_everything_suse_builders:
+    needs: [setup_environment,build_suse_packages]
+    uses: ./.github/workflows/run_task.yml
+    if: failure()
+    with:
+      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
+    secrets: inherit
+
+  destroy_everything_tests_executors:
+    needs: [setup_environment,build_suse_packages]
+    uses: ./.github/workflows/run_task.yml
+    if: failure()
+    with:
+      container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
+    secrets: inherit
