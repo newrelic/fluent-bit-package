@@ -77,5 +77,6 @@ describe('WINLOG & WINEVTLOG inputs', () => {
 
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, message);
+    console.log("First Testing");
   });
 });
