@@ -12,7 +12,7 @@ These assets are aimed to be used with the infra-agent. In order to install, fol
 Assets are being generated after a new pre-release is created and same version number.
  
 ### Linux packages
-For `.rpm` and `.deb` artifacts are downloaded from fluent-bit and are signed by New Relic to be published in public repository. 
+For `.rpm` and `.deb` artifacts are downloaded from fluent bit and are signed by New Relic to be published in public repository. 
 
 ### Windows artifacts
 About `.zip` artifacts are downloaded from fluent-bit release public git hub repository and uploaded as a release asset to be downloaded and embedded in the infra-agent.
