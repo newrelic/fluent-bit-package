@@ -71,6 +71,7 @@ describe('TCP input', () => {
 
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, uuid);
+    console.log("hi there...");
   });
 
 });
