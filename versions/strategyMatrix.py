@@ -138,7 +138,7 @@ def windows_package_details(data):
     windows_target_arch = {"win32": "386", "win64": "amd64"}[data["arch"]]
     target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
     return {
-        "packageUrl": f"http://fluentbit.io/releases/{get_major_minor_version(data['fbVersion'])}/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
+        "packageUrl": f"http://packages.fluentbit.io/windows/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         "targetPackageName": target_package_name,
         "nrPackageUrl": f"https://logging-fb-windows-packages.s3.us-east-2.amazonaws.com/{target_package_name}",
         "isStaging": True,  # No staging for windows
