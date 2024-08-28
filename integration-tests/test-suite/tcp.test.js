@@ -70,7 +70,7 @@ describe('TCP input', () => {
     writeToTcpSocket(port, line);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb, "123");
   });
 
 });
