@@ -62,7 +62,7 @@ describe('TCP input', () => {
 
   testOnlyIfSet('MONITORED_TCP_PORT')('detects writing to TCP port', async () => {
     // Create a string with a unique value in it so that we can find it later
-    const uuid = uuidv4();
+    const uuid = "456";
     const line = `fluent-bit-tests: tcp ${uuid}`;
 
     // Write that string to the TCP socket
