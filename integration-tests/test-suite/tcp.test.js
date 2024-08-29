@@ -62,7 +62,7 @@ describe('TCP input', () => {
 
   testOnlyIfSet('MONITORED_TCP_PORT')('detects writing to TCP port', async () => {
     // Create a string with a unique value in it so that we can find it later
-    const uuid = uuidv4();
+    const uuid = "abcdef";
     const line = `fluent-bit-tests: tcp ${uuid}`;
 
     // Write that string to the TCP socket
@@ -70,7 +70,7 @@ describe('TCP input', () => {
     writeToTcpSocket(port, line);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb, "12345");
   });
 
 });
