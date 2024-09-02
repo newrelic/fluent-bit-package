@@ -37,7 +37,7 @@
     - name: Make sure we run the expected fluent-bit version
       ansible.builtin.assert:
         that:
-          - "{{ fb_version != installed_fb_version.stdout }}"
+          - "{{ fb_version == installed_fb_version.stdout }}"
         fail_msg: "Expected fluent-bit version {{ fb_version }}, but got {{ installed_fb_version.stdout }}"
 
     - name: Configure log forwarding
