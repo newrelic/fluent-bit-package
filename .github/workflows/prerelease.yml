@@ -146,7 +146,7 @@ jobs:
       - name: Create working directory
         run: mkdir -p packages
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_${{ matrix.type }}
           path: packages/${{ matrix.type }}
