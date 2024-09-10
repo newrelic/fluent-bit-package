@@ -7,13 +7,13 @@ module.exports = {
    *
    * This is used both for the Logs API (see logsApi.js) and querying NerdGraph (see nerdGraph.js)
    */
-  HTTP_RETRY_COUNT: 3,
+  HTTP_RETRY_COUNT: 1,
 
   /**
    * How long to wait between retrying a query -- either retrying because of an HTTP error (see retryingAxios.js),
    * or because of an error from NerdGraph (see nerdGraph.js)
    */
-  WAIT_BETWEEN_QUERY_RETRIES: 5 * ONE_SECOND,
+  WAIT_BETWEEN_QUERY_RETRIES: 3 * ONE_SECOND,
 
   /**
    * How long it could take our pipeline to process data and get it into NRDB.
