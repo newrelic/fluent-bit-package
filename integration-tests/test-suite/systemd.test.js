@@ -54,14 +54,14 @@ describe('SYSTEMD unit input', () => {
     expect(monitoredSystemdUnit).toMatch(/^ssh|sshd$/); // This is 'ssh' in some distros, 'sshd' in others
 
     // Create a unique string so that we can find the log message later
-    const uuid = "1234";
+    const uuid = uuidv4();
 
     // Cause a message with the UUID to be written to journald
     // Should log something containing "input_userauth_request: invalid user ${uuid} [preauth]"
     causeJournaldMessageToBeWrittenForSsh(uuid);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, "abcdef");
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
 });

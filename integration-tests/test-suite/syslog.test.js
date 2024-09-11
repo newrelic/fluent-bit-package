@@ -67,7 +67,7 @@ describe('SYSLOG tests', () => {
 
   testOnlyIfSet('MONITORED_SYSLOG_RFC_5424_TCP_PORT')('detects writing to a TCP socket with a syslog RFC 5424 message', async () => {
     // Create a string with a unique value in it so that we can find it later
-    const uuid = "4567";
+    const uuid = uuidv4();
     const message = `fluent-bit-tests: syslog (TCP socket - RFC 5424) ${uuid}`;
     const syslog = rfc5424(message);
 
@@ -76,12 +76,12 @@ describe('SYSLOG tests', () => {
     writeToTcpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, "abcd");
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
   testOnlyIfSet('MONITORED_SYSLOG_RFC_5424_UDP_PORT')('detects writing to a UDP socket with a syslog RFC 5424 message', async () => {
     // Create a string with a unique value in it so that we can find it later
-    const uuid = "1234";
+    const uuid = uuidv4();
     const message = `fluent-bit-tests: syslog (UDP socket - RFC 5424) ${uuid}`;
     const syslog = rfc5424(message);
 
@@ -90,7 +90,7 @@ describe('SYSLOG tests', () => {
     writeToUdpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, "abcd");
+    await waitForLogMessageContaining(nrdb, uuid);
   });
 
 });
