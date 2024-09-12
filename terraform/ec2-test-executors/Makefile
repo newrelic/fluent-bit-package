@@ -34,8 +34,12 @@ clean: backend vars generateMatrices
 # Terraform-stop
 .PHONY: stop
 stop: backend vars generateMatrices
-	terraform init -reconfigure && \
+	terraform init -reconfigure ;
 	@echo "Stopping EC2 instances..."
+	terraform output -raw instance_ids ;
+	@echo "Output printed..."
+	terraform output -json instance_ids | jq -r '.[] | join(" ")' ;
+	@echo "Output printed twice..."
 	#aws ec2 stop-instances --instance-ids $(terraform output -raw instance_ids)
 	aws ec2 stop-instances --instance-ids $(terraform output -json instance_ids | jq -r '.[] | join(" ")')
 	@echo "EC2 instances stopped."
