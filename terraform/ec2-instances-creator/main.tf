@@ -74,5 +74,5 @@ module "ec2_instance" {
 }
 
 output "instance_ids" {
-  value = { for k, v in module.ec2_instance : k => v.this_instance_id }
+  value = { for k, v in module.ec2_instance : k => v.id }
 }
