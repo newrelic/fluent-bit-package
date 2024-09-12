@@ -33,9 +33,9 @@ clean: backend vars generateMatrices
 
 # Terraform-stop
 .PHONY: stop
-stop: backend vars generateMatrices
-	terraform refresh;
+stop: backend vars generateMatrices	
 	terraform init -reconfigure ;
+	terraform refresh;
 	@echo "Stopping EC2 instances..."
 	terraform output -raw instance_ids ;
 	terraform console;
