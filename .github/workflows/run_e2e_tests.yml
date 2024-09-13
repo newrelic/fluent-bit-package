@@ -103,5 +103,5 @@ jobs:
     needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "terraform/ec2-test-executors/stop"
+      container_make_target: "terraform/ec2-test-executors/stop PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
     secrets: inherit

@@ -33,8 +33,9 @@ clean: backend vars generateMatrices
 
 # Terraform-stop
 .PHONY: stop
-stop: 
+stop: backend vars generateMatrices
 	terraform init -reconfigure && \
+	terraform apply -auto-approve -var-file="variables.tfvars" && \
 	terraform refresh
 	aws ec2 stop-instances --region us-east-2 --instance-ids $(terraform output -json instance_ids | jq -r '.[]' | paste -sd ' ' -) ;
 	@echo "EC2 instances stopped."
