@@ -33,7 +33,7 @@ clean: backend vars generateMatrices
 
 # Terraform-stop
 .PHONY: stop
-stop: backend  generateMatrices	
+stop: 	
 	terraform init -reconfigure && \
 	terraform refresh && \
 	terraform output instance_ids && \
