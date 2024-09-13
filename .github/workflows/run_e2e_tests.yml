@@ -97,9 +97,16 @@ jobs:
           files: |
             ${{ inputs.test_report_filename }}
 
+  stop_executor_instances:
+    name: stop test executor instances
+    if: always()
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform/ec2-stop-instances/stop"
+    secrets: inherit
+
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    if: always()
     needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
