@@ -72,3 +72,7 @@ module "ec2_instance" {
     fb_package_name = each.value.targetPackageName
   })
 }
+
+output "instance_ids" {
+  value = { for k, v in module.ec2_instance : k => v.id }
+}
