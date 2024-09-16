@@ -29,3 +29,13 @@ clean: backend vars generateMatrices
 	terraform destroy -auto-approve -var-file="variables.tfvars"
 	@echo "Removing Terraform backend file ${TERRAFORM_PROJECT}/terraform.backend.tf"
 	@rm "./terraform.backend.tf"
+
+
+# Terraform-stop
+.PHONY: stop
+stop: backend vars generateMatrices
+	terraform init -reconfigure && \
+	terraform apply -auto-approve -var-file="variables.tfvars" && \
+	terraform refresh
+	aws ec2 stop-instances --region us-east-2 --instance-ids $(terraform output -json instance_ids | jq -r '.[]' | paste -sd ' ' -) ;
+	@echo "EC2 instances stopped."
