@@ -3,5 +3,5 @@ osVersion: 2023
 packages:
   - arch: x86_64
     ami: ami-01103fb68b3569475
-  - arch: aarch64
-    ami: ami-0b9df99d3514cdede
+  # - arch: aarch64
+  #   ami: ami-0b9df99d3514cdede
