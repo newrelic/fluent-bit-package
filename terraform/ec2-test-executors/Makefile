@@ -29,3 +29,25 @@ clean: backend vars generateMatrices
 	terraform destroy -auto-approve -var-file="variables.tfvars"
 	@echo "Removing Terraform backend file ${TERRAFORM_PROJECT}/terraform.backend.tf"
 	@rm "./terraform.backend.tf"
+	
+# Terraform-stop
+.PHONY: stop
+stop: backend vars generateMatrices
+	@echo "Stopping instances for ${TERRAFORM_PROJECT}"
+	terraform init -reconfigure && \
+	terraform apply -auto-approve -var 'instance_count=0' -var 'pre_release_name=${PRE_RELEASE_NAME}'
+# 	@instance_ids=$(shell aws ec2 describe-instances --filters "Name=tag:pre_release_name,Values=$${PRE_RELEASE_NAME}" --query "Reservations[*].Instances[?State.Name=='running'].InstanceId" --output text) && \
+# 	echo "Found instance IDs: $$instance_ids" && \
+# 	if [ -n "$$instance_ids" ]; then \
+# 		echo "Stopping instances: $$instance_ids"; \
+# 		aws ec2 stop-instances --instance-ids $$instance_ids; \
+# 	else \
+# 		echo "No running instances found to stop."; \
+# 	fi
+
+
+
+# .PHONY: stop
+# stop: backend vars generateMatrices
+#     @echo "Stopping instances for ${TERRAFORM_PROJECT}"
+#     terraform apply -auto-approve -var 'instance_count=0' -var 'pre_release_name=${PRE_RELEASE_NAME}'

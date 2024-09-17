@@ -18,5 +18,6 @@ module "test-executor-instances" {
 
   instance_matrix_file = local.to_use_matrix
   pre_release_name = var.pre_release_name
+  instance_count       = var.instance_count
   instance_type = "test-executor"
 }
