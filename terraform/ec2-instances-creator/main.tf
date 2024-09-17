@@ -36,7 +36,7 @@ locals {
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
 
-  for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
+  for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg if var.instance_count > 0 }
 
   name = each.key
 

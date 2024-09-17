@@ -8,3 +8,7 @@ variable "matrix" {
   description = "Two values; prerelease or all. Prerelease will spin up instances for which we are processing packages. All will spin up all supported instances."
   default     = "prerelease"
 }
+
+variable "instance_count" {
+  default = 1
+}
