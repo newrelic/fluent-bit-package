@@ -34,7 +34,7 @@ clean: backend vars generateMatrices
 .PHONY: stop
 stop: backend vars generateMatrices
 	@echo "Stopping instances for ${TERRAFORM_PROJECT}"
-	@instance_ids=$(shell aws ec2 describe-instances --filters "Name=tag:product,Values=logging" --query "Reservations[*].Instances[?State.Name=='running'].InstanceId" --output text) && \
+	@instance_ids=$(shell aws ec2 describe-instances --filters "Name=tag:pre_release_name,Values=$${PRE_RELEASE_NAME}" --query "Reservations[*].Instances[?State.Name=='running'].InstanceId" --output text) && \
 	echo "Found instance IDs: $$instance_ids" && \
 	if [ -n "$$instance_ids" ]; then \
 		echo "Stopping instances: $$instance_ids"; \
