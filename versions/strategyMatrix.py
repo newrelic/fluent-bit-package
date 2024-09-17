@@ -187,6 +187,7 @@ def list_distro_files():
             filename
             for filename in os.listdir(".")
             # if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            if(filename.endswith("ubuntu_24_noble.yml"))
             and filename != "common.yml"
         ]
     except Exception as e:
