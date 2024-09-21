@@ -68,7 +68,7 @@ describe('TCP input', () => {
     // Write that string to the TCP socket
     const port = requireEnvironmentVariable('MONITORED_TCP_PORT');
     writeToTcpSocket(port, line);
-
+    console.log("Test Message");
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, uuid);
   });
