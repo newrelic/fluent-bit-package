@@ -40,7 +40,7 @@ describe('TAIL input', () => {
 
   testOnlyIfSet('MONITORED_FILE')('detects appending to a file', async () => {
     // Create a string with a unique value in it so that we can find it later
-    const uuid = uuidv4();
+    const uuid = "456";
     const line = `fluent-bit-tests: tail ${uuid}`;
 
     // Append that string to our test log file
@@ -48,7 +48,7 @@ describe('TAIL input', () => {
     appendTo(file, line);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb, "123");
   });
 
 });
