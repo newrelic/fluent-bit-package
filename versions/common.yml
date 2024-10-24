@@ -1,3 +1,4 @@
+#fluent bit version 
 fbVersion: 3.1.9
 
 #  This file, together with each distro file are processed and merged incrementally to
