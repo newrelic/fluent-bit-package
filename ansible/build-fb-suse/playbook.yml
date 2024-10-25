@@ -50,14 +50,14 @@
         msg: "{{ repo_output.stdout_lines }}"
 
     # Add Zypper repositories based on the OS version
-    - name: Add Zypper repository for SLES 15 SP4
-      when: os_version == "15.4"
-      zypper_repository:
-        name: "SUSE-PackageHub-15-SP4"
-        description: "SUSE Package Hub 15 SP4"                   
-        auto_import_keys: yes
-        autorefresh: yes
-        repo: "https://download.opensuse.org/repositories/SUSE:/SLE-15-SP4:/GA/standard/"
+    # - name: Add Zypper repository for SLES 15 SP4
+    #   when: os_version == "15.4"
+    #   zypper_repository:
+    #     name: "SUSE-PackageHub-15-SP4"
+    #     description: "SUSE Package Hub 15 SP4"                   
+    #     auto_import_keys: yes
+    #     autorefresh: yes
+    #     repo: "https://download.opensuse.org/repositories/SUSE:/SLE-15-SP4:/GA/standard/"
 
     - name: Debug repository configuration
       command: zypper repos
