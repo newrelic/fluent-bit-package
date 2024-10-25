@@ -38,88 +38,30 @@
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
-       timeout: 600
+       timeout: 600      
 
-    - name: Debug repository configuration
-      command: zypper repos
-      register: repo_output
-      ignore_errors: yes
-      changed_when: false
-
-    - debug:
-        msg: "{{ repo_output.stdout_lines }}"
-
-    # Add Zypper repositories based on the OS version
-    # - name: Add Zypper repository for SLES 15 SP4
-    #   when: os_version == "15.4"
-    #   zypper_repository:
-    #     name: "SUSE-PackageHub-15-SP4"
-    #     description: "SUSE Package Hub 15 SP4"                   
-    #     auto_import_keys: yes
-    #     autorefresh: yes
-    #     repo: "https://download.opensuse.org/repositories/SUSE:/SLE-15-SP4:/GA/standard/"
-
-    - name: Debug repository configuration
-      command: zypper repos
-      register: repo_output
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Print repository configuration
-      debug:
-        var: repo_output.stdout_lines
-
-    - name: Refresh repositories
-      command: zypper refresh
-      register: refresh_output
-      ignore_errors: yes
-
-    - name: Print refresh output
-      debug:
-        var: refresh_output.stdout_lines
-    
     - name: Install dependencies
-      zypper:
+      community.general.zypper:
         name:
           - git
           - flex
+          - wget
           - libyaml-devel
           - libopenssl-devel
           - systemd-devel
           - gcc
           - gcc-c++
           - rpmbuild
+          - "{{ cpp_with_version }}"
         state: present
-        update_cache: yes
-      retries: 10
-      delay: 30
-      register: install_output
-      until: install_output.rc == 0
-    
-    - debug:
-        msg: "{{ install_output.stdout }}"
-    # - name: Install dependencies
-    #   community.general.zypper:
-    #     name:
-    #       - git
-    #       - flex
-    #       - wget
-    #       - libyaml-devel
-    #       - libopenssl-devel
-    #       - systemd-devel
-    #       - gcc
-    #       - gcc-c++
-    #       - rpmbuild
-    #       - "{{ cpp_with_version }}"
-    #     state: present
-    #     oldpackage: true
-    #     force_resolution: true
-    #   become: true
-    #   register: install_status
-    #   until: install_status is success
-    #   # Retry up to 5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
-    #   delay: 15
-    #   retries: 20
+        oldpackage: true
+        force_resolution: true
+      become: true
+      register: install_status
+      until: install_status is success
+      # Retry up to 5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
+      delay: 15
+      retries: 20
 
     - name: Download and extract Bison {{ bison_version }}
       unarchive:
