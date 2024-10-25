@@ -54,9 +54,9 @@
       when: os_version == "15.4"
       zypper_repository:
         name: "SUSE-PackageHub-15-SP4"
-        description: "SUSE Package Hub 15 SP4"
-        baseurl: "https://download.opensuse.org/repositories/SUSE:/SLE-15-SP4:/GA/standard/"
-        gpgcheck: yes
+        description: "SUSE Package Hub 15 SP4"                   
+        auto_import_keys: yes
+        autorefresh: yes
         repo: "https://download.opensuse.org/repositories/SUSE:/SLE-15-SP4:/GA/standard/"
 
     - name: Debug repository configuration
@@ -77,29 +77,24 @@
     - name: Print refresh output
       debug:
         var: refresh_output.stdout_lines
-
+    
     - name: Install dependencies
-      community.general.zypper:
+      zypper:
         name:
           - git
           - flex
-          - wget
           - libyaml-devel
           - libopenssl-devel
           - systemd-devel
           - gcc
           - gcc-c++
           - rpmbuild
-          - "{{ cpp_with_version }}"
         state: present
         update_cache: yes
-        oldpackage: true
-        force_resolution: true
-      become: true
+      retries: 10
+      delay: 30
       register: install_output
       until: install_output.rc == 0
-      delay: 30
-      retries: 5
     
     - debug:
         msg: "{{ install_output.stdout }}"
