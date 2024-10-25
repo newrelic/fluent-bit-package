@@ -2,4 +2,4 @@ osDistro: sles
 osVersion: 15.2
 packages:
   - arch: x86_64
-    ami: ami-0e18f96a0cd806b3d
+    ami: ami-0fa138c5605d78459 # TODO: This AMI is from publisher kurian. Need to confirm with security team before making it to production.

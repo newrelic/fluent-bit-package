@@ -38,7 +38,7 @@
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
-       timeout: 600      
+       timeout: 900
 
     - name: Install dependencies
       community.general.zypper:
