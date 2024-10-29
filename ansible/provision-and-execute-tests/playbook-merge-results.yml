@@ -18,9 +18,6 @@
         nvm_install: "curl"
         nvm_commands:
           - "cd {{ controller_scripts_folder }} && nvm exec default npm install"
-    - name: Ensure test reports directory exists
-      ansible.builtin.file:
-      path: "{{ test_reports_dir }}"
 
     - name: Process test reports
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && nvm exec default npm start"
