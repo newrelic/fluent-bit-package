@@ -185,7 +185,7 @@ def list_distro_files():
     try:
         return [
             filename
-            for filename in os.listdir(".")
+            for filename in os.listdir(".")             
             if (filename.endswith(".yml") or filename.endswith(".yaml"))
             and filename != "common.yml"
         ]

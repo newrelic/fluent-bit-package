@@ -57,7 +57,7 @@ jobs:
           sudo apt-get install -y debsigs
           bash ./scripts/sign.sh
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
           name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_rpm
@@ -100,7 +100,7 @@ jobs:
           sudo apt-get install -y debsigs
           bash ./scripts/sign.sh
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ contains(matrix.packages.available-flavors, env.FB_PACKAGE_NAME) }}
         with:
           name: ${{ env.FB_PACKAGE_NAME }}_${{ env.VERSION }}_deb
@@ -128,7 +128,7 @@ jobs:
           unzip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}.zip
           zip -r -j packages/fb-windows-${{ matrix.packages.arch }}.zip fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.exe fluent-bit-${{ env.VERSION }}-${{ matrix.packages.version }}/bin/fluent-bit.dll
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: fluent-bit_${{ env.VERSION }}_zip
           path: packages/
