@@ -4,6 +4,7 @@ on: [pull_request]
 
 # So that only one PR workflow will be run simultaneously. This ensures that there will not be multiple runners accessing
 # the same Terraform state at the same time.
+# Testing account migration
 concurrency: pr-workflow-${{ github.event.pull_request.number }}
 
 env:
