@@ -140,7 +140,7 @@ def windows_package_details(data):
     return {
         "packageUrl": f"http://packages.fluentbit.io/windows/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         "targetPackageName": target_package_name,
-        "nrPackageUrl": f"https://logging-fb-windows-packages.s3.us-east-2.amazonaws.com/{target_package_name}",
+        "nrPackageUrl": f"https://logging-fb-windows-packages-1.s3.us-east-2.amazonaws.com/{target_package_name}",
         "isStaging": True,  # No staging for windows
     }
 
