@@ -99,7 +99,7 @@ jobs:
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    #if: always() #Uncomment after 3.1.9 version release
+    if: always()
     needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
