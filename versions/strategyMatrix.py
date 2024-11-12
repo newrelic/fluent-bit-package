@@ -181,8 +181,16 @@ def read_distro_packages(distro_file):
     ]
 
 
-def list_distro_files():
+def list_distro_files(specific_file):
     try:
+        if specific_file is not None:
+            # Check if the specified file exists and has the correct extension
+            if (specific_file.endswith(".yml") or specific_file.endswith(".yaml")) and os.path.isfile(specific_file):
+                return [specific_file]
+            else:
+                print(f"Specified file {specific_file} does not exist or has an invalid extension.")
+                return []
+
         return [
             filename
             for filename in os.listdir(".")             
@@ -197,7 +205,7 @@ def list_distro_files():
 def generate_matrix():
     return [
         add_package_details(package_data)
-        for distro_file in list_distro_files()
+        for distro_file in list_distro_files("amazonlinux_2.yml")
         for package_data in read_distro_packages(distro_file)
     ]
 
