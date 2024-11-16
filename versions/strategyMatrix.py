@@ -205,7 +205,7 @@ def list_distro_files(specific_file):
 def generate_matrix():
     return [
         add_package_details(package_data)
-        for distro_file in list_distro_files("centos_10.yml")
+        for distro_file in list_distro_files("amazonlinux_2.yml")
         for package_data in read_distro_packages(distro_file)
     ]
 
