@@ -181,20 +181,20 @@ def read_distro_packages(distro_file):
     ]
 
 
-def list_distro_files(specific_file):
+def list_distro_files():
     try:
-        if specific_file is not None:
-            # Check if the specified file exists and has the correct extension
-            if (specific_file.endswith(".yml") or specific_file.endswith(".yaml")) and os.path.isfile(specific_file):
-                return [specific_file]
-            else:
-                print(f"Specified file {specific_file} does not exist or has an invalid extension.")
-                return []
+        # if specific_file is not None:
+        #     # Check if the specified file exists and has the correct extension
+        #     if (specific_file.endswith(".yml") or specific_file.endswith(".yaml")) and os.path.isfile(specific_file):
+        #         return [specific_file]
+        #     else:
+        #         print(f"Specified file {specific_file} does not exist or has an invalid extension.")
+        #         return []
 
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            if (filename.startswith("amazonlinux_2023"))
             and filename != "common.yml"
         ]
     except Exception as e:
