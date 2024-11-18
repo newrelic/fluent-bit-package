@@ -227,7 +227,7 @@ jobs:
           access_point_host: "staging"
           run_id: ${{ github.run_id }}
           aws_region: "us-east-1"
-          aws_role_session_name: ${{ }}
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
           aws_role_arn: ${{ secrets.HEMA_AWS_ROLE_ARN }}
           # used for signing package stuff
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
