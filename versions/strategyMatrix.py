@@ -194,7 +194,7 @@ def list_distro_files():
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.startswith("centos_8"))
+            if (filename.startswith("amazonlinux_2023"))
             and filename != "common.yml"
         ]
     except Exception as e:
@@ -219,7 +219,7 @@ def add_availability_flags(matrix):
         if "nrStagingPackageUrl" in pkg:
             url = pkg["nrStagingPackageUrl"]
             response = requests.head(url)
-            pkg["isStaging"] = True if response.status_code == 200 else False
+            pkg["isStaging"] = False
 
 
 if __name__ == "__main__":
