@@ -215,7 +215,7 @@ def add_availability_flags(matrix):
         if "nrPackageUrl" in pkg:
             url = pkg["nrPackageUrl"]
             response = requests.head(url)
-            pkg["isProduction"] = False
+            pkg["isProduction"] = True if response.status_code == 200 else False
         if "nrStagingPackageUrl" in pkg:
             url = pkg["nrStagingPackageUrl"]
             response = requests.head(url)
