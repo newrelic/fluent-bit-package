@@ -182,11 +182,13 @@ def read_distro_packages(distro_file):
 
 
 def list_distro_files():
+    files_testing = ["ubuntu", "amazonlinux"]
     try:
         return [
             filename
-            for filename in os.listdir(".")             
-            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            for filename in os.listdir(".")
+            if any(filename.startswith(prefix) for prefix in files_testing)
+            and (filename.endswith(".yml") or filename.endswith(".yaml"))
             and filename != "common.yml"
         ]
     except Exception as e:
