@@ -1,11 +1,16 @@
-const logger = require('./lib/logger');
-const Nrdb = require('./lib/nrdb');
 const { Socket } = require('net');
 const dgram = require('node:dgram');
 const { v4: uuidv4 } = require('uuid');
-const { currentTimeAsIso8601 } = require('./lib/time');
-const { requireEnvironmentVariable } = require('./lib/environmentVariables');
-const { waitForLogMessageContaining, testOnlyIfSet } = require("./lib/test-util");
+
+const {    
+  requireEnvironmentVariable,
+  NRDB,
+  logger: {getLogger},
+  testUtils: {waitForLogMessageContaining, testOnlyIfSet},
+  timeUtils: {currentTimeAsIso8601}
+} = require('logging-integrations-test-lib')({serviceName: 'fluent-bit-tests'});
+
+const logger = getLogger();
 
 /**
  * The newline is important -- Fluent Bit will wait
@@ -49,7 +54,7 @@ const rfc5424 = (message) => {
  * See https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent.
  */
 describe('SYSLOG tests', () => {
-  let nrdb;
+  let nrdb_instance;
 
   beforeAll(() => {
     const accountId = requireEnvironmentVariable('ACCOUNT_ID');
@@ -57,7 +62,7 @@ describe('SYSLOG tests', () => {
     const nerdGraphUrl = requireEnvironmentVariable('NERD_GRAPH_URL');
 
     // Read configuration
-    nrdb = new Nrdb({
+    nrdb_instance = new NRDB({
       accountId,
       apiKey,
       nerdGraphUrl,
@@ -76,7 +81,7 @@ describe('SYSLOG tests', () => {
     writeToTcpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb_instance, uuid);
   });
 
   testOnlyIfSet('MONITORED_SYSLOG_RFC_5424_UDP_PORT')('detects writing to a UDP socket with a syslog RFC 5424 message', async () => {
@@ -90,7 +95,7 @@ describe('SYSLOG tests', () => {
     writeToUdpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
-    await waitForLogMessageContaining(nrdb, uuid);
+    await waitForLogMessageContaining(nrdb_instance, uuid);
   });
 
 });
