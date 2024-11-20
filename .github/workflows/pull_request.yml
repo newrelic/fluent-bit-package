@@ -208,43 +208,30 @@ jobs:
     secrets: inherit
 
   publish_linux_to_staging:
-      name: Publish linux packages to staging
-      needs: [setup_environment, run_e2e_tests_prerelease]
-      runs-on: ubuntu-latest
-
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v2
-
-        - name: Configure AWS credentials from OIDC
-          uses: aws-actions/configure-aws-credentials@v1
-          with:
-            role-to-assume: ${{ secrets.HEMA_AWS_ROLE_ARN }}
-            aws-region: us-east-2
-            role-session-name: testing-session-name
-
-        - name: Publish linux packages to staging
-          uses: newrelic/infrastructure-publish-action@v1
-          with:
-            app_name: fluent-bit
-            tag: ${{ env.PRE_RELEASE_NAME }}
-            repo_name: "newrelic/fluent-bit-package"
-            schema: "custom"
-            schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
-            aws_s3_bucket_name: "hema-testing-e2e-fluent-bit"
-            aws_s3_lock_bucket_name: ""
-            access_point_host: "staging"
-            run_id: ${{ github.run_id }}
-            aws_region: "us-east-2"
-            aws_role_session_name: "testing-session-name"
-            aws_role_arn: ${{ secrets.HEMA_AWS_ROLE_ARN }}
-            # used for signing package stuff
-            gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
-            gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-          env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    name: Publish linux packages to staging
+    needs: [ setup_environment, run_e2e_tests_prerelease ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish linux packages to staging
+        uses: newrelic/infrastructure-publish-action@v1
+        with:
+          app_name: fluent-bit
+          tag: ${{ env.PRE_RELEASE_NAME }}
+          repo_name: "newrelic/fluent-bit-package"
+          schema: "custom"
+          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
+          aws_access_key_id: ${{ secrets.HEMA_LOGGING_AWS_ACCESS_KEY_ID}}
+          aws_secret_access_key: ${{ secrets.HEMA_LOGGING_AWS_SECRET_ACCESS_KEY_ID}}
+          aws_s3_bucket_name: "hema-testing-e2e-fluent-bit"
+          aws_s3_lock_bucket_name: "hema-onhost-ci-lock-staging-testing"
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-2"
+          aws_role_session_name: "hema-testing-session-name"
+          aws_role_arn: ${{ secrets.HEMA_AWS_ROLE_ARN}}
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_staging:
     needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
