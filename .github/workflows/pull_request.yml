@@ -72,6 +72,10 @@ jobs:
           make schemas/generateSchemas;
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.yaml --repo newrelic/fluent-bit-package
+            
+      - name: Print linux_and_windows_matrix value
+        run: |
+          echo "linux_and_windows_matrix: ${{ needs.setup_environment.outputs.linux_and_windows_matrix }}"
 
   # Downloads all Fluent Bit packages that are officially supported, preferably from the New Relic Infrastructure Agent
   # repository (Linux packages, already re-signed by NR) or Logging's S3 bucket (Windows packages, already packaged for the NRIA).
@@ -193,7 +197,7 @@ jobs:
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
-    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
+    needs: [ setup_environment, upload_official_packages_to_prerelease ]
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -216,15 +220,15 @@ jobs:
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
           schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
-          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
-          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
-          aws_s3_bucket_name: "nr-downloads-ohai-staging"
-          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+          aws_access_key_id: ${{ secrets.HEMA_LOGGING_AWS_ACCESS_KEY_ID}}
+          aws_secret_access_key: ${{ secrets.HEMA_LOGGING_AWS_SECRET_ACCESS_KEY_ID}}
+          aws_s3_bucket_name: "hema-testing-e2e-fluent-bit"
+          aws_s3_lock_bucket_name: "hema-onhost-ci-lock-staging-testing"
           access_point_host: "staging"
           run_id: ${{ github.run_id }}
-          aws_region: "us-east-1"
-          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
-          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          aws_region: "us-east-2"
+          aws_role_session_name: "hema-testing-session-name"
+          aws_role_arn: ${{ secrets.HEMA_AWS_ROLE_ARN}}
           # used for signing package stuff
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded

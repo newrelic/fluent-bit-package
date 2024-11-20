@@ -183,10 +183,18 @@ def read_distro_packages(distro_file):
 
 def list_distro_files():
     try:
+        # if specific_file is not None:
+        #     # Check if the specified file exists and has the correct extension
+        #     if (specific_file.endswith(".yml") or specific_file.endswith(".yaml")) and os.path.isfile(specific_file):
+        #         return [specific_file]
+        #     else:
+        #         print(f"Specified file {specific_file} does not exist or has an invalid extension.")
+        #         return []
+
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            if (filename.startswith("amazonlinux_2023"))
             and filename != "common.yml"
         ]
     except Exception as e:
@@ -211,7 +219,7 @@ def add_availability_flags(matrix):
         if "nrStagingPackageUrl" in pkg:
             url = pkg["nrStagingPackageUrl"]
             response = requests.head(url)
-            pkg["isStaging"] = True if response.status_code == 200 else False
+            pkg["isStaging"] = False
 
 
 if __name__ == "__main__":
