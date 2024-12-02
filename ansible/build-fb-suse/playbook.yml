@@ -103,7 +103,7 @@
         repo: 'https://github.com/fluent/fluent-bit.git'
         dest: "{{ fluent_bit_path }}"
         version: "v{{ fluent_bit_version }}"
-        ignore_errors: true
+      ignore_errors: true
 
     - name: Configure Fluent Bit {{ fluent_bit_version }}
       command:
