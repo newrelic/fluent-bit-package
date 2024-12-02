@@ -103,6 +103,9 @@
         repo: 'https://github.com/fluent/fluent-bit.git'
         dest: "{{ fluent_bit_path }}"
         version: "v{{ fluent_bit_version }}"
+      failed_when:
+          - repo_clone.failed
+          - not 'Local modifications exist in repository' in repo_clone.msg
 
     - name: Configure Fluent Bit {{ fluent_bit_version }}
       command:
