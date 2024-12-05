@@ -24,9 +24,9 @@
       vars:
         repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
         recipe: "newrelic-infra"
-        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+        region: "{{ lookup('ansible.builtin.env', 'HEMA_NEW_RELIC_REGION') }}" # US | EU | STAGING
+        nr_api_key: "{{ lookup('ansible.builtin.env', 'HEMA_NEW_RELIC_API_KEY') }}"
+        nr_account_id: "{{ lookup('ansible.builtin.env', 'HEMA_NEW_RELIC_ACCOUNT_ID') }}"
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
