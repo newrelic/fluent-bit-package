@@ -47,6 +47,6 @@ jobs:
           cloud_watch_logs_stream_name: ecs/infra-agent-fb-e2e-testing
           aws_vpc_subnet: subnet-0271924cb6b30c703
           aws_vpc_security_groups: |
-            sg-0bafcb55ee2776412
+            sg-0e8e90f88828d510d
           repo_name: "newrelic/fluent-bit-package"
           ref: ${{ env.GIT_BRANCH }}
