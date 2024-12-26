@@ -2,6 +2,12 @@
   hosts: linux
   become: true
   gather_facts: no
+  vars:
+    repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+    recipe: "newrelic-infra"
+    region: "US" # US | EU | STAGING
+    nr_api_key: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_API_KEY') }}"
+    nr_account_id: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_ACCOUNT_ID') }}"
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
@@ -18,15 +24,32 @@
         falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
         api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
-    - name: Install newrelic-infra agent
-      ansible.builtin.include_role:
-        name: caos.ansible_roles.newrelic_cli
-      vars:
-        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
-        recipe: "newrelic-infra"
-        region: "US" # US | EU | STAGING
-        nr_api_key: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_API_KEY') }}"
-        nr_account_id: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_ACCOUNT_ID') }}"
+#    - name: Install newrelic-infra agent
+#      ansible.builtin.include_role:
+#        name: caos.ansible_roles.newrelic_cli
+#      vars:
+#        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+#        recipe: "newrelic-infra"
+#        region: "US" # US | EU | STAGING
+#        nr_api_key: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_API_KEY') }}"
+#        nr_account_id: "{{ lookup('ansible.builtin.env', 'LOGINT_NEW_RELIC_ACCOUNT_ID') }}"
+#
+#    - name: clean metadata
+#      ansible.builtin.command: "yum clean metadata"
+#      when: ansible_pkg_mgr == 'yum'
+
+    - name: Download newrelic-cli installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/newrelic/newrelic-cli/master/scripts/install.sh
+        dest: /tmp/newrelic-cli-install.sh
+        mode: '0111'
+
+    - name: Install newrelic-cli
+      ansible.builtin.shell: yes | /tmp/newrelic-cli-install.sh
+
+    - name: Install agent via newrelic-cli
+      no_log: true
+      ansible.builtin.shell: NEW_RELIC_DOWNLOAD_URL="{{ repo_endpoint }}" NEW_RELIC_REGION="{{ region }}" NEW_RELIC_API_KEY={{ nr_api_key }} NEW_RELIC_ACCOUNT_ID={{ nr_account_id }} /usr/local/bin/newrelic install -n {{ recipe }} --debug -y
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
