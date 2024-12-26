@@ -186,7 +186,7 @@ def list_distro_files():
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.startswith("amazonlinux_2") or filename.startswith("sles_15.3"))
+            if (filename.startswith("amazonlinux_2") or filename.startswith("sles_12.5"))
             and filename != "common.yml"
         ]
     except Exception as e:
