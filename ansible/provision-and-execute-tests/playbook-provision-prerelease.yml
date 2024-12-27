@@ -22,7 +22,7 @@
       ansible.builtin.include_role:
         name: caos.ansible_roles.newrelic_cli
       vars:
-        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+        repo_endpoint: "https://download.newrelic.com/"
         recipe: "newrelic-infra"
         region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION_PROD') }}" # US | EU | STAGING
         nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY_PROD') }}"
