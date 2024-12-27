@@ -41,9 +41,9 @@
     arch: "{{ tags.arch }}"
     nr_fb_output_plugin_version: 1.19.2
     # The following vars are injected in the fargate task env
-    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}"
+    new_relic_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY_PROD') }}"
+    new_relic_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID_PROD') }}"
+    new_relic_region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION_PROD') }}"
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
