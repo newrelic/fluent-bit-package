@@ -2,6 +2,6 @@ osDistro: ubuntu
 osVersion: bionic
 packages:
   - arch: amd64
-    ami: ami-04c8fda7dfbb7604a
+    ami: ami-097963bffada588c8
   - arch: arm64
-    ami: ami-0d8ade5793886b541
+    ami: ami-0f494cccc2516f9ba
