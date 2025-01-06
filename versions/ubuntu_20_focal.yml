@@ -2,6 +2,6 @@ osDistro: ubuntu
 osVersion: focal
 packages:
   - arch: amd64
-    ami: ami-0fbe25808b51a1ac4
+    ami: ami-0a6462c415d101954
   - arch: arm64
     ami: ami-0f7c78c0da1ef6eda
