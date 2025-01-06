@@ -2,6 +2,6 @@ osDistro: ubuntu
 osVersion: noble
 packages:
   - arch: amd64
-    ami: ami-04d4ed29f82a56175
+    ami: ami-0325b9a2dfb474b2d
   - arch: arm64
-    ami: ami-0103b2542bd301059
+    ami: ami-0d3bef694d134c8ae
