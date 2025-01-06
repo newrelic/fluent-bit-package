@@ -186,7 +186,7 @@ def list_distro_files():
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.startswith("ubuntu_20"))
+            if (filename.startswith("ubuntu_18"))
             and filename != "common.yml"
         ]
     except Exception as e:
