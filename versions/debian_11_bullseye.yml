@@ -2,6 +2,6 @@ osDistro: debian
 osVersion: bullseye
 packages:
   - arch: amd64
-    ami: ami-06a7641d5bd7bdc65
+    ami: ami-0c18857b85f7df9ca
   - arch: arm64
-    ami: ami-0237d8bf4f989d904
+    ami: ami-07ec3c77aa5332d80
