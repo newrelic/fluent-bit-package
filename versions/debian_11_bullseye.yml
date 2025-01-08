@@ -4,4 +4,4 @@ packages:
   - arch: amd64
     ami: ami-0c18857b85f7df9ca
   - arch: arm64
-    ami: ami-0237d8bf4f989d904
+    ami: ami-0cdb8035f7aaf063d
