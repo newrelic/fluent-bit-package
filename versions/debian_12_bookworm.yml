@@ -2,6 +2,6 @@ osDistro: debian
 osVersion: bookworm
 packages:
   - arch: amd64
-    ami: ami-0ddf7dfd13a83d8c8
+    ami: ami-08146b553b4767866
   - arch: arm64
-    ami: ami-0edd7fb88540aa37c
+    ami: ami-07cb96810e4caaea5

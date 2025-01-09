@@ -2,6 +2,6 @@ osDistro: amazonlinux
 osVersion: 2023
 packages:
   - arch: x86_64
-    ami: ami-0798fb070bcaff6e9
+    ami: ami-0b4624933067d393a
   - arch: aarch64
-    ami: ami-0b9df99d3514cdede
+    ami: ami-00136537838fffb8e
