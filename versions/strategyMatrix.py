@@ -185,8 +185,8 @@ def list_distro_files():
     try:
         return [
             filename
-            for filename in os.listdir(".")             
-            if (filename.startswith("debian_11_"))
+            for filename in os.listdir(".")
+            if (filename.endswith(".yml") or filename.endswith(".yaml"))
             and filename != "common.yml"
         ]
     except Exception as e:
