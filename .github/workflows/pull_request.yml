@@ -193,7 +193,7 @@ jobs:
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
-    needs: [ setup_environment,upload_official_packages_to_prerelease ]
+    needs: [ setup_environment, sign_suse_packages, upload_official_packages_to_prerelease ]
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -229,15 +229,15 @@ jobs:
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
-  # run_e2e_tests_staging:
-  #   needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-  #   if: |
-  #     always() && !failure() && !cancelled()
-  #   name: Run E2E tests for all supported packages installing NRIA+FB from staging
-  #   uses: ./.github/workflows/run_e2e_tests.yml
-  #   with:
-  #     gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-  #     infra_agent_version: latest
-  #     infra_agent_env: staging
-  #     test_report_filename: test-report-staging.xml
-  #   secrets: inherit
+  run_e2e_tests_staging:
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    if: |
+      always() && !failure() && !cancelled()
+    name: Run E2E tests for all supported packages installing NRIA+FB from staging
+    uses: ./.github/workflows/run_e2e_tests.yml
+    with:
+      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+      infra_agent_version: latest
+      infra_agent_env: staging
+      test_report_filename: test-report-staging.xml
+    secrets: inherit
