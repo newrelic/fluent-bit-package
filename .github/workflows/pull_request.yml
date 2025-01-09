@@ -193,7 +193,7 @@ jobs:
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
-    needs: [ setup_environment, sign_suse_packages,upload_official_packages_to_prerelease ]
+    needs: [ setup_environment,upload_official_packages_to_prerelease ]
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
