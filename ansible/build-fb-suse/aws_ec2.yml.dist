@@ -24,6 +24,6 @@ compose:
     # Host variables that are strings (not variables) need to be wrapped with two sets of quotes.
     # See https://docs.ansible.com/ansible/latest/plugins/inventory.html#using-inventory-plugins for details.
     ansible_connection: '"community.aws.aws_ssm"'
-    ansible_aws_ssm_bucket_name: '"logging-e2e-testing-ssm-transfers-hema-testing"'
+    ansible_aws_ssm_bucket_name: '"logging-e2e-testing-ssm-transfers-logint"'
     ansible_aws_ssm_bucket_sse_mode: '"AES256"'
     ansible_aws_ssm_region: '"us-east-2"'
