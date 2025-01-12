@@ -4,7 +4,7 @@
 terraform {
   backend "s3" {
     encrypt = true
-    bucket  = "logging-e2e-testing-tf-hema-testing"
+    bucket  = "logging-e2e-testing-tf-logint"
     key     = "suse-builders-PRE_RELEASE_NAME"
     region  = "us-east-2"
   }
