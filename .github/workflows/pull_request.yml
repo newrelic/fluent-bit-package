@@ -146,7 +146,7 @@ jobs:
     needs: [upload_official_packages_to_prerelease]
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/upload-win-packages/run PR_TAG=${{ needs.setup_environment.outputs.pre_release_name }}"
+      container_make_target: "ansible/upload-win-packages/run PR_TAG=tmp-pr-193"
     secrets: inherit
 
 #  spin_up_suse:
