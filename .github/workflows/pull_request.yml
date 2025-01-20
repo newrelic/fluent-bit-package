@@ -203,6 +203,14 @@ jobs:
       test_report_filename: test-report-prerelease.xml
     secrets: inherit
 
+  publish_windows:
+    name: Publish windows packages to logging's production bucket
+    needs: get_release_tag
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/upload-win-packages/run PR_TAG=${{ needs.get_release_tag.outputs.tag }}"
+    secrets: inherit
+    
   publish_linux_to_staging:
     name: Publish linux packages to staging
     needs: [ setup_environment, run_e2e_tests_prerelease ]
