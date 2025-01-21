@@ -1,6 +1,6 @@
 [![Community Project header](https://github.com/newrelic/opensource-website/raw/master/src/images/categories/Community_Project.png)](https://opensource.newrelic.com/oss-category/#community-project)
 
-# Fluent Bit Binaries for New Relic Infra Agent
+# Fluent Bit Binaries for New Relic Infra Agent 
 
 A public repo that takes care of downloading the FluentBit source, sign it and uploading the resulting artifact to be released with the New Relic [infra-agent](https://github.com/newrelic/infrastructure-agent)
 
