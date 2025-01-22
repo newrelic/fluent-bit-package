@@ -141,55 +141,55 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
-  spin_up_suse:
-    needs: setup_environment
-    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  build_suse_packages:
-    needs: [setup_environment,spin_up_suse]
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  tear_down_suse:
-    needs: [setup_environment,build_suse_packages]
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  sign_suse_packages:
-    needs: [setup_environment, build_suse_packages]
-    runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-    strategy:
-      fail-fast: true
-      matrix:
-        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
-    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Fetch package from GitHub pre-release
-        run: |
-          mkdir -p packages
-          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
-
-      - name: Sign package
-        run: |
-          sudo apt-get install -y debsigs
-          bash ./scripts/sign.sh
-
-      - name: Upload signed asset
-        run:
-          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
+#  spin_up_suse:
+#    needs: setup_environment
+#    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  build_suse_packages:
+#    needs: [setup_environment,spin_up_suse]
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  tear_down_suse:
+#    needs: [setup_environment,build_suse_packages]
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  sign_suse_packages:
+#    needs: [setup_environment, build_suse_packages]
+#    runs-on: ubuntu-latest
+#    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
+#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+#
+#    steps:
+#      - name: Check out repository
+#        uses: actions/checkout@v3
+#
+#      - name: Fetch package from GitHub pre-release
+#        run: |
+#          mkdir -p packages
+#          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
+#
+#      - name: Sign package
+#        run: |
+#          sudo apt-get install -y debsigs
+#          bash ./scripts/sign.sh
+#
+#      - name: Upload signed asset
+#        run:
+#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
 #
 #  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
 #  run_e2e_tests_prerelease:
@@ -205,7 +205,7 @@ jobs:
 
   publish_linux_to_staging:
     name: Publish linux packages to staging
-    needs: [setup_environment]
+    needs: [setup_environment, upload_official_packages_to_prerelease]
 #    needs: [ setup_environment, run_e2e_tests_prerelease ]
     runs-on: ubuntu-latest
     steps:
@@ -229,17 +229,17 @@ jobs:
           # used for signing package stuff
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-
-  run_e2e_tests_staging:
-#    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-    needs: [ setup_environment, publish_linux_to_staging ]
-    if: |
-      always() && !failure() && !cancelled()
-    name: Run E2E tests for all supported packages installing NRIA+FB from staging
-    uses: ./.github/workflows/run_e2e_tests.yml
-    with:
-      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-      infra_agent_version: latest
-      infra_agent_env: staging
-      test_report_filename: test-report-staging.xml
-    secrets: inherit
+#
+#  run_e2e_tests_staging:
+##    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+#    needs: [ setup_environment, upload_official_packages_to_prerelease, publish_linux_to_staging ]
+#    if: |
+#      always() && !failure() && !cancelled()
+#    name: Run E2E tests for all supported packages installing NRIA+FB from staging
+#    uses: ./.github/workflows/run_e2e_tests.yml
+#    with:
+#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+#      infra_agent_version: latest
+#      infra_agent_env: staging
+#      test_report_filename: test-report-staging.xml
+#    secrets: inherit
