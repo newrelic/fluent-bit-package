@@ -18,6 +18,7 @@ groups:
     suse_15: "tags.os_version.startswith('15')"
     windows: "'windows-server' in tags.os_distro"
     linux: "'windows-server' not in tags.os_distro"
+    xenial: "tags.os_version.startswith('xenial')"
 compose:
     # This is how the Ansible SSM plugin will connect to each host. We cannot use the hostname (tag:Name) directly because
     # it contains "." characters, which are not allowed by the SSM plugin.
