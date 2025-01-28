@@ -1,5 +1,6 @@
 collections:
   - name: community.aws
+    version: 3.2.0
   - name: ansible.windows
     version: 1.14.0
   - name: ansible.utils
