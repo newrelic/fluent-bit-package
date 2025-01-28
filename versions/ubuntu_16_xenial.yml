@@ -2,4 +2,4 @@ osDistro: ubuntu
 osVersion: xenial
 packages:
   - arch: amd64
-    ami: ami-004845fc1d31e61df
+    ami: ami-003ec52235e3d8783
