@@ -2,4 +2,4 @@ osDistro: sles
 osVersion: 15.3
 packages:
   - arch: x86_64
-    ami: ami-01e7407a20284c7ff
+    ami: ami-0c0ca60d1d7619525
