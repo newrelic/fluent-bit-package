@@ -23,6 +23,8 @@
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
+  any_errors_fatal: true
+  strategy: free
   vars:
     home_path: /home/ssm-user
     bison_version: 3.7
