@@ -233,6 +233,7 @@ jobs:
   tear_down_executors:
     needs: [ run_e2e_tests_prerelease_linux, run_e2e_tests_prerelease_windows ]
     name: Tear down test executor instances
+    if: always()
     uses: ./.github/workflows/tear_down_executors.yml
     with:
       gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
