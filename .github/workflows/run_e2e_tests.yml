@@ -79,18 +79,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Download report from pre-release
+      - name: Download report from pre-release # not ok
         run: |
           gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}
 
-      - name: Tests Report Details
+      - name: Tests Report Details # ok
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
           path: ${{ inputs.test_report_filename }} # Path to test results
           reporter: jest-junit
 
-      - name: Tests Report Summary
+      - name: Tests Report Summary # ok
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:

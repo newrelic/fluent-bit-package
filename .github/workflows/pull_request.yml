@@ -213,7 +213,7 @@ jobs:
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
-      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}-linux
+      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
       infra_agent_env: prerelease-linux
       test_report_filename: test-report-prerelease-linux.xml
@@ -224,7 +224,7 @@ jobs:
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
-      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}-windows
+      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
       infra_agent_env: prerelease-windows
       test_report_filename: test-report-prerelease-windows.xml
