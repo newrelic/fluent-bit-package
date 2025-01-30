@@ -24,11 +24,11 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-      platform:
-        description: Platform to run the tests on and to maintain concurrency
-        required: true
-        type: string
-        default: default
+#      platform:
+#        description: Platform to run the tests on and to maintain concurrency
+#        required: true
+#        type: string
+#        default: default
   workflow_dispatch:
     inputs:
       gh_release_name:
@@ -51,38 +51,55 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-      platform:
-        description: Platform to run the tests on and to maintain concurrency
-        required: true
-        type: string
-        default: default
+#      platform:
+#        description: Platform to run the tests on and to maintain concurrency
+#        required: true
+#        type: string
+#        default: default
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
 # be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
 # as in the pull_request.yml since this workflow can also be run on-demand from the UI, and potentially by the infrastructure-agent
 # CI/CD pipeline.
-concurrency: e2e-workflow-${{ inputs.gh_release_name }}-${{ inputs.platform }}
+concurrency: e2e-workflow-${{ inputs.gh_release_name }}
+#  -${{ inputs.platform }}
 
 jobs:
-#  spin_up_test_executor_instances:
-#    name: Spin up test executor instances
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform/ec2-test-executors/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
-#    secrets: inherit
-
-  provision_and_execute_tests:
-    name: Provision instances and run tests
-#    needs: spin_up_test_executor_instances
+  spin_up_test_executor_instances:
+    name: Spin up test executor instances
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}"
+      container_make_target: "terraform/ec2-test-executors/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
+    secrets: inherit
+
+#  provision_and_execute_tests:
+#    name: Provision instances and run tests
+#    needs: spin_up_test_executor_instances
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}"
+#    secrets: inherit
+
+  provision_and_execute_tests_linux:
+    name: Provision instances and run tests for linux
+    needs: spin_up_test_executor_instances
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}-linux.xml"
+    secrets: inherit
+
+  provision_and_execute_tests_windows:
+    name: Provision instances and run tests for windows
+    needs: spin_up_test_executor_instances
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}-windows.xml"
     secrets: inherit
 
   report_test_results:
     name: Report results
     runs-on: ubuntu-20.04
-    needs: provision_and_execute_tests
+    needs: [provision_and_execute_tests_linux, provision_and_execute_tests_windows]
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -91,27 +108,42 @@ jobs:
 
       - name: Download report from pre-release # not ok
         run: |
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-windows.xml
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-linux.xml
 
-      - name: Tests Report Details # ok
+      - name: Tests Report Details Windows # ok
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ inputs.test_report_filename }} # Path to test results
+          path: ${{ inputs.test_report_filename }}-windows.xml # Path to test results
           reporter: jest-junit
 
-      - name: Tests Report Summary # ok
+      - name: Tests Report Details Linux # ok
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests Report Details  # Name of the check run which will be created
+          path: ${{ inputs.test_report_filename }}-linux.xml # Path to test results
+          reporter: jest-junit
+
+      - name: Tests Report Summary Windows # ok
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
-            ${{ inputs.test_report_filename }}
+            ${{ inputs.test_report_filename }}-windows.xml
 
-#  tear_down_test_executor_instances:
-#    name: Tear down test executor instances
-##    if: always() - need to kill instances
-#    needs: report_test_results
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
-#    secrets: inherit
+      - name: Tests Report Summary Linux # ok
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            ${{ inputs.test_report_filename }}-linux.xml
+
+  tear_down_test_executor_instances:
+    name: Tear down test executor instances
+#    if: always() - need to kill instances
+    needs: report_test_results
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
+    secrets: inherit
