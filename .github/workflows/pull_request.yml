@@ -23,6 +23,7 @@ jobs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
+      linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -63,6 +64,9 @@ jobs:
         run: |
           make versions/generateMatrices
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          json_data=$(cat versions/linuxAndWindowsMatrix.json)
+          filtered_json=$(echo "$json_data" | jq 'unique_by(.targetPackageName)')
+          echo "linux_and_windows_unique_target_package=$(echo $filtered_json)" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
@@ -79,11 +83,11 @@ jobs:
   download_official_packages:
     needs: [setup_environment]
     runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.linux_and_windows_matrix != '[]' }}
+    if: ${{ needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
     strategy:
       fail-fast: true
       matrix:
-        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
+        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_unique_target_package) }}
     name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
     steps:
       - name: Check out repository
@@ -114,6 +118,8 @@ jobs:
           zip -r -j packages/${{ matrix.targetPackageName }} \
                fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
                fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
+      
+      
 
         # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
