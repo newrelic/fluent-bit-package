@@ -191,9 +191,17 @@ jobs:
         run:
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
 
+  spin_up_test_executors:
+    needs :  [ setup_environment, upload_official_packages_to_prerelease ]
+    name : Run Terraform Scripts to spin up EC2 instances
+    uses : ./.github/workflows/spin_up_executors.yml
+    with :
+      gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
+      infra_agent_env : production
+
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease_linux:
-    needs: [ setup_environment, upload_official_packages_to_prerelease ]
+    needs: [ spin_up_test_executors ]
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
@@ -204,7 +212,7 @@ jobs:
     secrets: inherit
 
   run_e2e_tests_prerelease_windows:
-    needs: [ setup_environment, upload_official_packages_to_prerelease ]
+    needs: [ spin_up_test_executors ]
     name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
