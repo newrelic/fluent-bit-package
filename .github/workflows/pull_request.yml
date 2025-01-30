@@ -139,7 +139,7 @@ jobs:
 
     steps:
       - name: Download all artifacts from shared filesystem
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: packages
 
