@@ -125,6 +125,7 @@ jobs:
           # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
           name: ${{ matrix.targetPackageName }}
           path: packages/${{ matrix.targetPackageName }}
+          overwrite: true
 
   upload_official_packages_to_prerelease:
     needs: [ download_official_packages ]
