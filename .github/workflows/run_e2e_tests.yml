@@ -24,6 +24,11 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
+      platform:
+        description: Platform to run the tests on and to maintain concurrency
+        required: true
+        type: string
+        default: default
   workflow_dispatch:
     inputs:
       gh_release_name:
@@ -46,12 +51,17 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
+      platform:
+        description: Platform to run the tests on and to maintain concurrency
+        required: true
+        type: string
+        default: default
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
 # be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
 # as in the pull_request.yml since this workflow can also be run on-demand from the UI, and potentially by the infrastructure-agent
 # CI/CD pipeline.
-concurrency: e2e-workflow-${{ inputs.gh_release_name }}
+concurrency: e2e-workflow-${{ inputs.gh_release_name }}-${{ inputs.platform }}
 
 jobs:
 #  spin_up_test_executor_instances:
