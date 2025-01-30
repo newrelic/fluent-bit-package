@@ -25,7 +25,7 @@ jobs:
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
         # This is a workaround required to pass environment variables to the run_e2e_tests workflow
         # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
@@ -119,7 +119,7 @@ jobs:
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
         # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
         # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           # Artifacts are pushed to *shared network folders* that have this name and that contain
           # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
