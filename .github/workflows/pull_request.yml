@@ -197,7 +197,7 @@ jobs:
     uses : ./.github/workflows/spin_up_executors.yml
     with :
       gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
-      infra_agent_env : production
+      infra_agent_env : prerelease
 
   # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease_linux:
@@ -221,6 +221,13 @@ jobs:
       infra_agent_env: prerelease-windows
       test_report_filename: test-report-prerelease-windows.xml
     secrets: inherit
+
+  tear_down_executors:
+    needs: [ run_e2e_tests_prerelease_linux, run_e2e_tests_prerelease_windows ]
+    name: Tear down test executor instances
+    uses: ./.github/workflows/tear_down_executors.yml
+    with:
+      gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
 
 #  publish_linux_to_staging:
 #    name: Publish linux packages to staging
