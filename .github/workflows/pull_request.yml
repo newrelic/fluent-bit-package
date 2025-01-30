@@ -25,7 +25,7 @@ jobs:
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
         # This is a workaround required to pass environment variables to the run_e2e_tests workflow
         # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
