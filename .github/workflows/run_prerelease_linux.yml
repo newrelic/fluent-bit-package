@@ -133,7 +133,7 @@ jobs:
       - name: Fetch package from GitHub pre-release
         run: |
           mkdir -p packages
-          gh release download ${{ inputs.pre_release_name }} --pattern ${{ inputs.matrix.targetPackageName }} --dir packages
+          gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
 
       - name: Sign package
         run: |
