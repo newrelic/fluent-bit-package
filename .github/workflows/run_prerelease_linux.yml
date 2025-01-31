@@ -84,6 +84,8 @@ env:
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+  LINUX_TEST_REPORT_NAME: ${{ inputs.test_report_filename }}-linux.xml
+  WINDOWS_TEST_REPORT_NAME: ${{ inputs.test_report_filename }}-windows.xml
 
 jobs:
   spin_up_test_executor_instances:
@@ -157,7 +159,7 @@ jobs:
     needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}-linux.xml"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ env.LINUX_TEST_REPORT_NAME}}"
     secrets: inherit
 
   provision_and_execute_tests_windows:
@@ -165,13 +167,13 @@ jobs:
     needs: spin_up_test_executor_instances
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.test_report_filename }}-windows.xml"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ env.LINUX_TEST_REPORT_NAME }}"
     secrets: inherit
 
-  report_test_results:
+  report_linux_test_results:
     name: Report results
     runs-on: ubuntu-20.04
-    needs: [provision_and_execute_tests_linux, provision_and_execute_tests_windows]
+    needs: [ provision_and_execute_tests_linux ]
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -180,21 +182,41 @@ jobs:
 
       - name: Download report from pre-release # not ok
         run: |
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-windows.xml
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-linux.xml
-
-      - name: Tests Report Details Windows # ok
-        uses: dorny/test-reporter@v1
-        with:
-          name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ inputs.test_report_filename }}-windows.xml # Path to test results
-          reporter: jest-junit
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ env.LINUX_TEST_REPORT_NAME }}
 
       - name: Tests Report Details Linux # ok
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ inputs.test_report_filename }}-linux.xml # Path to test results
+          path: ${{ env.LINUX_TEST_REPORT_NAME }} # Path to test results
+          reporter: jest-junit
+
+      - name: Tests Report Summary Linux # ok
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            ${{ env.LINUX_TEST_REPORT_NAME }}
+
+  report_windows_test_results:
+    name: Report results
+    runs-on: ubuntu-20.04
+    needs: [provision_and_execute_tests_windows ]
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download report from pre-release # not ok
+        run: |
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ env.WINDOWS_TEST_REPORT_NAME }}
+
+      - name: Tests Report Details Windows # ok
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests Report Details  # Name of the check run which will be created
+          path: ${{ env.WINDOWS_TEST_REPORT_NAME }} # Path to test results
           reporter: jest-junit
 
       - name: Tests Report Summary Windows # ok
@@ -202,19 +224,55 @@ jobs:
         if: always()
         with:
           files: |
-            ${{ inputs.test_report_filename }}-windows.xml
+            ${{ env.WINDOWS_TEST_REPORT_NAME }}
 
-      - name: Tests Report Summary Linux # ok
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            ${{ inputs.test_report_filename }}-linux.xml
+#  report_test_results:
+#    name: Report results
+#    runs-on: ubuntu-20.04
+#    needs: [provision_and_execute_tests_linux, provision_and_execute_tests_windows]
+#    env:
+#      GH_TOKEN: ${{ github.token }}
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v3
+#
+#      - name: Download report from pre-release # not ok
+#        run: |
+#          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-windows.xml
+#          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}-linux.xml
+#
+#      - name: Tests Report Details Windows # ok
+#        uses: dorny/test-reporter@v1
+#        with:
+#          name: Tests Report Details  # Name of the check run which will be created
+#          path: ${{ inputs.test_report_filename }}-windows.xml # Path to test results
+#          reporter: jest-junit
+#
+#      - name: Tests Report Details Linux # ok
+#        uses: dorny/test-reporter@v1
+#        with:
+#          name: Tests Report Details  # Name of the check run which will be created
+#          path: ${{ inputs.test_report_filename }}-linux.xml # Path to test results
+#          reporter: jest-junit
+#
+#      - name: Tests Report Summary Windows # ok
+#        uses: EnricoMi/publish-unit-test-result-action@v2
+#        if: always()
+#        with:
+#          files: |
+#            ${{ inputs.test_report_filename }}-windows.xml
+#
+#      - name: Tests Report Summary Linux # ok
+#        uses: EnricoMi/publish-unit-test-result-action@v2
+#        if: always()
+#        with:
+#          files: |
+#            ${{ inputs.test_report_filename }}-linux.xml
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
     if: always()
-    needs: report_test_results
+    needs: [report_windows_test_results, report_linux_test_results]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
