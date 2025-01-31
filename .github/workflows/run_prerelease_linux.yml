@@ -24,10 +24,10 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-      #      matrix:
-      #        description: Matrix of OS distros, versions, and architectures to run the tests on
-      #        required: true
-      #        type: string
+#      github_token:
+#        description: GitHub token
+#        required: true
+#        type: string
       pre_release_name:
         description: Pre-release name
         required: true
@@ -58,10 +58,10 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-      #      matrix:
-      #        description: Matrix of OS distros, versions, and architectures to run the tests on
-      #        required: true
-      #        type: string
+#      github_token:
+#        description: GitHub token
+#        required: true
+#        type: string
       pre_release_name:
         description: Pre-release name
         required: true
@@ -77,6 +77,10 @@ on:
 # CI/CD pipeline.
 concurrency: e2e-workflow-${{ inputs.gh_release_name }}
 #  -${{ inputs.platform }}
+
+env:
+#  GH_TOKEN: ${{ inputs.github_token }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   spin_up_test_executor_instances:

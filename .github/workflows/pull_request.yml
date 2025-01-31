@@ -209,6 +209,7 @@ jobs:
       test_report_filename: test-report-prerelease
       sles_matrix: ${{ needs.setup_environment.outputs.sles_matrix }}
       pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+#      github_token: ${{ github.token }}
     secrets: inherit
 
 #  spin_up_test_executors:
