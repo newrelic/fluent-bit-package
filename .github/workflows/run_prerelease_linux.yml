@@ -213,7 +213,7 @@ jobs:
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    #    if: always() - need to kill instances
+    if: always()
     needs: report_test_results
     uses: ./.github/workflows/run_task.yml
     with:
