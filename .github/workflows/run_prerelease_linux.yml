@@ -81,6 +81,9 @@ concurrency: e2e-workflow-${{ inputs.gh_release_name }}
 env:
 #  GH_TOKEN: ${{ inputs.github_token }}
   GH_TOKEN: ${{ github.token }}
+  GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
+  GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+  GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
 jobs:
   spin_up_test_executor_instances:
