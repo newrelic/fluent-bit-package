@@ -24,10 +24,6 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-#      github_token:
-#        description: GitHub token
-#        required: true
-#        type: string
       pre_release_name:
         description: Pre-release name
         required: true
@@ -35,6 +31,16 @@ on:
       sles_matrix:
         description: Matrix of SLES distros, versions, and architectures to run the tests on
         required: false
+        type: string
+      linux_test_report_name:
+        description: Linux test report name
+        required: false
+        default: test-report-prerelease.xml
+        type: string
+      windows_test_report_name:
+        description: Windows test report name
+        required: false
+        default: test-report-windows-prerelease.xml
         type: string
   workflow_dispatch:
     inputs:
@@ -58,10 +64,6 @@ on:
         required: false
         default: test-report-prerelease.xml
         type: string  # To be able to launch it from the Actions UI, on-demand
-#      github_token:
-#        description: GitHub token
-#        required: true
-#        type: string
       pre_release_name:
         description: Pre-release name
         required: true
@@ -69,6 +71,16 @@ on:
       sles_matrix:
         description: Matrix of SLES distros, versions, and architectures to run the tests on
         required: false
+        type: string
+      linux_test_report_name:
+        description: Linux test report name
+        required: false
+        default: test-report-linux-prerelease.xml
+        type: string
+      windows_test_report_name:
+        description: Windows test report name
+        required: false
+        default: test-report-windows-prerelease.xml
         type: string
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
@@ -84,8 +96,6 @@ env:
   GPG_MAIL: ${{ secrets.LOGGING_GPG_MAIL }}
   GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-  LINUX_TEST_REPORT_NAME: ${{ inputs.test_report_filename }}-linux.xml
-  WINDOWS_TEST_REPORT_NAME: ${{ inputs.test_report_filename }}-windows.xml
 
 jobs:
   spin_up_test_executor_instances:
@@ -159,7 +169,7 @@ jobs:
     needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ env.LINUX_TEST_REPORT_NAME}}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
     secrets: inherit
 
   provision_and_execute_tests_windows:
@@ -167,7 +177,7 @@ jobs:
     needs: spin_up_test_executor_instances
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ env.LINUX_TEST_REPORT_NAME }}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }}"
     secrets: inherit
 
   report_linux_test_results:
@@ -182,13 +192,13 @@ jobs:
 
       - name: Download report from pre-release # not ok
         run: |
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ env.LINUX_TEST_REPORT_NAME }}
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.linux_test_report_name }}
 
       - name: Tests Report Details Linux # ok
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ env.LINUX_TEST_REPORT_NAME }} # Path to test results
+          path: ${{ inputs.linux_test_report_name }} # Path to test results
           reporter: jest-junit
 
       - name: Tests Report Summary Linux # ok
@@ -196,7 +206,7 @@ jobs:
         if: always()
         with:
           files: |
-            ${{ env.LINUX_TEST_REPORT_NAME }}
+            ${{ inputs.linux_test_report_name }}
 
   report_windows_test_results:
     name: Report results
@@ -210,13 +220,13 @@ jobs:
 
       - name: Download report from pre-release # not ok
         run: |
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ env.WINDOWS_TEST_REPORT_NAME }}
+          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.windows_test_report_name }}
 
       - name: Tests Report Details Windows # ok
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ env.WINDOWS_TEST_REPORT_NAME }} # Path to test results
+          path: ${{ inputs.windows_test_report_name }} # Path to test results
           reporter: jest-junit
 
       - name: Tests Report Summary Windows # ok
@@ -224,7 +234,7 @@ jobs:
         if: always()
         with:
           files: |
-            ${{ env.WINDOWS_TEST_REPORT_NAME }}
+            ${{ inputs.windows_test_report_name }}
 
 #  report_test_results:
 #    name: Report results
