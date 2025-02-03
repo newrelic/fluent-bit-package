@@ -17,7 +17,7 @@ prerelease-linux: dependencies prepare-inventory
 
 .PHONY: prerelease-windows
 prerelease-windows: dependencies prepare-inventory
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY)
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) -vvv
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
 .PHONY: staging
