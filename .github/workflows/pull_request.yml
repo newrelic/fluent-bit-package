@@ -148,7 +148,7 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
-  run_prerelease:
+  run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_prerelease.yml
@@ -162,7 +162,7 @@ jobs:
 
   publish_linux_to_staging:
     name: Publish linux packages to staging
-    needs: [ setup_environment, run_prerelease ]
+    needs: [ setup_environment, run_e2e_tests_prerelease ]
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to staging
@@ -187,7 +187,7 @@ jobs:
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_staging:
-    needs: [ setup_environment, run_prerelease, publish_linux_to_staging ]
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
     if: |
       always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
