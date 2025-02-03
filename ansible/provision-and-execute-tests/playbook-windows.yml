@@ -1,6 +1,8 @@
 # We need to have a separate playbook for windows
 - name: (windows) Install CrowdStrike Falcon
   hosts: windows
+  any_errors_fatal: true
+  strategy: free
   gather_facts: yes
   vars:
     falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
@@ -13,7 +15,10 @@
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
+  any_errors_fatal: true
+  strategy: free
   vars:
+    ansible_win_async_startup_timeout: 180
     node_version: 21.6.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"

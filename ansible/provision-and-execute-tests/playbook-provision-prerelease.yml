@@ -2,6 +2,8 @@
   hosts: linux
   become: true
   gather_facts: no
+  any_errors_fatal: true
+  strategy: free
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
@@ -30,6 +32,8 @@
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
+  any_errors_fatal: true
+  strategy: free
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
