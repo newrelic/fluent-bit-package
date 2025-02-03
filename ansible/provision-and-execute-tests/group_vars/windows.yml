@@ -1,1 +1,2 @@
 ansible_shell_type: powershell
+win_async_startup_timeout: 180
