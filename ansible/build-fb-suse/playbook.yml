@@ -11,8 +11,6 @@
   hosts: all
   become: true
   gather_facts: yes
-  any_errors_fatal: true
-  strategy: free
   vars:
     falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
     falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
@@ -23,8 +21,6 @@
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
-  any_errors_fatal: true
-  strategy: free
   vars:
     home_path: /home/ssm-user
     bison_version: 3.7

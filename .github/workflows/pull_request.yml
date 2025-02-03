@@ -15,7 +15,7 @@ env:
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
 jobs:
-  # Empties the GH pre-relase
+  # Empties the GH pre-release
   # Generates strategy matrices that can be used by other jobs to run the build or testing of all supported packages
   setup_environment:
     runs-on: ubuntu-latest
@@ -59,6 +59,8 @@ jobs:
         with:
           python-version: '3.10'
 
+      # Creation of linux_and_windows_unique_target_package is necessary due to the upgrade of actions/upload-artifact from v3 to v4.
+      # The v4 action throws an error when package names are duplicated, which is the case for Windows packages.
       - name: Compute and upload matrices
         id: set-matrices
         run: |
@@ -118,8 +120,6 @@ jobs:
           zip -r -j packages/${{ matrix.targetPackageName }} \
                fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.exe \
                fluent-bit-${{ matrix.fbVersion }}-${{ matrix.arch }}/bin/fluent-bit.dll
-      
-      
 
         # gh release upload can have issues if multiple jobs attempt uploading the same file concurrently (it can happen
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
@@ -148,60 +148,10 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
-#  spin_up_suse:
-#    needs: setup_environment
-#    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-#    secrets: inherit
-#
-#  build_suse_packages:
-#    needs: [setup_environment,spin_up_suse]
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-#    secrets: inherit
-#
-#  tear_down_suse:
-#    needs: [setup_environment,build_suse_packages]
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-#    secrets: inherit
-#
-#  sign_suse_packages:
-#    needs: [setup_environment, build_suse_packages]
-#    runs-on: ubuntu-latest
-#    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-#    strategy:
-#      fail-fast: true
-#      matrix:
-#        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
-#    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-#
-#    steps:
-#      - name: Check out repository
-#        uses: actions/checkout@v3
-#
-#      - name: Fetch package from GitHub pre-release
-#        run: |
-#          mkdir -p packages
-#          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
-#
-#      - name: Sign package
-#        run: |
-#          sudo apt-get install -y debsigs
-#          bash ./scripts/sign.sh
-#
-#      - name: Upload signed asset
-#        run:
-#          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
-
-  run_e2e_tests_prerelease:
+  run_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
-    uses: ./.github/workflows/run_prerelease_linux.yml
+    uses: ./.github/workflows/run_prerelease.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
@@ -210,52 +160,9 @@ jobs:
       pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
     secrets: inherit
 
-#  spin_up_test_executors:
-#    needs :  [ setup_environment, upload_official_packages_to_prerelease ]
-#    name : Run Terraform Scripts to spin up EC2 instances
-#    uses : ./.github/workflows/spin_up_executors.yml
-#    with :
-#      gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
-#      infra_agent_env : prerelease
-#    secrets: inherit
-
-  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
-#  run_e2e_tests_prerelease_linux:
-#    needs: [ spin_up_test_executors ]
-#    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
-#    uses: ./.github/workflows/run_e2e_tests.yml
-#    with:
-#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-#      infra_agent_version: latest
-#      infra_agent_env: prerelease-linux
-#      test_report_filename: test-report-prerelease-linux.xml
-#      platform: linux
-#    secrets: inherit
-#
-#  run_e2e_tests_prerelease_windows:
-#    needs: [ spin_up_test_executors ]
-#    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
-#    uses: ./.github/workflows/run_e2e_tests.yml
-#    with:
-#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-#      infra_agent_version: latest
-#      infra_agent_env: prerelease-windows
-#      test_report_filename: test-report-prerelease-windows.xml
-#      platform: windows
-#    secrets: inherit
-
-#  tear_down_executors:
-#    needs: [ run_e2e_tests_prerelease_linux, run_e2e_tests_prerelease_windows ]
-#    name: Tear down test executor instances
-#    if: always()
-#    uses: ./.github/workflows/tear_down_executors.yml
-#    with:
-#      gh_release_name : ${{ needs.setup_environment.outputs.pre_release_name }}
-#    secrets: inherit
-
   publish_linux_to_staging:
     name: Publish linux packages to staging
-    needs: [ setup_environment, run_e2e_tests_prerelease ]
+    needs: [ setup_environment, run_prerelease ]
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to staging
@@ -280,7 +187,7 @@ jobs:
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_staging:
-    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    needs: [ setup_environment, run_prerelease, publish_linux_to_staging ]
     if: |
       always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging

@@ -1,7 +1,5 @@
 - name: (linux) Run e2e tests
   hosts: linux
-  any_errors_fatal: true
-  strategy: free
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
