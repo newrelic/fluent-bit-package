@@ -30,7 +30,7 @@ on:
       linux_test_report_name:
         description: Linux test report name
         required: false
-        default: test-report-prerelease-linux.xml
+        default: test-report-linux-prerelease.xml
         type: string
       windows_test_report_name:
         description: Windows test report name
