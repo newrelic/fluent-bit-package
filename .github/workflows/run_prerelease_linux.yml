@@ -281,7 +281,7 @@ jobs:
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    if: always()
+#    if: always()
     needs: [report_windows_test_results, report_linux_test_results]
     uses: ./.github/workflows/run_task.yml
     with:
