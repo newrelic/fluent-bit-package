@@ -15,7 +15,7 @@ env:
   GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
 jobs:
-  # Empties the GH pre-relase
+  # Empties the GH pre-release
   # Generates strategy matrices that can be used by other jobs to run the build or testing of all supported packages
   setup_environment:
     runs-on: ubuntu-latest
@@ -23,6 +23,7 @@ jobs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
+      linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -58,11 +59,16 @@ jobs:
         with:
           python-version: '3.10'
 
+      # Creation of linux_and_windows_unique_target_package is necessary due to the upgrade of actions/upload-artifact from v3 to v4.
+      # The v4 action throws an error when package names are duplicated, which is the case for Windows packages.
       - name: Compute and upload matrices
         id: set-matrices
         run: |
           make versions/generateMatrices
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          json_data=$(cat versions/linuxAndWindowsMatrix.json)
+          filtered_json=$(echo "$json_data" | jq 'unique_by(.targetPackageName)')
+          echo "linux_and_windows_unique_target_package=$(echo $filtered_json)" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
@@ -79,11 +85,11 @@ jobs:
   download_official_packages:
     needs: [setup_environment]
     runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.linux_and_windows_matrix != '[]' }}
+    if: ${{ needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
     strategy:
       fail-fast: true
       matrix:
-        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_matrix) }}
+        include: ${{ fromJson(needs.setup_environment.outputs.linux_and_windows_unique_target_package) }}
     name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
     steps:
       - name: Check out repository
@@ -119,12 +125,13 @@ jobs:
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
         # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
         # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           # Artifacts are pushed to *shared network folders* that have this name and that contain
           # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
           name: ${{ matrix.targetPackageName }}
           path: packages/${{ matrix.targetPackageName }}
+          overwrite: true
 
   upload_official_packages_to_prerelease:
     needs: [ download_official_packages ]
@@ -132,7 +139,7 @@ jobs:
 
     steps:
       - name: Download all artifacts from shared filesystem
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: packages
 
@@ -141,66 +148,16 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
-  spin_up_suse:
-    needs: setup_environment
-    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  build_suse_packages:
-    needs: [setup_environment,spin_up_suse]
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  tear_down_suse:
-    needs: [setup_environment,build_suse_packages]
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ needs.setup_environment.outputs.pre_release_name }}"
-    secrets: inherit
-
-  sign_suse_packages:
-    needs: [setup_environment, build_suse_packages]
-    runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.sles_matrix != '[]' }}
-    strategy:
-      fail-fast: true
-      matrix:
-        include: ${{ fromJson(needs.setup_environment.outputs.sles_matrix) }}
-    name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Fetch package from GitHub pre-release
-        run: |
-          mkdir -p packages
-          gh release download ${{ env.PRE_RELEASE_NAME }} --pattern ${{ matrix.targetPackageName }} --dir packages
-
-      - name: Sign package
-        run: |
-          sudo apt-get install -y debsigs
-          bash ./scripts/sign.sh
-
-      - name: Upload signed asset
-        run:
-          gh release upload ${{ env.PRE_RELEASE_NAME }} packages/* --clobber
-
-  # Runs E2E tests using the packages available in the tmp-pr-#PR prerelease
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
-    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
-    uses: ./.github/workflows/run_e2e_tests.yml
+#    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
+    uses: ./.github/workflows/run_prerelease.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
       infra_agent_env: prerelease
-      test_report_filename: test-report-prerelease.xml
+      sles_matrix: ${{ needs.setup_environment.outputs.sles_matrix }}
+      pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
     secrets: inherit
 
   publish_linux_to_staging:
@@ -229,15 +186,15 @@ jobs:
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
-  # run_e2e_tests_staging:
-  #   needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-  #   if: |
-  #     always() && !failure() && !cancelled()
-  #   name: Run E2E tests for all supported packages installing NRIA+FB from staging
-  #   uses: ./.github/workflows/run_e2e_tests.yml
-  #   with:
-  #     gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-  #     infra_agent_version: latest
-  #     infra_agent_env: staging
-  #     test_report_filename: test-report-staging.xml
-  #   secrets: inherit
+#  run_e2e_tests_staging:
+#    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+#    if: |
+#      always() && !failure() && !cancelled()
+#    name: Run E2E tests for all supported packages installing NRIA+FB from staging
+#    uses: ./.github/workflows/run_e2e_tests.yml
+#    with:
+#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+#      infra_agent_version: latest
+#      infra_agent_env: staging
+#      test_report_filename: test-report-staging.xml
+#    secrets: inherit

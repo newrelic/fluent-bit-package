@@ -1,5 +1,7 @@
 - name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
+  any_errors_fatal: true
+  strategy: free
   become: true
   gather_facts: no
   tasks:
