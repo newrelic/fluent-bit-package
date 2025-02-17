@@ -1,5 +1,8 @@
 - name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
   become: true

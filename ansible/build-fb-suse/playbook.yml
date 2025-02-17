@@ -11,6 +11,9 @@
   hosts: all
   become: true
   gather_facts: no
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
   tasks:
@@ -31,6 +34,9 @@
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
   vars:
