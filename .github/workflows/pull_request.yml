@@ -119,7 +119,7 @@ jobs:
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
         # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
         # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           # Artifacts are pushed to *shared network folders* that have this name and that contain
           # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
@@ -132,7 +132,7 @@ jobs:
 
     steps:
       - name: Download all artifacts from shared filesystem
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: packages
 
