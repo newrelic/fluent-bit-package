@@ -2,7 +2,7 @@ osDistro: windows-server
 osVersion: 2019
 packages:
   - arch: win64
-    ami: ami-04a0f66869c37da73
+    ami: ami-033cf42b9fd3b1b94
   # There is no win32 image available in AWS, so we use the w64 one to test the w32 binaries
   - arch: win32
-    ami: ami-0131f8b98ba082b3b
+    ami: ami-033cf42b9fd3b1b94
