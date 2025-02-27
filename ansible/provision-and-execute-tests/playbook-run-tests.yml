@@ -1,5 +1,10 @@
 - name: (linux) Run e2e tests
   hosts: linux
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
+  any_errors_fatal: true
+  strategy: free
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables

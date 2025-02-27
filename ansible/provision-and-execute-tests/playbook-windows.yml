@@ -1,19 +1,36 @@
 # We need to have a separate playbook for windows
 - name: (windows) Install CrowdStrike Falcon
   hosts: windows
-  gather_facts: yes
-  vars:
-    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
-    win_download_path: 'C:\Windows\Temp\falcon-sensor.exe'
-  roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
+  any_errors_fatal: true
+  strategy: free
+  gather_facts: no
+  tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+    - name: Gather facts for first time
+      ansible.builtin.setup:
+    - name: Install crowdstrike falcon
+      ansible.builtin.include_role:
+        name: caos.ansible_roles.install_crowdstrike_falcon
+      vars:
+        falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+        falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+        win_download_path: 'C:\Windows\Temp\falcon-sensor.exe'
 
 - name: Provision Windows test executor instances and execute tests
   hosts: windows
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
+  any_errors_fatal: true
+  strategy: free
   vars:
+    ansible_win_async_startup_timeout: 180
     node_version: 21.6.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"

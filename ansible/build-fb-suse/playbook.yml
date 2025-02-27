@@ -10,17 +10,35 @@
 - name: Install CrowdStrike Falcon
   hosts: all
   become: true
-  gather_facts: yes
-  vars:
-    falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-    falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-    falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-    api_base_url: "https://api.laggar.gcw.crowdstrike.com"
-  roles:
-    - caos.ansible_roles.install_crowdstrike_falcon
+  gather_facts: no
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
+  any_errors_fatal: true
+  strategy: free
+  tasks:
+    - name: Wait for connection to be available
+      wait_for_connection:
+
+    - name: Gather facts for first time
+      ansible.builtin.setup:
+
+    - name: Install crowdstrike falcon
+      ansible.builtin.include_role:
+        name: caos.ansible_roles.install_crowdstrike_falcon
+      vars:
+        falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+        falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
 - name: Provision SUSE instances and compile Fluent Bit
   hosts: all
+  # The any_errors_fatal field doesn't work with free strategy.
+  # If there are spurious failures in the PLAY, it is good to run
+  # the playbook again by removing free strategy.
+  any_errors_fatal: true
+  strategy: free
   vars:
     home_path: /home/ssm-user
     bison_version: 3.7
