@@ -165,8 +165,7 @@ jobs:
             echo "Failed to parse JSON."
             exit 1
           fi
-          echo "$ARTIFACTS_LIST"
-          echo "::set-output name=artifacts:$ARTIFACTS_LIST"
+          echo "artifacts=$ARTIFACTS_LIST" >> $GITHUB_OUTPUT
 
       - name: Send release details to Slack workflow
         id: slack
