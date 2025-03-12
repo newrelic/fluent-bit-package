@@ -160,7 +160,12 @@ jobs:
         run: |
           RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/newrelic/fluent-bit-package/releases | jq --arg tag "${{ needs.setup_environment.outputs.pre_release_name }}" '.[] | select(.tag_name==$tag) | .id')
           ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | {name: .name, url: .browser_download_url}] | @json')
-          echo "::set-output name=artifacts::$ARTIFACTS"
+          ARTIFACTS_LIST=$(echo "$ARTIFACTS" | jq '.')
+          if [ $? -ne 0 ]; then
+            echo "Failed to parse JSON."
+            exit 1
+          fi
+          echo "::set-output name=artifacts:$ARTIFACTS_LIST"
 
       - name: Send release details to Slack workflow
         id: slack
