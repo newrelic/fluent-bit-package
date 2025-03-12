@@ -174,7 +174,7 @@ jobs:
             echo "Failed to parse ARTIFACTS_LIST."
           exit 1
           fi
-          echo "artifacts=$ARTIFACTS_LIST" >> "$GITHUB_OUTPUT"
+          echo "artifacts=$( echo $ARTIFACTS_LIST )" >> "$GITHUB_OUTPUT"
 
       - name: Send release details to Slack workflow
         id: slack
