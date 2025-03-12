@@ -157,17 +157,11 @@ jobs:
         id: fetch_artifacts
         run: |
           RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases" | jq --arg tag "${{ needs.setup_environment.outputs.pre_release_name }}" '.[] | select(.tag_name==$tag) | .id')
-          echo "$RELEASE_ID"
           if [ -z "$RELEASE_ID" ]; then
             echo "Failed to retrieve release ID for tag: $PRE_RELEASE_NAME"
             exit 1
           fi
-          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | {name: .name, url: .browser_download_url}] | @json')
-          if [ $? -ne 0 ]; then
-            echo "Failed to parse JSON."
-            exit 1
-          fi
-          echo "$ARTIFACTS"
+          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | .name] | join("\n")')
           echo "artifacts=$ARTIFACTS" >> "$GITHUB_OUTPUT"
 
       - name: Send release details to Slack workflow
@@ -180,7 +174,7 @@ jobs:
               "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.setup_environment.outputs.pre_release_name }}",
               "productName": "${{ env.PRODUCT_NAME }}",
               "productUrl": "${{ env.PRODUCT_URL }}",
-              "artifacts": "${{ steps.fetch_artifacts.outputs.artifacts }}"
+              "artifacts": ${{ steps.fetch_artifacts.outputs.artifacts }}
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.LOGGING_INTEGRATIONS_SLACK_WEBHOOK }}
