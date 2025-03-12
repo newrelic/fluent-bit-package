@@ -186,7 +186,7 @@ jobs:
               "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.setup_environment.outputs.pre_release_name }}",
               "productName": "${{ env.PRODUCT_NAME }}",
               "productUrl": "${{ env.PRODUCT_URL }}",
-              "artifacts": ${{ steps.fetch_artifacts.outputs.artifacts }}
+              "artifacts": "${{ steps.fetch_artifacts.outputs.artifacts }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.LOGGING_INTEGRATIONS_SLACK_WEBHOOK }}
