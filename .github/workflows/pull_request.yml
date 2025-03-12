@@ -168,13 +168,7 @@ jobs:
             exit 1
           fi
           echo "$ARTIFACTS"
-          ARTIFACTS_LIST=$(echo "$ARTIFACTS" | jq '.')
-          echo "$ARTIFACTS_LIST"
-          if [ $? -ne 0 ]; then
-            echo "Failed to parse ARTIFACTS_LIST."
-          exit 1
-          fi
-          echo "artifacts=$( echo $ARTIFACTS_LIST )" >> "$GITHUB_OUTPUT"
+          echo "artifacts=$ARTIFACTS" >> "$GITHUB_OUTPUT"
 
       - name: Send release details to Slack workflow
         id: slack
