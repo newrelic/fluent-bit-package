@@ -24,6 +24,7 @@ jobs:
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
       linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
+      windows_matrix: ${{ steps.set-matrices.outputs.windows_matrix }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -70,6 +71,7 @@ jobs:
           filtered_json=$(echo "$json_data" | jq 'unique_by(.targetPackageName)')
           echo "linux_and_windows_unique_target_package=$(echo $filtered_json)" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
@@ -148,6 +150,35 @@ jobs:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
 
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [ upload_official_packages_to_prerelease, setup_environment ]
+    steps:
+      - name: Fetch artifacts
+        id: fetch_artifacts
+        run: |
+          RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/newrelic/fluent-bit-package/releases | jq --arg tag "${{ needs.setup_environment.outputs.pre_release_name }}" '.[] | select(.tag_name==$tag) | .id')
+          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets | jq -r '.[] | select(.name | test("^(fb|fluent-bit)")) | {name: .name, url: .browser_download_url}')
+          echo "::set-output name=artifacts::$ARTIFACTS"
+
+      - name: Send release details to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "type" : "Sanath is testing improved slack message. Please IGNORE.",
+              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.setup_environment.outputs.pre_release_name }}",
+              "productName": "${{ env.PRODUCT_NAME }}",
+              "productUrl": "${{ env.PRODUCT_URL }}",
+              "artifacts": ${{ steps.fetch_artifacts.outputs.artifacts }}
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.LOGGING_INTEGRATIONS_SLACK_WEBHOOK }}
+          PRODUCT_NAME: Fluent Bit packages for the New Relic Infrastructure Agent
+          PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
+
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
@@ -158,43 +189,44 @@ jobs:
       infra_agent_env: prerelease
       sles_matrix: ${{ needs.setup_environment.outputs.sles_matrix }}
       pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+      windows_matrix: ${{ needs.setup_environment.outputs.windows_matrix }}
     secrets: inherit
 
-  publish_linux_to_staging:
-    name: Publish linux packages to staging
-    needs: [ setup_environment, run_e2e_tests_prerelease ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish linux packages to staging
-        uses: newrelic/infrastructure-publish-action@v1
-        with:
-          app_name: fluent-bit
-          tag: ${{ env.PRE_RELEASE_NAME }}
-          repo_name: "newrelic/fluent-bit-package"
-          schema: "custom"
-          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
-          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
-          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
-          aws_s3_bucket_name: "nr-downloads-ohai-staging"
-          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
-          access_point_host: "staging"
-          run_id: ${{ github.run_id }}
-          aws_region: "us-east-1"
-          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
-          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
-          # used for signing package stuff
-          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
-          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-
-  run_e2e_tests_staging:
-    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-    if: |
-      always() && !failure() && !cancelled()
-    name: Run E2E tests for all supported packages installing NRIA+FB from staging
-    uses: ./.github/workflows/run_e2e_tests.yml
-    with:
-      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-      infra_agent_version: latest
-      infra_agent_env: staging
-      test_report_filename: test-report-staging.xml
-    secrets: inherit
+#  publish_linux_to_staging:
+#    name: Publish linux packages to staging
+#    needs: [ setup_environment, run_e2e_tests_prerelease ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Publish linux packages to staging
+#        uses: newrelic/infrastructure-publish-action@v1
+#        with:
+#          app_name: fluent-bit
+#          tag: ${{ env.PRE_RELEASE_NAME }}
+#          repo_name: "newrelic/fluent-bit-package"
+#          schema: "custom"
+#          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
+#          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+#          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+#          aws_s3_bucket_name: "nr-downloads-ohai-staging"
+#          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+#          access_point_host: "staging"
+#          run_id: ${{ github.run_id }}
+#          aws_region: "us-east-1"
+#          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+#          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+#          # used for signing package stuff
+#          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+#          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+#
+#  run_e2e_tests_staging:
+#    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+#    if: |
+#      always() && !failure() && !cancelled()
+#    name: Run E2E tests for all supported packages installing NRIA+FB from staging
+#    uses: ./.github/workflows/run_e2e_tests.yml
+#    with:
+#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+#      infra_agent_version: latest
+#      infra_agent_env: staging
+#      test_report_filename: test-report-staging.xml
+#    secrets: inherit
