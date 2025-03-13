@@ -155,7 +155,7 @@ jobs:
 
   provision_and_execute_tests_linux:
     name: Provision instances and run tests for linux
-    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse, build_suse_packages]
+    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
     if : ${{ ( !needs.sign_suse_packages || needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped') }}
     uses: ./.github/workflows/run_task.yml
     with:
