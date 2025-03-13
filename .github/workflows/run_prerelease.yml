@@ -151,6 +151,16 @@ jobs:
       - name: Upload signed asset
         run:
           gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
+  trying_something:
+    name: Trying Something
+    needs: [ spin_up_test_executor_instances, build_suse_packages, tear_down_suse ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "${{ needs.spin_up_test_executor_instances.result }}
+          echo "${{ needs.tear_down_suse.result }}"
+          echo "${{ needs.build_suse_packages.result }}"
 
   provision_and_execute_tests_linux:
     name: Provision instances and run tests for linux
