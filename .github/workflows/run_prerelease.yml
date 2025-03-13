@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "${{ needs.spin_up_test_executor_instances.result }}
+          echo "${{ needs.spin_up_test_executor_instances.result }}"
           echo "${{ needs.tear_down_suse.result }}"
           echo "${{ needs.build_suse_packages.result }}"
 
