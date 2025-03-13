@@ -155,8 +155,8 @@ jobs:
 
   provision_and_execute_tests_linux:
     name: Provision instances and run tests for linux
-    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
-    if : ${{ (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped') }}
+    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse, build_suse_packages]
+    if : ${{ (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped') || (needs.build_suse_packages == 'skipped') }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
@@ -165,6 +165,7 @@ jobs:
   provision_and_execute_tests_windows:
     name: Provision instances and run tests for windows
     needs: spin_up_test_executor_instances
+    if : ${{ (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped') && ( inputs.windows_matrix != '[]' ) }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }}"
