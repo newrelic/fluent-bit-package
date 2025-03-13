@@ -110,14 +110,14 @@ jobs:
     secrets: inherit
 
   build_suse_packages:
-    needs: [spin_up_suse ]
+    needs: [ spin_up_suse ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
     secrets: inherit
 
   tear_down_suse:
-    needs: [build_suse_packages ]
+    needs: [ build_suse_packages ]
     if: always()
     uses: ./.github/workflows/run_task.yml
     with:
@@ -152,10 +152,18 @@ jobs:
         run:
           gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
+  trying_something:
+    name: Trying something
+    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: echo needs
+        run: echo ${{ toJson(needs) }}
 
   provision_and_execute_tests_linux:
     name: Provision instances and run tests for linux
-    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
+    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
     if: ${{ ( !needs.sign_suse_packages || needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped') }}
     uses: ./.github/workflows/run_task.yml
     with:
@@ -203,7 +211,7 @@ jobs:
   report_windows_test_results:
     name: Report results
     runs-on: ubuntu-20.04
-    needs: [provision_and_execute_tests_windows ]
+    needs: [ provision_and_execute_tests_windows ]
     if: ${{ inputs.windows_matrix != '[]' }}
     env:
       GH_TOKEN: ${{ github.token }}
@@ -232,7 +240,7 @@ jobs:
   tear_down_test_executor_instances:
     name: Tear down test executor instances
     if: always()
-    needs: [report_windows_test_results, report_linux_test_results]
+    needs: [ report_windows_test_results, report_linux_test_results ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
