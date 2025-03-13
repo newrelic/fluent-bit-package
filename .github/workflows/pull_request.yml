@@ -149,40 +149,9 @@ jobs:
         run:
           # To understand the need for /*/*, see comment in "upload artifacts" step above
           gh release upload ${{ env.PRE_RELEASE_NAME }} packages/*/* --repo newrelic/fluent-bit-package
-  notify:
-    runs-on: ubuntu-latest
-    needs: [ upload_official_packages_to_prerelease, setup_environment ]
-    steps:
-      - name: Fetch artifacts
-        id: fetch_artifacts
-        run: |
-          RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases" | jq --arg tag "${{ needs.setup_environment.outputs.pre_release_name }}" '.[] | select(.tag_name==$tag) | .id')
-          if [ -z "$RELEASE_ID" ]; then
-            echo "Failed to retrieve release ID for tag: $PRE_RELEASE_NAME"
-            exit 1
-          fi
-          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | .name] | join("\n")')
-          echo "artifacts=$ARTIFACTS" >> "$GITHUB_OUTPUT"
-
-      - name: Send release details to Slack workflow
-        id: slack
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "ignoreThisMessage" : "Sanath is testing improved slack message. Please IGNORE.",
-              "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.setup_environment.outputs.pre_release_name }}",
-              "productName": "${{ env.PRODUCT_NAME }}",
-              "productUrl": "${{ env.PRODUCT_URL }}",
-              "publishedPackages" : "${{ steps.fetch_artifacts.outputs.artifacts }}"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          PRODUCT_NAME: Fluent Bit packages for the New Relic Infrastructure Agent
-          PRODUCT_URL: https://docs.newrelic.com/docs/logs/forward-logs/forward-your-logs-using-infrastructure-agent
 
   run_e2e_tests_prerelease:
-    needs: [ setup_environment,upload_official_packages_to_prerelease, notify ]
+    needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_prerelease.yml
     with:
