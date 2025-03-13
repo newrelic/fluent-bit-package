@@ -152,15 +152,6 @@ jobs:
         run:
           gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
-  trying_something:
-    name: Trying something
-    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: echo needs
-        run: echo ${{ toJson(needs) }}
-
   provision_and_execute_tests_linux:
     name: Provision instances and run tests for linux
     needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
