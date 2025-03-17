@@ -173,10 +173,9 @@ jobs:
     secrets: inherit
 
   report_linux_test_results:
-    name: Report results
+    name: Report results linux
     runs-on: ubuntu-20.04
     needs: [ provision_and_execute_tests_linux ]
-    if: ${{ needs.provision_and_execute_tests_linux.result == 'success' }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -202,7 +201,7 @@ jobs:
             ${{ inputs.linux_test_report_name }}
 
   report_windows_test_results:
-    name: Report results
+    name: Report results windows
     runs-on: ubuntu-20.04
     needs: [ provision_and_execute_tests_windows ]
     if: ${{ inputs.windows_matrix != '[]' }}
