@@ -103,6 +103,17 @@ jobs:
     needs: [ get_release_tag, promote_prerelease_to_release ]
     if: ${{ needs.promote_prerelease_to_release.outputs.is_release == 'true' }}
     steps:
+      - name: Fetch artifacts
+        id: fetch_artifacts
+        run: |
+          RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases" | jq --arg tag "${{ needs.get_release_tag.outputs.tag }}" '.[] | select(.tag_name==$tag) | .id')
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Failed to retrieve release ID for tag: $PRE_RELEASE_NAME"
+            exit 1
+          fi
+          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | .name] | join("\n")')
+          echo "artifacts=$ARTIFACTS" >> "$GITHUB_OUTPUT"
+
       - name: Send release details to Slack workflow
         id: slack
         uses: slackapi/slack-github-action@v1
@@ -112,7 +123,8 @@ jobs:
               "releaseUrl": "https://github.com/newrelic/fluent-bit-package/releases/tag/${{ needs.get_release_tag.outputs.tag }}",
               "releaseName": "${{ needs.get_release_tag.outputs.tag }}",
               "productName": "${{ env.PRODUCT_NAME }}",
-              "productUrl": "${{ env.PRODUCT_URL }}"
+              "productUrl": "${{ env.PRODUCT_URL }}",
+              "publishedPackages" : "${{ steps.fetch_artifacts.outputs.artifacts }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

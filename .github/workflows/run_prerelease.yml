@@ -27,6 +27,10 @@ on:
         description: Matrix of SLES distros, versions, and architectures to run the tests on
         required: false
         type: string
+      windows_matrix:
+        description: Matrix of Windows distros, versions, and architectures to run the tests on
+        required: false
+        type: string
       linux_test_report_name:
         description: Linux test report name
         required: false
@@ -60,6 +64,10 @@ on:
         type: string
       sles_matrix:
         description: Matrix of SLES distros, versions, and architectures to run the tests on
+        required: false
+        type: string
+      windows_matrix:
+        description: Matrix of Windows distros, versions, and architectures to run the tests on
         required: false
         type: string
       linux_test_report_name:
@@ -102,14 +110,14 @@ jobs:
     secrets: inherit
 
   build_suse_packages:
-    needs: [spin_up_suse ]
+    needs: [ spin_up_suse ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
     secrets: inherit
 
   tear_down_suse:
-    needs: [build_suse_packages ]
+    needs: [ build_suse_packages ]
     if: always()
     uses: ./.github/workflows/run_task.yml
     with:
@@ -144,10 +152,12 @@ jobs:
         run:
           gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
-
   provision_and_execute_tests_linux:
-    name: Provision instances and run tests for linux
-    needs: [spin_up_test_executor_instances, sign_suse_packages, tear_down_suse]
+    name:  Provision instances and run tests for linux
+    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
+      && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
@@ -156,6 +166,7 @@ jobs:
   provision_and_execute_tests_windows:
     name: Provision instances and run tests for windows
     needs: spin_up_test_executor_instances
+    if: ${{ (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped') && ( inputs.windows_matrix != '[]' ) }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }}"
@@ -165,6 +176,7 @@ jobs:
     name: Report results
     runs-on: ubuntu-20.04
     needs: [ provision_and_execute_tests_linux ]
+    if: ${{ needs.provision_and_execute_tests_linux.result == 'success' }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -192,7 +204,8 @@ jobs:
   report_windows_test_results:
     name: Report results
     runs-on: ubuntu-20.04
-    needs: [provision_and_execute_tests_windows ]
+    needs: [ provision_and_execute_tests_windows ]
+    if: ${{ inputs.windows_matrix != '[]' }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -220,7 +233,7 @@ jobs:
   tear_down_test_executor_instances:
     name: Tear down test executor instances
     if: always()
-    needs: [report_windows_test_results, report_linux_test_results]
+    needs: [ report_windows_test_results, report_linux_test_results ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
