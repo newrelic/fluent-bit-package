@@ -167,7 +167,8 @@ jobs:
   provision_and_execute_tests_linux:
     name:  tests for linux
     needs: [ spin_up_test_executor_instances, build_suse_packages, tear_down_suse ]
-    if: ${{ always()  && ( needs.build_suse_packages.result == 'success' || needs.build_suse_packages.result == 'skipped') }}
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')}}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
