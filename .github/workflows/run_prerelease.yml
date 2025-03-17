@@ -163,6 +163,20 @@ jobs:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
     secrets: inherit
 
+
+  trying_something:
+    name : Trying something
+    needs: [ provision_and_execute_tests_linux ]
+    if : always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Printing status
+        run: |
+          echo "Status is ${{needs.provision_and_execute_tests_linux.result}}"
+
   provision_and_execute_tests_windows:
     name: Provision instances and run tests for windows
     needs: spin_up_test_executor_instances
@@ -176,6 +190,7 @@ jobs:
     name: Report results linux
     runs-on: ubuntu-20.04
     needs: [ provision_and_execute_tests_linux ]
+    if : ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_linux.result == 'success')}}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
