@@ -5,6 +5,7 @@
   # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
+  gather_facts : no
   vars:
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
