@@ -111,20 +111,6 @@ jobs:
         run: |
           is_sles_present=true
           echo "inputs.sles_matrix=${{ inputs.sles_matrix }}"
-#          for row in $(echo "${{ inputs.sles_matrix }}" | jq -c '.[]'); do
-#            echo "row=${row}"
-#            is_staging=$(echo $row | jq '.isStaging')
-#            echo "is_staging=${is_staging}"
-#            if [ "$is_staging" != "true" ]; then
-#              is_sles_present=false
-#              break
-#            elif [ "$is_staging" == "true" ]; then
-#              continue
-#            else
-#               exit 1
-#            fi
-#            done
-#          echo "is_sles_present=${is_sles_present}"
           echo "is_sles_present=$is_sles_present" >> "$GITHUB_OUTPUT"   
 
   trying_something:
