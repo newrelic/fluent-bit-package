@@ -111,6 +111,7 @@ jobs:
         run: |
           is_sles_present=true
           for row in $(echo "$sles_matrix" | jq -c '.[]'); do
+            echo "row=${row}"
             is_staging=$(echo $row | jq '.isStaging')
             echo "is_staging=${is_staging}"
             if [ "$is_staging" != "true" ]; then
@@ -122,6 +123,7 @@ jobs:
                exit 1
             fi
             done
+          echo "is_sles_present=${is_sles_present}"
           echo "is_sles_present=$is_sles_present" >> "$GITHUB_OUTPUT"      
 
   spin_up_suse:

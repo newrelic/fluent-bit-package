@@ -87,7 +87,7 @@ jobs:
   download_official_packages:
     needs: [setup_environment]
     runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
+    if: ${{ always() && needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
     strategy:
       fail-fast: true
       matrix:
@@ -137,6 +137,7 @@ jobs:
 
   upload_official_packages_to_prerelease:
     needs: [ download_official_packages ]
+    if : ${{ always() && !cancelled() && !failure() && needs.download_official_packages.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -152,6 +153,7 @@ jobs:
 
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
+    if : ${{ always() && !cancelled() && !failure() }}
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_prerelease.yml
     with:
