@@ -101,9 +101,32 @@ jobs:
       container_make_target: "terraform/ec2-test-executors/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
     secrets: inherit
 
-  spin_up_suse:
-    #    needs: setup_environment
+  check_sles_build_optional:
     if: ${{ inputs.sles_matrix != '[]' }}
+    runs-on: ubuntu-latest
+    outputs:
+      is_sles_present: ${{ steps.sles_build_optional.outputs.is_sles_present }}
+    steps:
+      - name: sles build optional
+        run: |
+          echo "Processing SLES Matrix"
+          echo "${{ inputs.sles_matrix }}" > matrix.json
+          is_sles_present=""
+          for row in $(jq -c '.[]' matrix.json); do
+            is_staging=$(echo $row | jq '.isStaging')
+            if [[ $is_staging == "true" ]]; then
+              is_sles_present+=" && true"
+            else
+              is_sles_present+=" && false"
+            fi
+          done
+          echo "is_sles_present=${is_sles_present}" >> $GITHUB_ENV
+          
+
+  spin_up_suse:
+    needs : check_sles_build_optional
+    #    needs: setup_environment
+    if : ${{ needs.check_sles_build_optional.outputs.is_sles_present == 'false' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"

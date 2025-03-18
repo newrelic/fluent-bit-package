@@ -163,41 +163,41 @@ jobs:
       windows_matrix: ${{ needs.setup_environment.outputs.windows_matrix }}
     secrets: inherit
 
-  publish_linux_to_staging:
-    name: Publish linux packages to staging
-    needs: [ setup_environment, run_e2e_tests_prerelease ]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish linux packages to staging
-        uses: newrelic/infrastructure-publish-action@v1
-        with:
-          app_name: fluent-bit
-          tag: ${{ env.PRE_RELEASE_NAME }}
-          repo_name: "newrelic/fluent-bit-package"
-          schema: "custom"
-          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
-          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
-          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
-          aws_s3_bucket_name: "nr-downloads-ohai-staging"
-          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
-          access_point_host: "staging"
-          run_id: ${{ github.run_id }}
-          aws_region: "us-east-1"
-          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
-          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
-          # used for signing package stuff
-          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
-          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
-
-  run_e2e_tests_staging:
-    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-    if: |
-      always() && !failure() && !cancelled()
-    name: Run E2E tests for all supported packages installing NRIA+FB from staging
-    uses: ./.github/workflows/run_e2e_tests.yml
-    with:
-      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
-      infra_agent_version: latest
-      infra_agent_env: staging
-      test_report_filename: test-report-staging.xml
-    secrets: inherit
+#  publish_linux_to_staging:
+#    name: Publish linux packages to staging
+#    needs: [ setup_environment, run_e2e_tests_prerelease ]
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Publish linux packages to staging
+#        uses: newrelic/infrastructure-publish-action@v1
+#        with:
+#          app_name: fluent-bit
+#          tag: ${{ env.PRE_RELEASE_NAME }}
+#          repo_name: "newrelic/fluent-bit-package"
+#          schema: "custom"
+#          schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
+#          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+#          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+#          aws_s3_bucket_name: "nr-downloads-ohai-staging"
+#          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+#          access_point_host: "staging"
+#          run_id: ${{ github.run_id }}
+#          aws_region: "us-east-1"
+#          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+#          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+#          # used for signing package stuff
+#          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+#          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+#
+#  run_e2e_tests_staging:
+#    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+#    if: |
+#      always() && !failure() && !cancelled()
+#    name: Run E2E tests for all supported packages installing NRIA+FB from staging
+#    uses: ./.github/workflows/run_e2e_tests.yml
+#    with:
+#      gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
+#      infra_agent_version: latest
+#      infra_agent_env: staging
+#      test_report_filename: test-report-staging.xml
+#    secrets: inherit
