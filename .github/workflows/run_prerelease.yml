@@ -124,7 +124,15 @@ jobs:
             fi
             done
           echo "is_sles_present=${is_sles_present}"
-          echo "is_sles_present=$is_sles_present" >> "$GITHUB_OUTPUT"      
+          echo "is_sles_present=$is_sles_present" >> "$GITHUB_OUTPUT"   
+
+  trying_something:
+    needs: [ check_sles_build_optional ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: trying something
+        run: |
+          echo "${{ needs.check_sles_build_optional.outputs.is_sles_present }}"
 
   spin_up_suse:
     needs : check_sles_build_optional
