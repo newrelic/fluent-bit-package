@@ -63,7 +63,8 @@ describe('WINLOG & WINEVTLOG inputs', () => {
     // NOTE: this may take a while, since unlike winevtlog (which just reads
     // new events by default), winlog will read all events in the monitored log
     await waitForLogMessageContaining(nrdb, message);
-  });
+    },30000
+  );
 
   testOnlyIfSet('MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG')('detects a Windows event using "winevtlog" input plugin', async () => {
     // Create a unique string so that we can find the log message later
