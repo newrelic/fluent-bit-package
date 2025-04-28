@@ -2,4 +2,4 @@ osDistro: windows-server
 osVersion: 2025
 packages:
   - arch: win64
-    ami: ami-00087f5bc76de01b4
+    ami: ami-03eac6ae588965b06
