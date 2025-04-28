@@ -186,15 +186,16 @@ def list_distro_files():
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            if (filename.startswith("windows-server-2025"))
             and filename != "common.yml"
         ]
     except Exception as e:
         print(f"Error while reading distribution package files: {e}")
+        # should not this be exit as running the job with empty one has no outcome?
         return []
 
 
-def generate_matrix():
+def generate_matrix():     
     return [
         add_package_details(package_data)
         for distro_file in list_distro_files()
@@ -214,7 +215,7 @@ def add_availability_flags(matrix):
             pkg["isStaging"] = True if response.status_code == 200 else False
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":     
     matrix = generate_matrix()
     add_availability_flags(matrix)
-    print(json.dumps(matrix))
+    print(json.dumps(matrix, indent=2))
