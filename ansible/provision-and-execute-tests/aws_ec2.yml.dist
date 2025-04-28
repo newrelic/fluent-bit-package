@@ -28,4 +28,4 @@ compose:
     ansible_aws_ssm_bucket_name: '"logging-e2e-testing-ssm-transfers-logint"'
     ansible_aws_ssm_bucket_sse_mode: '"AES256"'
     ansible_aws_ssm_region: '"us-east-2"'
-    ansible_aws_ssm_retries : 20
+    ansible_aws_ssm_retries : 40

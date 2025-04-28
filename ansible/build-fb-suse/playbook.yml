@@ -78,7 +78,7 @@
       until: install_status is success
       # Retry up to 5 minutes, because at startup the zypper command might temporarily hold a lock that prevents installing packages
       delay: 15
-      retries: 20
+      retries: 40
 
     - name: Download and extract Bison {{ bison_version }}
       unarchive:
@@ -138,8 +138,8 @@
         cmd: "{{ cmake_path }}/bin/cpack -G RPM"
         chdir: "{{ fluent_bit_path }}/build"
         creates: "{{ fluent_bit_path }}/build/fluent-bit-{{ fluent_bit_version }}-1.x86_64.rpm"
-      async: 420 # timeout 7m
-      poll: 30 # poll every 30s
+      async: 1200 # timeout 7m
+      poll: 60 # poll every 30s
 
     - name: Rename binary for the specific OS type, version and arch
       # Not actually renaming but copying, so that the previous step nor this one won't be re-executed thanks to "creates"
