@@ -190,8 +190,7 @@ jobs:
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_staging:
-#    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
-    needs: [setup_environment, run_e2e_tests_prerelease]
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
     if: |
       always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
