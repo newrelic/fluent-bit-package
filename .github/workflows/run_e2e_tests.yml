@@ -71,7 +71,7 @@ jobs:
 
   report_test_results:
     name: Report results
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: provision_and_execute_tests
     env:
       GH_TOKEN: ${{ github.token }}
