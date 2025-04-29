@@ -4,7 +4,7 @@
   # If there are spurious failures in the PLAY, it is good to run
   # the playbook again by removing free strategy.
   any_errors_fatal: true
-  strategy: free
+#  strategy: free
   become: true
   gather_facts: no
   tasks:

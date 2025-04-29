@@ -174,7 +174,7 @@ jobs:
 
   report_linux_test_results:
     name: Report results linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [ provision_and_execute_tests_linux ]
     if : ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_linux.result == 'success')}}
     env:
@@ -203,7 +203,7 @@ jobs:
 
   report_windows_test_results:
     name: Report results windows
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: [ provision_and_execute_tests_windows ]
     if: ${{ inputs.windows_matrix != '[]' }}
     env:
