@@ -1,5 +1,6 @@
 osDistro: windows-server
 osVersion: 2022
+fbVersion: 4.0.7 # Overrides value from "common.yml"
 packages:
   - arch: win64
     ami: ami-06fbbb433da1a5bf7

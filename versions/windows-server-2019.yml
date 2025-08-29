@@ -1,5 +1,6 @@
 osDistro: windows-server
 osVersion: 2019
+fbVersion: 4.0.7 # Overrides value from "common.yml"
 packages:
   - arch: win64
     ami: ami-00144397b84c851bd
