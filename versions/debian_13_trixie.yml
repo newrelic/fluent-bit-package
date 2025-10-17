@@ -1,0 +1,7 @@
+osDistro: debian
+osVersion: trixie
+packages:
+  - arch: amd64
+    ami: ami-06329a2d246a44575
+  - arch: arm64
+    ami: ami-0bb7d855677353076
