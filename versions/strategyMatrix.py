@@ -186,7 +186,7 @@ def list_distro_files():
         return [
             filename
             for filename in os.listdir(".")             
-            if (filename.endswith(".yml") or filename.endswith(".yaml"))
+            if (filename.startswith("centos_10"))
             and filename != "common.yml"
         ]
     except Exception as e:
