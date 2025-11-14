@@ -120,7 +120,6 @@ jobs:
           GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_SHA256_BASE64}}  # base64 encoded SHA256 encrypted for rhel 10
         run: |
           curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
-          sudo dnf install -y rpm-sign
           bash ./scripts/sign.sh
 
       - name: Download and re-zip Windows package
