@@ -111,6 +111,7 @@ jobs:
 
   build_suse_packages:
     needs: [ spin_up_suse ]
+    if: ${{ inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
@@ -118,7 +119,7 @@ jobs:
 
   tear_down_suse:
     needs: [ build_suse_packages ]
-    if: always()
+    if: ${{ always() && inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
