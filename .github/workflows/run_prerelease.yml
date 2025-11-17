@@ -128,7 +128,7 @@ jobs:
   sign_suse_packages:
     needs: [ build_suse_packages ]
     runs-on: ubuntu-latest
-    if: ${{ inputs.sles_matrix != '[]' }}
+    if: ${{ inputs.sles_matrix != '[]' }} 
     strategy:
       fail-fast: true
       matrix:
@@ -155,7 +155,7 @@ jobs:
 
   provision_and_execute_tests_linux:
     name:  Provision instances and run tests for linux
-    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+    needs: [ spin_up_test_executor_instances]
     if: ${{ always() && !failure() && !cancelled()
       && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
       && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
