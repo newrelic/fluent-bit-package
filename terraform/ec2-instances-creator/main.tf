@@ -22,7 +22,7 @@ locals {
   # CentOS AMIs do not come with the SSM Agent installed by default: https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-centos-7.html
   # Debian AMIs do not come with the SSM Agent installed by default: https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-deb.html
   # The user data script referenced below takes care of installing the SSM Agent and starting it on boot for the aforementioned OSes.
-  os_distros_requiring_user_data_script_for_ssm = ["sles", "centos", "debian"]
+  os_distros_requiring_user_data_script_for_ssm = ["sles", "centos", "debian", "rockylinux"]
   user_data_script_for_ssm_path = "${path.module}/user_data_script_for_ssm.tftpl"
 
   # Default tags applied to all created resources
