@@ -8,7 +8,10 @@
 
     - name: Gather facts for first time
       ansible.builtin.setup:
-
+    - name: Ensure 'which' command is installed
+      ansible.builtin.package:
+        name: which
+        state: present
     #- name: Install crowdstrike falcon
       #ansible.builtin.include_role:
        # name: caos.ansible_roles.install_crowdstrike_falcon
@@ -22,7 +25,7 @@
       ansible.builtin.include_role:
         name: caos.ansible_roles.newrelic_cli
       vars:
-        repo_endpoint: "https://nr-downloads-ohai-staging.s3.amazonaws.com/" # TODO change it back to Prod "https://nr-downloads-main.s3.amazonaws.com/" 
+        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
         recipe: "newrelic-infra"
         region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
         nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
