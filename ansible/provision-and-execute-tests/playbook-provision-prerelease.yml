@@ -8,10 +8,13 @@
 
     - name: Gather facts for first time
       ansible.builtin.setup:
-
+    - name: Ensure 'which' command is installed
+      ansible.builtin.package:
+        name: which
+        state: present
     - name: Install crowdstrike falcon
       ansible.builtin.include_role:
-        name: caos.ansible_roles.install_crowdstrike_falcon
+       name: caos.ansible_roles.install_crowdstrike_falcon
       vars:
         falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
         falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"

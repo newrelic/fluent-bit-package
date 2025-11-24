@@ -1,0 +1,8 @@
+osDistro: rockylinux
+osVersion: 10
+fbVersion: 4.1.1 # Overrides value from "common.yml"
+packages:
+  - arch: x86_64
+    ami: ami-0efe0bc32b69b2efe
+  - arch: aarch64
+    ami: ami-0a2d42b94c79e70df

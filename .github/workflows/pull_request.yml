@@ -107,11 +107,19 @@ jobs:
             echo "result=failure" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Download, rename and resign Linux package
-        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
+      - name: Download, rename and resign Linux packages except rockylinux
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' && matrix.osDistro != 'rockylinux' }}
         run: |
           curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
           sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+        
+      - name: Download, rename and resign rockylinux package # requires SHA 256 signing
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'rockylinux' }}
+        env:
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_SHA256_BASE64}}  # base64 encoded SHA256 encrypted for rhel 10
+        run: |
+          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
           bash ./scripts/sign.sh
 
       - name: Download and re-zip Windows package

@@ -111,6 +111,7 @@ jobs:
 
   build_suse_packages:
     needs: [ spin_up_suse ]
+    if: ${{ inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
@@ -118,7 +119,7 @@ jobs:
 
   tear_down_suse:
     needs: [ build_suse_packages ]
-    if: always()
+    if: ${{ always() && inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
@@ -127,7 +128,7 @@ jobs:
   sign_suse_packages:
     needs: [ build_suse_packages ]
     runs-on: ubuntu-latest
-    if: ${{ inputs.sles_matrix != '[]' }}
+    if: ${{ inputs.sles_matrix != '[]' }} 
     strategy:
       fail-fast: true
       matrix:
@@ -157,7 +158,8 @@ jobs:
     needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
     if: ${{ always() && !failure() && !cancelled()
       && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
-      && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
+      && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')
+      && (needs.tear_down_suse.result == 'success' || needs.tear_down_suse.result == 'skipped')}}
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
