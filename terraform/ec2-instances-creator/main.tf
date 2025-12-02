@@ -35,13 +35,13 @@ locals {
 
 module "ec2_instance" {
   source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 5.8.0"
 
   for_each = { for pkg in local.instance_matrix : "${var.pre_release_name}-${pkg.osDistro}-${pkg.osVersion}-${pkg.arch}-fb-${pkg.fbVersion}-${var.instance_type}" => pkg }
 
   name = each.key
 
   ami                    = each.value.ami
+  ami_ssm_parameter      = ""
   instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
   vpc_security_group_ids = [local.ec2_instances_security_group]
   subnet_id              = local.aws_vpc_subnet
