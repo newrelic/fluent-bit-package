@@ -3,5 +3,5 @@ osVersion: 9
 packages:
   - arch: x86_64
     ami: ami-0008a45426822f82f
-#  - arch: aarch64
-#    ami: ami-0a0083d5b697457a6
+  - arch: aarch64
+    ami: ami-0a0083d5b697457a6
