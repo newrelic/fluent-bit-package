@@ -24,6 +24,6 @@
   "devDependencies": {
     "@naturalcycles/junit-lib": "^1.2.0",
     "@types/ssh2": "^1.11.7",
-    "junit-report-merger": "^6.0.2"
+    "junit-report-merger": "^9.0.3"
   }
 }
