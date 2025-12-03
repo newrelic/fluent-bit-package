@@ -6,11 +6,6 @@
     - name: Wait for connection to be available
       wait_for_connection:
 
-    - name: Ensure 'which' command is installed
-      ansible.builtin.package:
-        name: which
-        state: present
-
     - name: Gather facts for first time
       ansible.builtin.setup:
 
