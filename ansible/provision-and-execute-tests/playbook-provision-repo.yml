@@ -14,14 +14,14 @@
     - name: Gather facts for first time
       ansible.builtin.setup:
 
-    - name: Install crowdstrike falcon
-      ansible.builtin.include_role:
-        name: caos.ansible_roles.install_crowdstrike_falcon
-      vars:
-        falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
-        falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
-        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
-        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
+#    - name: Install crowdstrike falcon
+#      ansible.builtin.include_role:
+#        name: caos.ansible_roles.install_crowdstrike_falcon
+#      vars:
+#        falcon_client_id: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_ID') }}"
+#        falcon_client_secret: "{{ lookup('env', 'CROWDSTRIKE_CLIENT_SECRET') }}"
+#        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
+#        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
     - name: Install newrelic-infra agent
       ansible.builtin.include_role:
