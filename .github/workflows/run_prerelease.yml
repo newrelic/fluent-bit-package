@@ -101,60 +101,61 @@ jobs:
       container_make_target: "terraform/ec2-test-executors/${{ inputs.infra_agent_env }} PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"
     secrets: inherit
 
-  spin_up_suse:
-    #    needs: setup_environment
-    if: ${{ inputs.sles_matrix != '[]' }}
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
-    secrets: inherit
-
-  build_suse_packages:
-    needs: [ spin_up_suse ]
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
-    secrets: inherit
-
-  tear_down_suse:
-    needs: [ build_suse_packages ]
-    if: always()
-    uses: ./.github/workflows/run_task.yml
-    with:
-      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
-    secrets: inherit
-
-  sign_suse_packages:
-    needs: [ build_suse_packages ]
-    runs-on: ubuntu-latest
-    if: ${{ inputs.sles_matrix != '[]' }}
-    strategy:
-      fail-fast: true
-      matrix:
-        include: ${{ fromJson(inputs.sles_matrix) }}
-    name: ${{matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Fetch package from GitHub pre-release
-        run: |
-          mkdir -p packages
-          gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
-
-      - name: Sign package
-        run: |
-          sudo apt-get install -y debsigs
-          bash ./scripts/sign.sh
-
-      - name: Upload signed asset
-        run:
-          gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
+#  spin_up_suse:
+#    #    needs: setup_environment
+#    if: ${{ inputs.sles_matrix != '[]' }}
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform/ec2-suse-builders/provision PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  build_suse_packages:
+#    needs: [ spin_up_suse ]
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "ansible/build-fb-suse/run PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  tear_down_suse:
+#    needs: [ build_suse_packages ]
+#    if: always()
+#    uses: ./.github/workflows/run_task.yml
+#    with:
+#      container_make_target: "terraform/ec2-suse-builders/clean PRE_RELEASE_NAME=${{ inputs.pre_release_name }}"
+#    secrets: inherit
+#
+#  sign_suse_packages:
+#    needs: [ build_suse_packages ]
+#    runs-on: ubuntu-latest
+#    if: ${{ inputs.sles_matrix != '[]' }}
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        include: ${{ fromJson(inputs.sles_matrix) }}
+#    name: ${{matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
+#
+#    steps:
+#      - name: Check out repository
+#        uses: actions/checkout@v3
+#
+#      - name: Fetch package from GitHub pre-release
+#        run: |
+#          mkdir -p packages
+#          gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
+#
+#      - name: Sign package
+#        run: |
+#          sudo apt-get install -y debsigs
+#          bash ./scripts/sign.sh
+#
+#      - name: Upload signed asset
+#        run:
+#          gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
   provision_and_execute_tests_linux:
     name:  Provision instances and run tests for linux
-    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+#    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+    needs: [spin_up_test_executor_instances]
     if: ${{ always() && !failure() && !cancelled()
       && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
       && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
