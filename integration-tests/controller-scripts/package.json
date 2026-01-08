@@ -8,9 +8,9 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@aws-sdk/client-ec2": "^3.89.0",
-    "@aws-sdk/client-lambda": "^3.87.0",
-    "@aws-sdk/credential-providers": "^3.87.0",
+    "@aws-sdk/client-ec2": "^3.965.0",
+    "@aws-sdk/client-lambda": "^3.965.0",
+    "@aws-sdk/credential-providers": "^3.965.0",
     "aws-sdk": "^2.1133.0",
     "cli-progress": "^3.11.0",
     "cli-select": "^1.1.2",
