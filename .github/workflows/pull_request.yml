@@ -108,7 +108,16 @@ jobs:
           fi
 
       - name: Download, rename and resign Linux package
-        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' }}
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro != 'windows-server' && !(matrix.osDistro == 'centos' && matrix.osVersion == '10') }}
+        run: |
+          curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
+          sudo apt-get install -y debsigs
+          bash ./scripts/sign.sh
+
+      - name: Download, rename and resign Cent OS version 10 package # requires SHA 256 signing
+        if: ${{ steps.download_package_from_nr.outputs.result == 'failure' && matrix.osDistro == 'centos' && matrix.osVersion == '10' }}
+        env:
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_SHA256_BASE64}}  # base64 encoded SHA256 encrypted for rhel 10
         run: |
           curl ${{ matrix.packageUrl }} -o packages/${{ matrix.targetPackageName }}
           sudo apt-get install -y debsigs

@@ -1,0 +1,7 @@
+osDistro: centos
+osVersion: 10
+packages:
+  - arch: x86_64
+    ami: ami-000a52d5ade2eab02
+  - arch: aarch64
+    ami: ami-005298a5e9fac3bb4
