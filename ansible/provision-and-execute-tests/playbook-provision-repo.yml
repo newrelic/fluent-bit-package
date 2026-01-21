@@ -13,6 +13,11 @@
 
     - name: Gather facts for first time
       ansible.builtin.setup:
+    
+    - name: Ensure 'which' command is installed
+      ansible.builtin.package:
+        name: which
+        state: present
 
 #    - name: Install crowdstrike falcon
 #      ansible.builtin.include_role:
