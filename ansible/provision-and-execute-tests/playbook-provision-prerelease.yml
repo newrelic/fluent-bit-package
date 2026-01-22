@@ -23,34 +23,15 @@
 #        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
-    - name: Display distribution information for debugging
-      ansible.builtin.debug:
-        msg: "Installing on {{ ansible_distribution }} {{ ansible_distribution_version }} ({{ ansible_distribution_major_version }})"
-
-    - name: Install newrelic-infra agent
-      ansible.builtin.include_role:
-        name: caos.ansible_roles.newrelic_cli
-      vars:
-        repo_endpoint: "https://nr-downloads-ohai-staging.s3.amazonaws.com/"
-        recipe: "newrelic-infra"
-        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
-      async: 180  # 3 minute timeout
-      poll: 15    # Check status every 15 seconds
-      register: nr_infra_result
-      ignore_errors: yes
-
-    - name: Display newrelic-infra installation result
-      ansible.builtin.debug:
-        msg: "NewRelic infra installation {{ 'succeeded' if nr_infra_result.failed is defined and not nr_infra_result.failed else 'failed or timed out' }}"
-        verbosity: 0
-
-    - name: Fail if newrelic-infra installation failed
-      ansible.builtin.fail:
-        msg: "NewRelic infra installation failed on {{ ansible_distribution }} {{ ansible_distribution_version }}. This may indicate the distribution is not yet supported in the staging repository."
-      when: nr_infra_result.failed is defined and nr_infra_result.failed
-      ignore_errors: yes
+#    - name: Install newrelic-infra agent
+#      ansible.builtin.include_role:
+#        name: caos.ansible_roles.newrelic_cli
+#      vars:
+#        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+#        recipe: "newrelic-infra"
+#        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+#        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+#        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
