@@ -23,7 +23,7 @@
 #        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
-    - name: Install newrelic-infra agent
+    - name: Install  newrelic-infra agent
       ansible.builtin.include_role:
         name: caos.ansible_roles.newrelic_cli
       vars:
