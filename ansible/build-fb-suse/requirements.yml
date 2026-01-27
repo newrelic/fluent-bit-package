@@ -1,7 +1,7 @@
 collections:
   - name: community.aws
   - name: community.general
-  - name: git+https://github.com/luckslovez/caos-ansible-roles#/caos.ansible_roles/
+  - name: git+https://github.com/newrelic-experimental/caos-ansible-roles#/caos.ansible_roles/
     type: git
 roles:
   - name: andrewrothstein.gh
