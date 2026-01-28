@@ -2,6 +2,8 @@
   hosts: linux
   become: true
   gather_facts: no
+  vars:
+    ansible_aws_ssm_timeout: 600
   tasks:
     - name: Wait for connection to be available
       wait_for_connection:
