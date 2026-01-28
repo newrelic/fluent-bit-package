@@ -77,7 +77,7 @@ from the pre_release.
 #### Production and Staging
 Now, when packages are available in either production or staging, we can then run tests on NRIA installed from either
 of this repositories(buckets). This means the NRIA will pull the latest fluent-bit package from the selected bucket.
-This way we can, after testing the package from the pre_release, publish it to staging and run again the test suite
+This way we can, after testing the package from the pre_release, publish it to staging and run again the test suite.
 to make sure everything is working as expected.
 ##### Production
 ```shell
