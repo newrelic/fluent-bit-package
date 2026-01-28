@@ -2,6 +2,6 @@ osDistro: rockylinux
 osVersion: 10
 packages:
   - arch: x86_64
-    ami: ami-0efe0bc32b69b2efe
+    ami: ami-068d5d5ed1eeea07c #Using RHEL 10 AMI
   - arch: aarch64
-    ami: ami-0a2d42b94c79e70df
+    ami: ami-07b21932ee4cac8c0 #Using RHEL 10 AMI
