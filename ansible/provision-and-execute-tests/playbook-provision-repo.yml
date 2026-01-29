@@ -5,6 +5,8 @@
   # the playbook again by removing free strategy.
   any_errors_fatal: true
 #  strategy: free
+  vars:
+    ansible_aws_ssm_timeout: 600
   become: true
   gather_facts: no
   tasks:
