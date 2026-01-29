@@ -15,6 +15,7 @@
       ansible.builtin.package:
         name: which
         state: present
+      when: ansible_distribution == 'Rocky'
 
 #    - name: Install crowdstrike falcon
 #      ansible.builtin.include_role:
