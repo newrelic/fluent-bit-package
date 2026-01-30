@@ -75,7 +75,7 @@ NR_STG_REPO_URL = (
 )
 
 DEB_DISTROS = ["debian", "ubuntu"]
-RPM_DISTROS = ["amazonlinux", "centos"]
+RPM_DISTROS = ["amazonlinux", "centos", "rockylinux"]
 WINDOWS_DISTRO = "windows-server"
 
 
@@ -94,7 +94,7 @@ def deb_package_details(pkg):
 
 
 def rpm_package_details(pkg):
-    rpm_os_family = {"amazonlinux": "amazonlinux", "centos": "el"}[pkg["osDistro"]]
+    rpm_os_family = {"amazonlinux": "amazonlinux", "centos": "el", "rockylinux": "el"}[pkg["osDistro"]]
     pkg_arch = "arm64" if pkg["arch"] == "aarch64" else "x86_64"
     repo_arch = pkg["arch"]
     target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"

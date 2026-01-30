@@ -6,13 +6,13 @@ collections:
     version: 2.11.0
   - name: chocolatey.chocolatey
     version: 1.5.2
-  - name: git+https://github.com/luckslovez/caos-ansible-roles#/caos.ansible_roles/
+  - name: git+https://github.com/newrelic-experimental/caos-ansible-roles.git#/caos.ansible_roles/
     type: git
 
 roles:
   - name: morgangraphics.ansible_role_nvm
     version: v2.0.0
   - name: newrelic.newrelic_install
-    version: v0.6.0
+    version: v0.7.2
   - name: andrewrothstein.gh
     version: v0.2.0

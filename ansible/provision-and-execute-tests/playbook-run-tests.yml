@@ -6,6 +6,7 @@
   any_errors_fatal: true
   strategy: free
   vars:
+    ansible_aws_ssm_timeout: 600
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"

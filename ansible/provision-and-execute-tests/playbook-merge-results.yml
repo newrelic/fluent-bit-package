@@ -28,6 +28,6 @@
         TEST_REPORT_ROOT_PATH: "{{ test_reports_dir }}"
         TEST_REPORT_NAME: "{{ combined_test_report_name }}"
 
-    - name: Upload generated artifacts to release
+    - name: Upload generated artifacts to  release
       command: "gh release upload {{ pre_release_name }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
       when: pre_release_name is not regex('^local-.*')
