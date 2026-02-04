@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
+      nr_fb_output_plugin_version: ${{ steps.set_vars.outputs.nr_fb_output_plugin_version }}
+      nr_fb_output_plugin_tag: ${{ steps.set_vars.outputs.nr_fb_output_plugin_tag }}
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
       linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
@@ -28,13 +30,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-        # This is a workaround required to pass environment variables to the run_e2e_tests workflow
-        # See: https://stackoverflow.com/a/73305536 and https://github.com/orgs/community/discussions/26671#discussioncomment-3252793
-      - name: Make dynamically-generated env variables available to be passed down to reusable workflows
-        id: set_vars
-        run: |
-          echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
 
       - name: (Re)create pre-release
         run: |
@@ -74,6 +69,21 @@ jobs:
           echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
+
+        # Extract plugin version from the generated matrix (defined in common.yml and merged into all entries)
+        # If nrFbOutputPluginTag is not set, defaults to v{nrFbOutputPluginVersion}
+      - name: Extract plugin configuration from matrix
+        id: set_vars
+        run: |
+          echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
+          nr_fb_output_plugin_version=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginVersion')
+          nr_fb_output_plugin_tag=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginTag // empty')
+          # Default to v{version} if tag is not set
+          if [ -z "$nr_fb_output_plugin_tag" ] || [ "$nr_fb_output_plugin_tag" == "null" ]; then
+            nr_fb_output_plugin_tag="v${nr_fb_output_plugin_version}"
+          fi
+          echo "nr_fb_output_plugin_version=${nr_fb_output_plugin_version}" >> $GITHUB_OUTPUT
+          echo "nr_fb_output_plugin_tag=${nr_fb_output_plugin_tag}" >> $GITHUB_OUTPUT
 
       - name: Compute and upload schemas
         run: |
@@ -168,6 +178,8 @@ jobs:
       sles_matrix: ${{ needs.setup_environment.outputs.sles_matrix }}
       pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       windows_matrix: ${{ needs.setup_environment.outputs.windows_matrix }}
+      nr_fb_output_plugin_version: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_version }}
+      nr_fb_output_plugin_tag: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_tag }}
     secrets: inherit
 
   publish_linux_to_staging:

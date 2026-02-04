@@ -55,7 +55,8 @@
 
     node_path: 'C:\Program Files\nodejs\'
 
-    nr_fb_output_plugin_version: '1.19.2'
+    # Value set in versions/common.yml (nrFbOutputPluginVersion) and can be overridden via extra vars (-e nr_fb_output_plugin_version=<version>)
+    nr_fb_output_plugin_version: "{{ nr_fb_output_plugin_version }}"
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
