@@ -1,4 +1,9 @@
-fbVersion: 4.2.0
+fbVersion: 4.2.2
+
+# New Relic Fluent Bit Output Plugin Configuration
+# These values are used during E2E testing to download and test a specific version of the NR output plugin
+nrFbOutputPluginVersion: 3.3.1-beta-rhel8-test
+nrFbOutputPluginTag: v3.3.1-beta-rhel8-test
 
 #  This file, together with each distro file are processed and merged incrementally to
 #  build all the information required to download and test each package. Each package ends
