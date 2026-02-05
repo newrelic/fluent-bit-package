@@ -70,13 +70,18 @@ jobs:
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
-        # Extract plugin version and tag from the generated matrix (they're defined in common.yml and merged into all entries)
+        # Extract plugin version from the generated matrix (defined in common.yml and merged into all entries)
+        # If nrFbOutputPluginTag is not set, defaults to v{nrFbOutputPluginVersion}
       - name: Extract plugin configuration from matrix
         id: set_vars
         run: |
           echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
           nr_fb_output_plugin_version=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginVersion')
-          nr_fb_output_plugin_tag=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginTag')
+          nr_fb_output_plugin_tag=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginTag // empty')
+          # Default to v{version} if tag is not set
+          if [ -z "$nr_fb_output_plugin_tag" ] || [ "$nr_fb_output_plugin_tag" == "null" ]; then
+            nr_fb_output_plugin_tag="v${nr_fb_output_plugin_version}"
+          fi
           echo "nr_fb_output_plugin_version=${nr_fb_output_plugin_version}" >> $GITHUB_OUTPUT
           echo "nr_fb_output_plugin_tag=${nr_fb_output_plugin_tag}" >> $GITHUB_OUTPUT
 
