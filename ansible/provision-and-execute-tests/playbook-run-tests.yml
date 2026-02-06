@@ -6,7 +6,10 @@
   any_errors_fatal: true
   strategy: free
   vars:
-    ansible_aws_ssm_timeout: 600
+    # AWS SSM connection timeout - increased for ARM instances which can be slower
+    ansible_aws_ssm_timeout: 900
+    # Additional SSM connection settings
+    ansible_aws_ssm_retries: 5
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
@@ -33,8 +36,37 @@
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
     NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    # Robust initial connection establishment for AWS SSM
+    - name: Establish initial connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          register: initial_connection
+
+        - name: Verify connection with ping
+          ansible.builtin.ping:
+          register: initial_ping
+      rescue:
+        - name: Reset connection on initial failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
+
+        - name: Verify recovered connection
+          ansible.builtin.ping:
+          retries: 3
+          delay: 10
 
     - name: Register fluent-bit version
       ansible.builtin.shell: "/opt/fluent-bit/bin/fluent-bit --version | head -n1 | cut -d'v' -f2"
@@ -76,6 +108,8 @@
         executable: /bin/bash
         chdir: ~/test-suite
         creates: ~/test-suite/reports
+      async: 1800  # 30 minutes timeout per host
+      poll: 0      # fire and forget, check status separately
       environment:
         LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
         NERD_GRAPH_URL: https://api.newrelic.com/graphql
@@ -86,9 +120,127 @@
         MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
         MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
         MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+      register: test_job
 
-    - name: Fetch results
-      fetch:
-        flat: true # behave like copy, we only want the file, not the whole path
-        src: ~/test-suite/reports/tests/test-report.xml
-        dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+    # Robust async status check with connection recovery
+    - name: Wait for test-suite to complete (with reconnection support)
+      block:
+        - name: Check async job status
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 60       # retry up to 60 times
+          delay: 30         # wait 30 seconds between retries (total ~30 min)
+      rescue:
+        # Connection lost - try to recover
+        - name: Attempt to re-establish connection after failure
+          wait_for_connection:
+            delay: 10
+            timeout: 180
+            connect_timeout: 60
+          register: reconnect_attempt
+          retries: 5
+          delay: 30
+          until: reconnect_attempt is succeeded
+
+        - name: Reset SSH/SSM connection
+          ansible.builtin.meta: reset_connection
+
+        - name: Verify connection is working
+          ansible.builtin.ping:
+          register: ping_result
+          retries: 3
+          delay: 10
+          until: ping_result is succeeded
+
+        - name: Retry async status check after reconnection
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 30       # fewer retries after recovery
+          delay: 30
+          ignore_errors: yes
+
+    - name: Log test result status
+      ansible.builtin.debug:
+        msg: "Test result for {{ inventory_hostname }}: finished={{ test_result.finished | default('unknown') }}, rc={{ test_result.rc | default('N/A') }}"
+      when: test_result is defined
+
+    # Final reconnection before fetching - with robust error handling
+    - name: Re-establish connection before fetching results
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 5
+            timeout: 180
+            connect_timeout: 60
+      rescue:
+        - name: Force connection reset on failure
+          ansible.builtin.meta: reset_connection
+          
+        - name: Retry connection with longer timeout
+          wait_for_connection:
+            delay: 15
+            timeout: 300
+            connect_timeout: 120
+          retries: 5
+          delay: 45
+
+    - name: Verify connection before fetch
+      ansible.builtin.ping:
+      register: pre_fetch_ping
+      retries: 3
+      delay: 10
+      until: pre_fetch_ping is succeeded
+
+    # Fetch with rescue block for permanent connection failures
+    - name: Fetch test results with fallback
+      block:
+        - name: Fetch results
+          fetch:
+            flat: true # behave like copy, we only want the file, not the whole path
+            src: ~/test-suite/reports/tests/test-report.xml
+            dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+          register: fetch_result
+          retries: 5
+          delay: 15
+          until: fetch_result is succeeded
+      rescue:
+        - name: Log fetch failure - attempting recovery
+          ansible.builtin.debug:
+            msg: "Initial fetch failed for {{ inventory_hostname }}, attempting connection recovery..."
+
+        - name: Force connection reset before retry
+          ansible.builtin.meta: reset_connection
+
+        - name: Re-establish connection after fetch failure
+          wait_for_connection:
+            delay: 20
+            timeout: 300
+            connect_timeout: 120
+          retries: 3
+          delay: 60
+          register: recovery_connection
+          until: recovery_connection is succeeded
+
+        - name: Verify recovered connection
+          ansible.builtin.ping:
+          retries: 3
+          delay: 10
+
+        - name: Final fetch attempt after recovery
+          fetch:
+            flat: true
+            src: ~/test-suite/reports/tests/test-report.xml
+            dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+          register: final_fetch_result
+          retries: 3
+          delay: 20
+          until: final_fetch_result is succeeded
+
+    - name: Log fetch outcome
+      ansible.builtin.debug:
+        msg: "Fetch completed for {{ inventory_hostname }}: {{ 'primary succeeded' if (fetch_result is defined and fetch_result is succeeded) else 'recovered via rescue' }}"
+      when: fetch_result is defined or final_fetch_result is defined

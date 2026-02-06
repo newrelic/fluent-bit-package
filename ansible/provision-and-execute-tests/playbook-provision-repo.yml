@@ -1,17 +1,38 @@
 - name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
-  # The any_errors_fatal field doesn't work with free strategy.
-  # If there are spurious failures in the PLAY, it is good to run
-  # the playbook again by removing free strategy.
-  any_errors_fatal: true
-#  strategy: free
+  # Using free strategy for parallel execution across hosts
+  # Note: any_errors_fatal is incompatible with free strategy
+  strategy: free
   vars:
-    ansible_aws_ssm_timeout: 600
+    ansible_aws_ssm_timeout: 900
+    ansible_aws_ssm_retries: 5
   become: true
   gather_facts: no
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish initial connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          register: initial_connection
+
+        - name: Verify connection with ping
+          ansible.builtin.ping:
+      rescue:
+        - name: Reset connection on initial failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
 
     - name: Gather facts for first time
       ansible.builtin.setup:
