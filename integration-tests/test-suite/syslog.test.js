@@ -14,29 +14,50 @@ const { waitForLogMessageContaining, testOnlyIfSet } = require("./lib/test-util"
 const addNewlineSoFluentBitDetectsLine = (line) => `${line}\n`;
 
 const writeToTcpSocket = (port, line) => {
-  logger.info(`Writing to TCP socket at localhost:${port}...`);
-  const socket = new Socket();
-  socket.on('error', console.error);
-  socket.connect({ port }, () => {
-    socket.write(addNewlineSoFluentBitDetectsLine(line));
-    socket.end();
+  return new Promise((resolve, reject) => {
+    logger.info(`Writing to TCP socket at 127.0.0.1:${port}...`);
+    const socket = new Socket();
+
+    // CRITICAL FIX: Fail test on connection error
+    socket.on('error', (err) => {
+      console.error('Syslog TCP Error:', err);
+      socket.destroy();
+      reject(err);
+    });
+     
+    socket.connect({ port: parseInt(port), host: 'localhost' }, () => {
+      socket.write(addNewlineSoFluentBitDetectsLine(line), () => {
+        socket.end();
+        resolve();
+      });
+    });
   });
 };
 
 const writeToUdpSocket = (port, line) => {
-  logger.info(`Writing to UDP socket at localhost:${port}...`);
-  const socket = dgram.createSocket('udp4');
-  socket.send(
-    addNewlineSoFluentBitDetectsLine(line),
-    port,
-    'localhost',
-    (error) => {
-      if (error) {
-        console.error(error);
-      }
-
-      socket.close();
+  return new Promise((resolve, reject) => {
+    logger.info(`Writing to UDP socket at 127.0.0.1:${port}...`);
+    const socket = dgram.createSocket('udp4');
+    
+    socket.on('error', (err) => {
+        console.error('Syslog UDP Error:', err);
+        socket.close();
+        reject(err);
     });
+
+    socket.send(
+      addNewlineSoFluentBitDetectsLine(line),
+      parseInt(port),
+      'localhost', 
+      (error) => {
+        socket.close();
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+  });
 };
 
 const rfc5424 = (message) => {
@@ -62,7 +83,6 @@ describe('SYSLOG tests', () => {
       apiKey,
       nerdGraphUrl,
     });
-
   });
 
   testOnlyIfSet('MONITORED_SYSLOG_RFC_5424_TCP_PORT')('detects writing to a TCP socket with a syslog RFC 5424 message', async () => {
@@ -73,7 +93,9 @@ describe('SYSLOG tests', () => {
 
     // Write that string to a TCP socket
     const port = requireEnvironmentVariable('MONITORED_SYSLOG_RFC_5424_TCP_PORT');
-    writeToTcpSocket(port, syslog);
+    
+    // Await the write
+    await writeToTcpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, uuid);
@@ -87,7 +109,9 @@ describe('SYSLOG tests', () => {
 
     // Write that string to a UDP socket
     const port = requireEnvironmentVariable('MONITORED_SYSLOG_RFC_5424_UDP_PORT');
-    writeToUdpSocket(port, syslog);
+    
+    // Await the write
+    await writeToUdpSocket(port, syslog);
 
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, uuid);

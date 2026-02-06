@@ -2,11 +2,35 @@
   hosts: linux
   become: true
   gather_facts: no
+  strategy: linear
   vars:
-    ansible_aws_ssm_timeout: 600
+    ansible_aws_ssm_timeout: 900
+    ansible_aws_ssm_retries: 10
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish initial connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          register: initial_connection
+
+        - name: Verify connection with ping
+          ansible.builtin.ping:
+      rescue:
+        - name: Reset connection on initial failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
 
     - name: Gather facts for first time
       ansible.builtin.setup:
@@ -38,7 +62,10 @@
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
+  strategy: free
   vars:
+    ansible_aws_ssm_timeout: 900
+    ansible_aws_ssm_retries: 10
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
@@ -58,8 +85,26 @@
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
     NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 15
+            timeout: 600
+            connect_timeout: 60
+      rescue:
+        - name: Reset connection on failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
 
     - name: Install Fluent Bit package to be tested for this distro
       ansible.builtin.include_role:

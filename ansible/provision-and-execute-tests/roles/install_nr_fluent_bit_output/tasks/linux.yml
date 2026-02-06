@@ -11,6 +11,10 @@
   ansible.builtin.get_url:
     url: "{{ nr_fb_output_plugin_url }}"
     dest: "{{ nr_fb_output_plugin_download_file_path }}"
+  register: download_fluentbit_output_plugin   
+  retries: 5
+  delay: 10
+  until: download_fluentbit_output_plugin is succeeded
 
 - name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
   ansible.builtin.lineinfile:
@@ -23,3 +27,5 @@
     name: newrelic-infra
     state: started
   become: true
+  async: 60 # Allow up to 60 seconds for the task to complete
+  poll: 5 # Check status every 5 seconds

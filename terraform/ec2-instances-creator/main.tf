@@ -41,12 +41,49 @@ module "ec2_instance" {
   name = each.key
 
   ami                    = each.value.ami
-  instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
+  # instance_type          = contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.small" : "t4g.small"
   vpc_security_group_ids = [local.ec2_instances_security_group]
   subnet_id              = local.aws_vpc_subnet
   create_security_group  = false
 
   iam_instance_profile   = local.ec2_instance_profile
+
+  # -----------------------------------------------------------------------
+  # OPTIMIZED INSTANCE SIZING
+  # -----------------------------------------------------------------------
+  # Logic:
+  # 1. Builders: Upgrade to Compute Optimized (c5/c6g) to prevent CPU throttling.
+  # 2. Testers:  Default to t3.medium/t4g.medium (4GB RAM) for stability (fixes Node.js flakiness).
+  #              EXCEPTION: SLES must use t3.small/t4g.small due to AWS Marketplace AMI restrictions.
+  #
+  # Architecture Mapping:
+  # | Role      | Arch             | Instance Type |
+  # |-----------|------------------|---------------|
+  # | Builder   | x86_64 / amd64   | c5.large      |
+  # | Builder   | arm64 / aarch64  | c6g.large     |
+  # | Tester    | x86_64 / amd64   | t3.medium* |
+  # | Tester    | arm64 / aarch64  | t4g.medium* |
+  # *SLES Testers fallback to t3.small/t4g.small
+  # -----------------------------------------------------------------------
+  instance_type = (
+    # 1. Builders (High Performance)
+    var.instance_type == "fluentbit-builder" ? (
+      contains(["x86_64", "amd64"], each.value.arch) ? "c5.large" : "c6g.large"
+    ) :
+
+    # 2. SLES Exception (Marketplace Restriction)
+    # Must explicitly force SLES to small because its AMI blocks t3.medium
+    length(regexall("(?i)sles", each.value.osDistro)) > 0 ? (
+      contains(["x86_64", "amd64"], each.value.arch) ? "t3.small" : "t4g.small"
+    ) :
+
+    # 3. Default Testers (Windows, Ubuntu, Debian, CentOS, AmazonLinux)
+    # All these distros benefit from 4GB RAM (medium) to prevent flaky tests.
+    # 'm6g' provides consistent CPU (non-burstable) to prevent SSM timeouts during heavy loads.
+    (
+      contains(["x86_64", "amd64", "win64", "win32"], each.value.arch) ? "t3.medium" : "m6g.medium"
+    )
+  )
 
   user_data = contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
 

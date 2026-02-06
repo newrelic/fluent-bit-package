@@ -10,6 +10,10 @@
   ansible.windows.win_get_url:
     url: "{{ nr_fb_output_plugin_url }}"
     dest: '{{ nr_fb_output_plugin_download_file_path }}'
+  register: download_fluentbit_output_plugin   
+  retries: 5
+  delay: 10
+  until: download_fluentbit_output_plugin is succeeded
 
 - name: Modify Infrastructure Agent config to point to downloaded NR FB Output Plugin
   community.windows.win_lineinfile:

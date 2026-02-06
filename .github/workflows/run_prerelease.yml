@@ -1,5 +1,9 @@
 name: run_e2e_tests HW workflow
 
+permissions:
+  contents: read
+  packages: write
+
 on:
   # To be able to launch it from pull_request.yml programmatically
   workflow_call:
@@ -169,16 +173,80 @@ jobs:
         run:
           gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
-  provision_and_execute_tests_linux:
-    name:  Provision instances and run tests for linux
-    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+  # Parallel provisioning by OS family - all 3 run simultaneously
+  provision_linux_apt:
+    name: Provision APT distros (debian, ubuntu)
+    needs: [ spin_up_test_executor_instances, sign_suse_packages ]
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
+      && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-apt PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
+
+  provision_linux_yum:
+    name: Provision YUM distros (amazonlinux, centos, rocky)
+    needs: [ spin_up_test_executor_instances, sign_suse_packages ]
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
+      && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')}}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-yum PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
+
+  provision_linux_sles:
+    name: Provision SLES distros
+    needs: [ spin_up_test_executor_instances, sign_suse_packages ]
     if: ${{ always() && !failure() && !cancelled()
       && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
       && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')
-      && (needs.tear_down_suse.result == 'success' || needs.tear_down_suse.result == 'skipped')}}
+      && inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-sles PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
+
+  # Parallel test execution by OS family - each depends on its respective provision job
+  test_linux_apt_distros:
+    name: Test APT distros (debian, ubuntu)
+    needs: [ provision_linux_apt ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_apt.result == 'success' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-apt PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  test_linux_yum_distros:
+    name: Test YUM distros (amazonlinux, centos, rocky)
+    needs: [ provision_linux_yum ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_yum.result == 'success' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-yum PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  test_linux_sles_distros:
+    name: Test SLES distros
+    needs: [ provision_linux_sles ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_sles.result == 'success' && inputs.sles_matrix != '[]' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-sles PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  merge_linux_test_results:
+    name: Merge all test results (Linux + Windows)
+    needs: [ test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros, provision_and_execute_tests_windows ]
+    if: ${{ always() && !cancelled()
+      && (needs.test_linux_apt_distros.result == 'success' || needs.test_linux_apt_distros.result == 'skipped')
+      && (needs.test_linux_yum_distros.result == 'success' || needs.test_linux_yum_distros.result == 'skipped')
+      && (needs.test_linux_sles_distros.result == 'success' || needs.test_linux_sles_distros.result == 'skipped')
+      && (needs.provision_and_execute_tests_windows.result == 'success' || needs.provision_and_execute_tests_windows.result == 'skipped') }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-merge-all PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
     secrets: inherit
 
   provision_and_execute_tests_windows:
@@ -187,32 +255,32 @@ jobs:
     if: ${{ (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped') && ( inputs.windows_matrix != '[]' ) }}
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
     secrets: inherit
 
   report_linux_test_results:
-    name: Report results linux
+    name: Report all test results (Linux + Windows)
     runs-on: ubuntu-latest
-    needs: [ provision_and_execute_tests_linux ]
-    if : ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_linux.result == 'success')}}
+    needs: [ merge_linux_test_results ]
+    if : ${{ always() && !failure() && !cancelled() && (needs.merge_linux_test_results.result == 'success')}}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Download report from pre-release # not ok
+      - name: Download merged report from pre-release
         run: |
           gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.linux_test_report_name }}
 
-      - name: Tests Report Details Linux # ok
+      - name: Tests Report Details
         uses: dorny/test-reporter@v1
         with:
           name: Tests Report Details  # Name of the check run which will be created
           path: ${{ inputs.linux_test_report_name }} # Path to test results
           reporter: jest-junit
 
-      - name: Tests Report Summary Linux # ok
+      - name: Tests Report Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
@@ -250,9 +318,9 @@ jobs:
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-#    if: always()
-#    needs: [ report_windows_test_results, report_linux_test_results ]
-    needs: [ report_linux_test_results ]
+    # Always run cleanup after all test jobs complete (success or failure)
+    if: always()
+    needs: [ report_linux_test_results, provision_and_execute_tests_windows, provision_linux_apt, provision_linux_yum, provision_linux_sles, test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"

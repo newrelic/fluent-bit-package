@@ -1,17 +1,40 @@
 - name: (linux) (production/staging) Install CrowdStrike Falcon and NRIA
   hosts: linux
-  # The any_errors_fatal field doesn't work with free strategy.
-  # If there are spurious failures in the PLAY, it is good to run
-  # the playbook again by removing free strategy.
-  any_errors_fatal: true
-#  strategy: free
+  # Using free strategy for parallel execution across hosts
+  # Note: any_errors_fatal is incompatible with free strategy
+  strategy: free
   vars:
-    ansible_aws_ssm_timeout: 600
+    # Increased timeouts to handle long-running agent installation (3-5 minutes)
+    # AWS SSM already sends protocol-level keepalives, so explicit keepalive not needed
+    ansible_aws_ssm_timeout: 900   # 15 minutes (reasonable for 3-5 min operation with buffer)
+    ansible_aws_ssm_retries: 15    # Increased from 10
   become: true
   gather_facts: no
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish initial connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          register: initial_connection
+
+        - name: Verify connection with ping
+          ansible.builtin.ping:
+      rescue:
+        - name: Reset connection on initial failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
 
     - name: Gather facts for first time
       ansible.builtin.setup:
@@ -31,12 +54,53 @@
 #        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
-    - name: Install newrelic-infra agent
-      ansible.builtin.include_role:
-        name: caos.ansible_roles.newrelic_cli
-      vars:
-        repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
-        recipe: "newrelic-infra"
-        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    - name: Install newrelic-infra agent with retry logic
+      block:
+        - name: Install newrelic-infra agent
+          ansible.builtin.include_role:
+            name: caos.ansible_roles.newrelic_cli
+          vars:
+            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            recipe: "newrelic-infra"
+            region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+            nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+            nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+          # Note: async/poll not supported on include_role. Relies on command_timeout = 300s in ansible.cfg
+      rescue:
+        - name: Log connection failure for observability
+          ansible.builtin.debug:
+            msg: "WARNING: SSM connection lost during agent install on {{ inventory_hostname }}. Attempting recovery..."
+
+        - name: Connection lost during agent install - reset connection
+          ansible.builtin.meta: reset_connection
+
+        - name: Wait for connection to recover after reset
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          retries: 3
+          delay: 30
+          register: recovery_connection
+          until: recovery_connection is succeeded
+
+        - name: Verify connection is working
+          ansible.builtin.ping:
+          retries: 3
+          delay: 10
+
+        - name: Retry agent installation after connection recovery
+          ansible.builtin.include_role:
+            name: caos.ansible_roles.newrelic_cli
+          vars:
+            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            recipe: "newrelic-infra"
+            region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+            nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+            nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+          register: retry_result
+
+        - name: Log successful recovery
+          ansible.builtin.debug:
+            msg: "SUCCESS: Agent installation completed after connection recovery on {{ inventory_hostname }}"
+          when: retry_result is succeeded

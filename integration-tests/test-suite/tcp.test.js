@@ -13,29 +13,24 @@ const { testOnlyIfSet, waitForLogMessageContaining } = require("./lib/test-util"
 const addNewlineSoFluentBitDetectsLine = (line) => `${line}\n`;
 
 const writeToTcpSocket = (port, line) => {
-  logger.info(`Writing to TCP socket at localhost:${port}...`);
-  const socket = new Socket();
-  socket.on('error', console.error);
-  socket.connect({ port }, () => {
-    socket.write(addNewlineSoFluentBitDetectsLine(line));
-    socket.end();
-  });
-};
-
-const writeToUdpSocket = (port, line) => {
-  logger.info(`Writing to UDP socket at localhost:${port}...`);
-  const socket = dgram.createSocket('udp4');
-  socket.send(
-    addNewlineSoFluentBitDetectsLine(line),
-    port,
-    'localhost',
-    (error) => {
-      if (error) {
-        console.error(error);
-      }
-
-      socket.close();
+  return new Promise((resolve, reject) => {
+    logger.info(`Writing to TCP socket at 127.0.0.1:${port}...`);
+    const socket = new Socket();
+    
+    // CRITICAL FIX: Reject the promise on error so the test fails immediately
+    socket.on('error', (err) => {
+      console.error('TCP Socket Error:', err);
+      socket.destroy();
+      reject(err);
     });
+     
+    socket.connect({ port: parseInt(port), host: 'localhost' }, () => {
+      socket.write(addNewlineSoFluentBitDetectsLine(line), () => {
+        socket.end();
+        resolve();
+      });
+    });
+  });
 };
 
 /**
@@ -57,7 +52,6 @@ describe('TCP input', () => {
       apiKey,
       nerdGraphUrl,
     });
-
   });
 
   testOnlyIfSet('MONITORED_TCP_PORT')('detects writing to TCP port', async () => {
@@ -67,10 +61,11 @@ describe('TCP input', () => {
 
     // Write that string to the TCP socket
     const port = requireEnvironmentVariable('MONITORED_TCP_PORT');
-    writeToTcpSocket(port, line);
+    
+    // Await the write operation to ensure it succeeds before waiting for logs
+    await writeToTcpSocket(port, line);
 
     // Wait for that log line to show up in NRDB
     await waitForLogMessageContaining(nrdb, uuid);
   });
-
 });

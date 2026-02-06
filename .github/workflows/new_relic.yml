@@ -1,5 +1,8 @@
 name: new-relic
 
+permissions:
+  contents: read
+
 on:
   workflow_run:
     workflows: ['Merge to main','Pull Request Workflow']

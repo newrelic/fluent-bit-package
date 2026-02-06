@@ -1,4 +1,22 @@
 # We need to have a separate playbook for windows
+
+- name: Prepare Controller (Install gh)
+  hosts: localhost
+  gather_facts: yes # Required for role dependencies
+  vars:
+    # FORCE these variables to prevent "undefined" errors on minimal runners
+    ansible_os_family: Debian
+    ansible_distribution: Ubuntu
+  # The 'gh' CLI tool is required on the controller (localhost) because the Windows 
+  # hosts fetch their reports back to this machine, and the 'gh release upload' 
+  # task is delegated to run here, not on the Windows instances themselves.
+  roles:
+    - role: andrewrothstein.gh
+      vars:
+        gh_version: "2.36.0"
+        gh_os: linux
+        gh_arch: amd64
+
 - name: (windows) Install CrowdStrike Falcon
   hosts: windows
   # The any_errors_fatal field doesn't work with free strategy.
@@ -7,9 +25,30 @@
   any_errors_fatal: true
   strategy: free
   gather_facts: no
+  vars:
+    ansible_connection_timeout: 300
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish connection to Windows host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 15
+            timeout: 300
+            connect_timeout: 60
+        - name: Verify connection with ping
+          ansible.windows.win_ping:
+      rescue:
+        - name: Reset connection on failure
+          ansible.builtin.meta: reset_connection
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 30
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_conn
+          until: retry_conn is succeeded
     - name: Gather facts for first time
       ansible.builtin.setup:
 #    - name: Install crowdstrike falcon
@@ -28,9 +67,10 @@
   # If there are spurious failures in the PLAY, it is good to run
   # the playbook again by removing free strategy.
   any_errors_fatal: true
-  strategy: free
+  strategy: free 
   vars:
     ansible_win_async_startup_timeout: 180
+    ansible_connection_timeout: 300
     node_version: 21.6.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
@@ -62,8 +102,27 @@
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
     NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    - name: Establish connection to Windows host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 15
+            timeout: 300
+            connect_timeout: 60
+        - name: Verify connection
+          ansible.windows.win_ping:
+      rescue:
+        - name: Reset connection on failure
+          ansible.builtin.meta: reset_connection
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 30
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_conn
+          until: retry_conn is succeeded
 
     - name: Install Infrastructure Agent
       ansible.builtin.include_role:
@@ -131,11 +190,13 @@
         path: '{{ test_suite_folder }}\reports'
         state: absent
 
-    - name: Run test-suite
+    - name: Run test-suite (async with timeout)
       ansible.windows.win_shell: 'npm run test'
       args:
         chdir: '{{ test_suite_folder }}'
         creates: '{{ test_suite_folder }}\reports'
+      async: 1800  # 30 minutes timeout
+      poll: 0      # fire and forget, check status separately
       environment:
         PATH: '{{ patched_path }}'
         LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
@@ -146,9 +207,92 @@
         MONITORED_TCP_PORT: "{{ monitored_tcp_port }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+      register: test_job
+
+    # Robust async status check with connection recovery for Windows
+    - name: Wait for test-suite to complete (with reconnection support)
+      block:
+        - name: Check async job status
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 60       # retry up to 60 times
+          delay: 30         # wait 30 seconds between retries (total ~30 min)
+      rescue:
+        - name: Attempt to re-establish connection after failure
+          wait_for_connection:
+            delay: 15
+            timeout: 180
+            connect_timeout: 60
+          retries: 5
+          delay: 30
+          register: reconnect_attempt
+          until: reconnect_attempt is succeeded
+
+        - name: Reset connection
+          ansible.builtin.meta: reset_connection
+
+        - name: Verify connection is working
+          ansible.windows.win_ping:
+          retries: 3
+          delay: 10
+
+        - name: Retry async status check after reconnection
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 30
+          delay: 30
+          ignore_errors: yes
+
+    - name: Log test result status
+      ansible.builtin.debug:
+        msg: "Test result for {{ inventory_hostname }}: finished={{ test_result.finished | default('unknown') }}"
+      when: test_result is defined
+
+    # Reconnect before fetch
+    - name: Re-establish connection before fetching results
+      block:
+        - name: Wait for connection
+          wait_for_connection:
+            delay: 5
+            timeout: 180
+            connect_timeout: 60
+        - name: Verify with ping
+          ansible.windows.win_ping:
+      rescue:
+        - name: Reset connection on failure
+          ansible.builtin.meta: reset_connection
+        - name: Retry connection
+          wait_for_connection:
+            delay: 15
+            timeout: 300
+            connect_timeout: 120
+          retries: 5
+          delay: 45
 
     - name: Fetch results
       fetch:
         flat: true # behave like copy, we only want the file, not the whole path
         src: '{{ test_suite_report_path }}'
         dest: '{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml'
+      register: fetch_result
+      retries: 5
+      delay: 15
+      until: fetch_result is succeeded
+     
+    - name: Rename Windows report for merging (Unique per host)
+      ansible.builtin.copy:
+        src: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+        dest: "{{ test_reports_dir }}/{{ lookup('env', 'TEST_REPORT_NAME') | regex_replace('\\.xml$', '') }}-windows-{{ os_version }}-{{ arch }}.xml"
+      delegate_to: localhost
+
+    - name: Upload Windows report to release
+      command: "gh release upload {{ pre_release_name }} {{ test_reports_dir }}/{{ lookup('env', 'TEST_REPORT_NAME') | regex_replace('\\.xml$', '') }}-windows-{{ os_version }}-{{ arch }}.xml --clobber"
+      delegate_to: localhost
+      register: upload_result
+      until: upload_result.rc == 0
+      retries: 5
+      delay: 10      
