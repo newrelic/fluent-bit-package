@@ -26,4 +26,8 @@
     # We want our package to overwrite the one that comes with the Infra Agent, even if it implies downgrading it
     allow_downgrade: true
     state: present
+  register: install_result
+  until: install_result is succeeded
+  retries: 5          # Retry up to 5 times to handle dpkg lock contention
+  delay: 10           # Wait 10s between retries for locks to release
   become: true

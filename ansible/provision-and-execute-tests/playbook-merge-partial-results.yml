@@ -49,14 +49,6 @@
       register: sles_download
       ignore_errors: yes
 
-    - name: Download partial Windows test report from release
-      ansible.builtin.shell: "gh release download {{ pre_release_name }} --pattern '{{ report_base_name }}-windows*.xml' --dir {{ test_reports_dir }}"
-      register: windows_download
-      until: windows_download.rc == 0
-      retries: 3
-      delay: 10
-      ignore_errors: yes
-
     - name: Check downloaded test reports
       ansible.builtin.find:
         paths: "{{ test_reports_dir }}"
@@ -66,17 +58,16 @@
     - name: Log download results
       ansible.builtin.debug:
         msg: |
-          Download summary:
+          Download summary (Linux only):
           - APT: {{ 'SUCCESS' if apt_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
           - YUM: {{ 'SUCCESS' if yum_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
           - SLES: {{ 'SUCCESS' if sles_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
-          - WINDOWS: {{ 'SUCCESS' if windows_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
           - Total files found: {{ found_reports.matched }}
           - Files: {{ found_reports.files | map(attribute='path') | list }}
 
     - name: Fail if no test reports found
       ansible.builtin.fail:
-        msg: "No test reports found to merge. At least one partial report (apt/yum/sles) must exist."
+        msg: "No Linux test reports found to merge. At least one partial report (apt/yum/sles) must exist."
       when: found_reports.matched == 0
 
     - name: Validate XML files are not empty or corrupt

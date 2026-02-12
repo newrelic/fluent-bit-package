@@ -17,8 +17,6 @@ filters:
 groups:
     suse_12: "tags.os_version.startswith('12')"
     suse_15: "tags.os_version.startswith('15')"
-    suse_16: "tags.os_version.startswith('16')"
-    suse_17: "tags.os_version.startswith('17')"
     linux: true
 compose:
     # This is how the Ansible SSM plugin will connect to each host. We cannot use the hostname (tag:Name) directly because

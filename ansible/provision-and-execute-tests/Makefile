@@ -62,8 +62,8 @@ prerelease-linux-merge-all: dependencies
 
 .PHONY: prerelease-windows
 prerelease-windows: dependencies prepare-inventory
-	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))	 
-	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY) -e combined_test_report_name=$(TEST_REPORT_NAME:.xml=-windows.xml)
+	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY) -e combined_test_report_name=$(TEST_REPORT_NAME)
 
 .PHONY: staging
 staging: dependencies prepare-inventory
@@ -107,6 +107,11 @@ staging-linux-test-sles: dependencies prepare-inventory
 staging-linux-merge-all: dependencies
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-partial-results.yml -e combined_test_report_name=$(TEST_REPORT_NAME) -e pre_release_name=$(PRE_RELEASE_NAME)
 
+.PHONY: staging-windows
+staging-windows: dependencies prepare-inventory
+	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY) -e combined_test_report_name=$(TEST_REPORT_NAME)
+
 .PHONY: production
 production: dependencies prepare-inventory
 	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
@@ -148,6 +153,11 @@ production-linux-test-sles: dependencies prepare-inventory
 .PHONY: production-linux-merge-all
 production-linux-merge-all: dependencies
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-partial-results.yml -e combined_test_report_name=$(TEST_REPORT_NAME) -e pre_release_name=$(PRE_RELEASE_NAME)
+
+.PHONY: production-windows
+production-windows: dependencies prepare-inventory
+	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY) -e combined_test_report_name=$(TEST_REPORT_NAME)
 
 # Removes "collections" and "roles" folders
 .PHONY: clean
