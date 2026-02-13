@@ -151,10 +151,12 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Download report from pre-release
-        uses: nick-fields/retry@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -162,14 +164,16 @@ jobs:
           command: gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.test_report_filename }}
 
       - name: Tests Report Details
-        uses: dorny/test-reporter@v1
+        # commit sha from v1 branch (moving target) - verify with: git ls-remote https://github.com/dorny/test-reporter v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7
         with:
           name: Tests Report Details  # Name of the check run which will be created
           path: ${{ inputs.test_report_filename }} # Path to test results
           reporter: jest-junit
 
       - name: Tests Report Summary
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        # commit sha from v2 tag (moving target) - verify with: git ls-remote https://github.com/EnricoMi/publish-unit-test-result-action v2
+        uses: EnricoMi/publish-unit-test-result-action@12fa20e14d449d310778f2d0af1e3b2f57dde2a7
         if: always()
         with:
           files: |

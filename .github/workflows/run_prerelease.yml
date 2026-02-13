@@ -55,6 +55,11 @@ on:
         description: GitHub release tag for the newrelic-fluent-bit-output plugin. Must be provided from versions/common.yml (nrFbOutputPluginTag)
         required: true
         type: string
+      cleanup_on_failure:
+        description: 'Terminate test instances even when tests fail (default: true to save costs). Set to false to keep instances alive for debugging.'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       gh_release_name:
@@ -102,6 +107,11 @@ on:
         description: GitHub release tag for the newrelic-fluent-bit-output plugin. Must be provided from versions/common.yml (nrFbOutputPluginTag)
         required: true
         type: string
+      cleanup_on_failure:
+        description: 'Terminate test instances even when tests fail (default: false for manual runs to allow debugging). Set to true to always cleanup and save costs.'
+        required: false
+        default: false
+        type: boolean
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
 # be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
@@ -159,10 +169,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Fetch package from GitHub pre-release
-        uses: nick-fields/retry@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -177,7 +189,8 @@ jobs:
           bash ./scripts/sign.sh
 
       - name: Upload signed asset
-        uses: nick-fields/retry@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -275,10 +288,12 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Download merged Linux report from pre-release
-        uses: nick-fields/retry@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -286,14 +301,16 @@ jobs:
           command: gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.linux_test_report_name }}
 
       - name: Linux Tests Report Details
-        uses: dorny/test-reporter@v1
+        # commit sha from v1 branch (moving target) - verify with: git ls-remote https://github.com/dorny/test-reporter v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7
         with:
           name: Linux Tests Report Details
           path: ${{ inputs.linux_test_report_name }}
           reporter: jest-junit
 
       - name: Linux Tests Report Summary
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        # commit sha from v2 tag (moving target) - verify with: git ls-remote https://github.com/EnricoMi/publish-unit-test-result-action v2
+        uses: EnricoMi/publish-unit-test-result-action@12fa20e14d449d310778f2d0af1e3b2f57dde2a7
         if: always()
         with:
           files: |
@@ -308,10 +325,12 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Download Windows report from pre-release
-        uses: nick-fields/retry@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
           timeout_minutes: 5
           max_attempts: 3
@@ -319,14 +338,16 @@ jobs:
           command: gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.windows_test_report_name }}
 
       - name: Windows Tests Report Details
-        uses: dorny/test-reporter@v1
+        # commit sha from v1 branch (moving target) - verify with: git ls-remote https://github.com/dorny/test-reporter v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7
         with:
           name: Windows Tests Report Details
           path: ${{ inputs.windows_test_report_name }}
           reporter: jest-junit
 
       - name: Windows Tests Report Summary
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        # commit sha from v2 tag (moving target) - verify with: git ls-remote https://github.com/EnricoMi/publish-unit-test-result-action v2
+        uses: EnricoMi/publish-unit-test-result-action@12fa20e14d449d310778f2d0af1e3b2f57dde2a7
         if: always()
         with:
           files: |
@@ -334,9 +355,30 @@ jobs:
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-    # Always run cleanup after all test jobs complete (success or failure)
-    if: always()
-    needs: [ report_linux_test_results, report_windows_test_results, provision_and_execute_tests_windows, provision_linux_apt, provision_linux_yum, provision_linux_sles, test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros ]
+    # Cleanup Strategy (configurable via cleanup_on_failure input):
+    #
+    # DEFAULT BEHAVIOR (cleanup_on_failure=true for automated runs):
+    #   - Always terminate instances to minimize AWS costs
+    #   - Recommended for CI/CD pipelines to prevent resource leaks
+    #
+    # DEBUGGING MODE (cleanup_on_failure=false for manual runs):
+    #   - Keep instances alive when tests fail for investigation
+    #   - Cleanup only when ALL tests pass/skip or provisioning fails
+    #   - Allows SSH access to debug failed test environments
+    #
+    # To keep instances alive on failure for debugging:
+    #   - Manual workflow_dispatch: Set cleanup_on_failure=false (default for manual runs)
+    #   - Automated workflow_call: Pass cleanup_on_failure=false explicitly
+    if: |
+      always() && (
+        inputs.cleanup_on_failure ||
+        (
+          (needs.merge_linux_test_results.result == 'success' || needs.merge_linux_test_results.result == 'skipped') &&
+          (needs.provision_and_execute_tests_windows.result == 'success' || needs.provision_and_execute_tests_windows.result == 'skipped')
+        ) ||
+        needs.spin_up_test_executor_instances.result == 'failure'
+      )
+    needs: [ spin_up_test_executor_instances, report_linux_test_results, report_windows_test_results, provision_and_execute_tests_windows, provision_linux_apt, provision_linux_yum, provision_linux_sles, test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros, merge_linux_test_results ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"

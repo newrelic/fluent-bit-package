@@ -105,12 +105,13 @@ fluent-bit-package/
 ### Configuration Files
 
 #### 1. Common Configuration (`versions/common.yml`)
-Defines base versions used across all distributions:
+Defines base versions and settings used across all distributions:
 
 ```yaml
 fbVersion: 4.2.2                           # Official Fluent Bit version
 nrFbOutputPluginVersion: 3.4.0             # NR output plugin version
 nrFbOutputPluginTag: v3.4.0                # Optional: defaults to v{version}
+alwaysCleanupTestInstances: true           # Cost control: terminate instances even on failure
 ```
 
 #### 2. Distribution-Specific Files
@@ -173,7 +174,8 @@ Each matrix entry contains:
   "isProduction": false,
   "isStaging": false,
   "packageManagerType": "apt",
-  "nrFbOutputPluginVersion": "3.4.0"
+  "nrFbOutputPluginVersion": "3.4.0",
+  "alwaysCleanupTestInstances": true
 }
 ```
 
@@ -400,8 +402,10 @@ Each matrix entry contains:
 └────────────────────────────┬────────────────────────────────────┘
                              ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│    8. CLEANUP                                                   │
+│    8. CLEANUP (Configurable via cleanup_on_failure)            │
 │  - tear_down_test_executor_instances                            │
+│  - Default: Always cleanup (even on failure) to minimize costs  │
+│  - Optional: Keep instances alive on failure for debugging      │
 │  - Destroys all EC2 instances (Terraform destroy)               │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -411,6 +415,73 @@ Each matrix entry contains:
 - **Parallel Testing**: 3 simultaneous test executions
 - **SLES Special Handling**: Built from source in parallel while other distros use pre-built packages
 - **Windows Independence**: Runs completely in parallel to Linux workflow
+
+### Instance Cleanup Strategy
+
+The pipeline supports configurable cleanup behavior via the `alwaysCleanupTestInstances` setting in [`versions/common.yml`](versions/common.yml):
+
+```yaml
+# versions/common.yml
+alwaysCleanupTestInstances: true  # Cost-optimized default
+```
+
+This setting is automatically merged into all matrix entries and controls the `cleanup_on_failure` workflow parameter.
+
+#### Default Behavior (alwaysCleanupTestInstances: true)
+**Configuration**: Set in `versions/common.yml`
+**Used for**: Automated CI/CD runs (PR workflow, scheduled runs)
+
+✅ **Always terminates instances** regardless of test results
+- Minimizes AWS costs by preventing resource leaks
+- Instances terminate immediately after workflow completes
+- Recommended for automated pipelines
+- **This is the default and recommended setting**
+
+**Cost savings**: ~$0.40-1.20 per run that would have left instances running
+
+#### Debug Mode (alwaysCleanupTestInstances: false)
+**Configuration**: Temporarily change in `versions/common.yml` or override via workflow_dispatch
+**Used for**: Manual troubleshooting and investigation
+
+✅ **Keeps instances alive when tests fail**
+- Allows SSH access via AWS SSM Session Manager
+- Developers can investigate failures directly on test instances
+- Inspect logs, check configurations, rerun tests manually
+
+✅ **Terminates instances when tests pass**
+- Still cleans up successfully completed tests
+- Also cleans up if provisioning itself fails
+
+**How to enable debug mode**:
+
+**Option 1: Via common.yml (persistent across runs)**
+```yaml
+# versions/common.yml
+alwaysCleanupTestInstances: false  # Keep instances alive on failure
+```
+Commit this change, run your PR workflow, then revert when done investigating.
+
+**Option 2: Via workflow_dispatch (single run)**
+1. Go to Actions → `run_prerelease` workflow
+2. Click "Run workflow"
+3. Set `cleanup_on_failure=false`
+4. Run workflow
+
+**Important**: Remember to manually terminate debug instances when done investigating:
+```bash
+# Find instances by release tag
+aws ec2 describe-instances --filters "Name=tag:Name,Values=tmp-pr-123-*"
+
+# Terminate manually
+cd terraform/ec2-test-executors
+terraform destroy
+```
+
+**Visibility & Control**:
+- ✅ **Centralized configuration**: One place to control cleanup behavior for all workflows
+- ✅ **Version controlled**: Changes tracked in git history
+- ✅ **Self-documenting**: Setting includes inline comments about cost implications
+- ✅ **Override capability**: Manual runs can still override via workflow_dispatch
 
 ---
 
@@ -882,7 +953,34 @@ cat ~/.rpmmacros
 - Logs not appearing in NRDB
 
 **Solution**:
+
+**Step 1: Keep instances alive for investigation**
+
+**Option A: Temporarily change common.yml (recommended for persistent debugging)**
+```yaml
+# versions/common.yml
+alwaysCleanupTestInstances: false  # Keep instances alive on failure for debugging
+```
+Commit this change, push to your PR branch, and the workflow will keep instances alive on failure.
+**Remember to revert this change when done investigating!**
+
+**Option B: Override for a single manual run**
 ```bash
+# In GitHub Actions UI:
+#   1. Go to Actions → run_prerelease workflow
+#   2. Click "Run workflow"
+#   3. Set cleanup_on_failure=false
+#   4. Run workflow
+# This will keep instances running when tests fail for this run only
+```
+
+**Step 2: Access the failed instance**
+```bash
+# Find instance by tag
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=tmp-pr-123-ubuntu-22-amd64" \
+  --query "Reservations[].Instances[].[InstanceId,State.Name]"
+
 # SSH to test instance (via SSM)
 aws ssm start-session --target i-xxxxxxxxxxxx
 
@@ -900,6 +998,13 @@ curl -X POST https://api.newrelic.com/graphql \
   -H "Content-Type: application/json" \
   -H "API-Key: ${NRIA_LICENSE_KEY}" \
   -d '{"query": "{ actor { user { name } } }"}'
+```
+
+**Step 3: Cleanup when done**
+```bash
+# Don't forget to terminate debug instances!
+cd terraform/ec2-test-executors
+terraform destroy -var="PRE_RELEASE_NAME=tmp-pr-123"
 ```
 
 #### 3. Matrix Generation Failures
@@ -1084,6 +1189,9 @@ gh release view tmp-pr-123 --json assets -q '.assets[].name'
    ```yaml
    # versions/common.yml
    fbVersion: 4.3.0  # New version
+
+   # Review cleanup setting (typically leave as true for cost control)
+   alwaysCleanupTestInstances: true
    ```
 
 2. **Regenerate Matrices**:
@@ -1176,6 +1284,32 @@ gh release view tmp-pr-123 --json assets -q '.assets[].name'
 - Better error handling
 
 **Benefit**: Reliable execution of long-running operations
+
+### Why Terminate Instances by Default on Test Failure?
+
+**Problem**: Failed test runs can leave EC2 instances running indefinitely, accumulating AWS costs.
+
+**Traditional Approach**: Keep instances alive on failure for debugging
+- **Cost**: ~$0.40-1.20 per forgotten instance per day
+- **Risk**: Instances left running for days/weeks after debugging is complete
+- **Annual waste**: ~$150-400 per year from forgotten instances
+
+**Our Solution**: Terminate by default, with opt-in debug mode
+- **Default (cleanup_on_failure=true)**: Always terminate to prevent cost leaks
+- **Debug mode (cleanup_on_failure=false)**: Keep alive only when explicitly debugging
+- **Flexibility**: Configurable per workflow run via input parameter
+
+**Benefits**:
+- **Cost Control**: Prevents accidental resource leaks (~$150-400/year savings)
+- **Best Practice**: Follows cloud-native principle of ephemeral infrastructure
+- **Developer-Friendly**: Still allows debugging when needed (opt-in)
+- **Automation-Safe**: Automated runs always cleanup (no manual oversight needed)
+
+**When to use debug mode**:
+- Investigating specific test failures
+- Validating configuration changes
+- Developing new test cases
+- Requires manual opt-in each time
 
 ---
 
@@ -1320,6 +1454,30 @@ Key environment variables used in workflows:
 | `FB_VERSION` | Fluent Bit version | `4.2.2` |
 | `NR_FB_OUTPUT_PLUGIN_VERSION` | Plugin version | `3.4.0` |
 | `PRE_RELEASE_NAME` | GitHub pre-release tag | `tmp-pr-123` |
+
+### Workflow Input Parameters
+
+Key workflow inputs for `run_prerelease.yml`:
+
+| Parameter | Purpose | Default (workflow_call) | Default (workflow_dispatch) |
+|-----------|---------|-------------------------|----------------------------|
+| `gh_release_name` | GitHub release containing packages | `latest` | `latest` |
+| `infra_agent_version` | NRIA version to install | `latest` | `latest` |
+| `infra_agent_env` | Repository environment (staging/prerelease/production) | `staging` | `production` |
+| `pre_release_name` | Pre-release tag name | (required) | (required) |
+| `sles_matrix` | SLES distros to test | `[]` | `[]` |
+| `windows_matrix` | Windows distros to test | `[]` | `[]` |
+| `linux_test_report_name` | Linux test report filename | `test-report-linux-prerelease.xml` | `test-report-linux-prerelease.xml` |
+| `windows_test_report_name` | Windows test report filename | `test-report-windows-prerelease.xml` | `test-report-windows-prerelease.xml` |
+| `nr_fb_output_plugin_version` | NR Fluent Bit output plugin version | (required) | (required) |
+| `nr_fb_output_plugin_tag` | NR Fluent Bit output plugin GitHub tag | (required) | (required) |
+| **`cleanup_on_failure`** | **Terminate instances on test failure (sourced from `versions/common.yml` → `alwaysCleanupTestInstances`)** | **Value from `common.yml` (default: `true`)** | **`false` (debug-friendly) - can override** |
+
+**cleanup_on_failure behavior**:
+- **Sourced from**: `versions/common.yml` → `alwaysCleanupTestInstances` setting
+- `true`: Always terminate instances, even when tests fail (recommended for CI/CD, default)
+- `false`: Keep instances alive when tests fail for debugging (manual investigation)
+- **Configuration location**: [`versions/common.yml`](versions/common.yml) - centralized, version-controlled setting
 
 ### Repository URLs
 
@@ -1630,7 +1788,10 @@ Based on infrastructure analysis (29 EC2 test executors + Fargate tasks + storag
 The pipeline includes several cost optimization strategies:
 
 - **Parallel execution** - Reduces wall-clock time from 45min to ~10min
-- **Automatic cleanup** - EC2 instances destroyed immediately after tests complete
+- **Automatic cleanup by default** - EC2 instances destroyed immediately after tests complete, even on failure
+  - **Prevents forgotten instances**: Default cleanup_on_failure=true ensures instances don't accumulate
+  - **Annual savings**: ~$150-400/year from preventing resource leaks
+  - **Debug mode available**: Can opt-in to keep instances alive for specific troubleshooting
 - **Right-sized instances** - Uses t3.medium/small for most workloads
 - **Selective testing** - Only tests packages missing from production/staging on PRs
 - **Retry logic** - Prevents costly full pipeline reruns ($1.90 full rerun vs $0.05 retry)

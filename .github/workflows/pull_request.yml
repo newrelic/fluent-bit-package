@@ -29,13 +29,15 @@ jobs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
       nr_fb_output_plugin_version: ${{ steps.set_vars.outputs.nr_fb_output_plugin_version }}
       nr_fb_output_plugin_tag: ${{ steps.set_vars.outputs.nr_fb_output_plugin_tag }}
+      always_cleanup_test_instances: ${{ steps.set_vars.outputs.always_cleanup_test_instances }}
       sles_matrix: ${{ steps.set-matrices.outputs.sles_matrix }}
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
       linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
       windows_matrix: ${{ steps.set-matrices.outputs.windows_matrix }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: (Re)create pre-release
         run: |
@@ -57,7 +59,8 @@ jobs:
           gh release edit "$pre_release_tag" --draft=false --prerelease
 
       - name: Install python
-        uses: actions/setup-python@v4
+        # commit sha from v4 tag - verify with: git ls-remote https://github.com/actions/setup-python v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c
         with:
           python-version: '3.10'
 
@@ -76,9 +79,9 @@ jobs:
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
-        # Extract plugin version from the generated matrix (defined in common.yml and merged into all entries)
+        # Extract configuration from the generated matrix (defined in common.yml and merged into all entries)
         # If nrFbOutputPluginTag is not set, defaults to v{nrFbOutputPluginVersion}
-      - name: Extract plugin configuration from matrix
+      - name: Extract configuration from matrix
         id: set_vars
         run: |
           echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
@@ -90,6 +93,11 @@ jobs:
           fi
           echo "nr_fb_output_plugin_version=${nr_fb_output_plugin_version}" >> $GITHUB_OUTPUT
           echo "nr_fb_output_plugin_tag=${nr_fb_output_plugin_tag}" >> $GITHUB_OUTPUT
+
+          # Extract cleanup setting from common.yml (defaults to true if not found)
+          # Note: This outputs a string "true" or "false", which must be converted to boolean in workflow call
+          always_cleanup_test_instances=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].alwaysCleanupTestInstances // true')
+          echo "always_cleanup_test_instances=${always_cleanup_test_instances}" >> $GITHUB_OUTPUT
 
       - name: Compute and upload schemas
         run: |
@@ -111,7 +119,8 @@ jobs:
     name: ${{ matrix.osDistro }}-${{ matrix.osVersion }}-${{ matrix.arch }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Attempt downloading package from New Relic repository
         id: download_package_from_nr
@@ -150,7 +159,8 @@ jobs:
         # for those distros using the same package, such as Windows). To avoid this, we first push all the files to a
         # shared filesystem and let the "prepare_prerelease" step below upload them later, sequentially. This GH action
         # ensures that if two jobs attempt pushing the same file, they get overwritten (last one prevails).
-      - uses: actions/upload-artifact@v4
+      # commit sha from v4 tag - verify with: git ls-remote https://github.com/actions/upload-artifact v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           # Artifacts are pushed to *shared network folders* that have this name and that contain
           # the artifact inside of them. Example: fluent-bit-2.1.8-386.exe/fluent-bit-2.1.8-386.exe
@@ -164,7 +174,8 @@ jobs:
 
     steps:
       - name: Download all artifacts from shared filesystem
-        uses: actions/download-artifact@v4
+        # commit sha from v4 tag - verify with: git ls-remote https://github.com/actions/download-artifact v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: packages
 
@@ -186,6 +197,7 @@ jobs:
       windows_matrix: ${{ needs.setup_environment.outputs.windows_matrix }}
       nr_fb_output_plugin_version: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_version }}
       nr_fb_output_plugin_tag: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_tag }}
+      cleanup_on_failure: ${{ needs.setup_environment.outputs.always_cleanup_test_instances == 'true' }}  # Convert string to boolean - Read from versions/common.yml (alwaysCleanupTestInstances)
     secrets: inherit
 
   publish_linux_to_staging:
@@ -194,7 +206,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to staging
-        uses: newrelic/infrastructure-publish-action@v1
+        # commit sha from v1 tag - verify with: git ls-remote https://github.com/newrelic/infrastructure-publish-action v1
+        uses: newrelic/infrastructure-publish-action@26d9d8604b2cf2e7343dc287c958e8bbc1a3f750
         with:
           app_name: fluent-bit
           tag: ${{ env.PRE_RELEASE_NAME }}

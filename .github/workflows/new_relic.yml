@@ -24,9 +24,11 @@ jobs:
     if: ${{ always() }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
       - name: new-relic-exporter
-        uses: newrelic-experimental/gha-new-relic-exporter@latest
+        # commit sha from latest tag - verify with: git ls-remote https://github.com/newrelic-experimental/gha-new-relic-exporter latest
+        uses: newrelic-experimental/gha-new-relic-exporter@9483d54bf6e0d5030301c7d878fda01080c3ac71
 
   custom:
     name: Report custom event
