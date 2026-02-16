@@ -120,7 +120,7 @@ jobs:
             echo "Failed to retrieve release ID"
             exit 1
           fi
-          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | .name] | join("\n")')
+          ARTIFACTS=$(curl -s -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/newrelic/fluent-bit-package/releases/$RELEASE_ID/assets" | jq -r '[.[] | select(.name | test("^(fb|fluent-bit)")) | .name] | join(", ")')
           echo "artifacts=$ARTIFACTS" >> "$GITHUB_OUTPUT"
 
       - name: Send release details to Slack workflow
