@@ -1,0 +1,124 @@
+- name: Download and merge partial test reports from GitHub release
+  hosts: localhost
+  vars:
+    node_version: 18.18.0
+    controller_scripts_folder: ../../integration-tests/controller-scripts
+    test_reports_dir: /tmp/test-reports
+    combined_test_report_name: "{{ lookup('ansible.builtin.env', 'TEST_REPORT_NAME') }}"
+    pre_release_name: "{{ lookup('ansible.builtin.env', 'PRE_RELEASE_NAME') }}"
+    # Derive base name without .xml extension for partial report names
+    report_base_name: "{{ combined_test_report_name | regex_replace('\\.xml$', '') }}"
+  roles:
+    - andrewrothstein.gh
+  tasks:
+    - name: Ensure libxml2-utils is installed (for xmllint)
+      ansible.builtin.apt:
+        name: libxml2-utils
+        state: present
+        update_cache: yes
+      become: true
+      # Ensure this only runs on Debian/Ubuntu runners where 'apt' exists
+      when: ansible_os_family == 'Debian'
+
+    - name: Create test reports directory
+      ansible.builtin.file:
+        path: "{{ test_reports_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download partial APT test report from release
+      ansible.builtin.shell: "gh release download {{ pre_release_name }} --pattern '{{ report_base_name }}-apt.xml' --dir {{ test_reports_dir }}"
+      register: apt_download
+      until: apt_download.rc == 0
+      retries: 3
+      delay: 10       
+      ignore_errors: yes
+
+    - name: Download partial YUM test report from release
+      ansible.builtin.shell: "gh release download {{ pre_release_name }} --pattern '{{ report_base_name }}-yum.xml' --dir {{ test_reports_dir }}"
+      register: yum_download
+      until: yum_download.rc == 0
+      retries: 3
+      delay: 10       
+      ignore_errors: yes
+
+    - name: Download partial SLES test report from release
+      ansible.builtin.shell: "gh release download {{ pre_release_name }} --pattern '{{ report_base_name }}-sles.xml' --dir {{ test_reports_dir }}"
+      retries: 3
+      delay: 10
+      register: sles_download
+      ignore_errors: yes
+
+    - name: Check downloaded test reports
+      ansible.builtin.find:
+        paths: "{{ test_reports_dir }}"
+        patterns: "*.xml"
+      register: found_reports
+
+    - name: Log download results
+      ansible.builtin.debug:
+        msg: |
+          Download summary (Linux only):
+          - APT: {{ 'SUCCESS' if apt_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
+          - YUM: {{ 'SUCCESS' if yum_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
+          - SLES: {{ 'SUCCESS' if sles_download.rc | default(1) == 0 else 'FAILED or SKIPPED' }}
+          - Total files found: {{ found_reports.matched }}
+          - Files: {{ found_reports.files | map(attribute='path') | list }}
+
+    - name: Fail if no test reports found
+      ansible.builtin.fail:
+        msg: "No Linux test reports found to merge. At least one partial report (apt/yum/sles) must exist."
+      when: found_reports.matched == 0
+
+    - name: Validate XML files are not empty or corrupt
+      ansible.builtin.shell: "xmllint --noout {{ item.path }}"
+      loop: "{{ found_reports.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: xml_validation
+      ignore_errors: yes
+
+    - name: Warn about invalid XML files
+      ansible.builtin.debug:
+        msg: "WARNING: Invalid XML file {{ item.item.path | basename }}: {{ item.stderr }}"
+      loop: "{{ xml_validation.results }}"
+      loop_control:
+        label: "{{ item.item.path | basename }}"
+      when: item.rc != 0
+
+    - name: Install node and script dependencies
+      ansible.builtin.import_role:
+        role: morgangraphics.ansible_role_nvm
+      vars:
+        nodejs_version: "{{ node_version }}"
+        nvm_install: "curl"
+        nvm_commands:
+          - "cd {{ controller_scripts_folder }} && nvm exec default npm install"
+
+    - name: Process and merge test reports
+      ansible.builtin.shell: "source ~/.nvm/nvm.sh && nvm exec default npm start"
+      args:
+        executable: /bin/bash
+        chdir: "{{ controller_scripts_folder }}"
+      environment:
+        TEST_REPORT_ROOT_PATH: "{{ test_reports_dir }}"
+        TEST_REPORT_NAME: "{{ combined_test_report_name }}"
+      register: merge_result
+
+    - name: Verify merged report exists
+      ansible.builtin.stat:
+        path: "{{ test_reports_dir }}/{{ combined_test_report_name }}"
+      register: merged_report
+
+    - name: Fail if merged report not created
+      ansible.builtin.fail:
+        msg: "Merged report was not created at {{ test_reports_dir }}/{{ combined_test_report_name }}"
+      when: not merged_report.stat.exists
+
+    - name: Upload final merged report to release
+      command: "gh release upload {{ pre_release_name }} {{ test_reports_dir }}/{{ combined_test_report_name }} --clobber"
+      register: upload_result
+      until: upload_result.rc == 0
+      retries: 3
+      delay: 10
+      when: pre_release_name is not regex('^local-.*')

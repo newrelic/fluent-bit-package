@@ -19,6 +19,16 @@
         nvm_commands:
           - "cd {{ controller_scripts_folder }} && nvm exec default npm install"
 
+    - name: Decompress test reports (restore from .gz to .xml)
+      ansible.builtin.shell: "gzip -d -f {{ test_reports_dir }}/*.gz"
+      # We ignore errors to handle cases where:
+      # 1. No .gz files exist (e.g., if a previous step failed or files weren't compressed)
+      # 2. The directory is empty
+      ignore_errors: yes
+      args:
+        # We use shell because we need wildcard (*.gz) expansion
+        executable: /bin/bash
+
     - name: Process test reports
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && nvm exec default npm start"
       args:

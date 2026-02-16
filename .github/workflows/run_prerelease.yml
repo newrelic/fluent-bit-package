@@ -1,5 +1,11 @@
 name: run_e2e_tests HW workflow
 
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  checks: write
+
 on:
   # To be able to launch it from pull_request.yml programmatically
   workflow_call:
@@ -41,6 +47,19 @@ on:
         required: false
         default: test-report-windows-prerelease.xml
         type: string
+      nr_fb_output_plugin_version:
+        description: Version/tag of the newrelic-fluent-bit-output plugin to test. Must be provided from versions/common.yml (nrFbOutputPluginVersion)
+        required: true
+        type: string
+      nr_fb_output_plugin_tag:
+        description: GitHub release tag for the newrelic-fluent-bit-output plugin. Must be provided from versions/common.yml (nrFbOutputPluginTag)
+        required: true
+        type: string
+      cleanup_on_failure:
+        description: 'Terminate test instances even when tests fail (default: true to save costs). Set to false to keep instances alive for debugging.'
+        required: false
+        default: true
+        type: boolean
   workflow_dispatch:
     inputs:
       gh_release_name:
@@ -80,6 +99,19 @@ on:
         required: false
         default: test-report-windows-prerelease.xml
         type: string
+      nr_fb_output_plugin_version:
+        description: Version/tag of the newrelic-fluent-bit-output plugin to test. Must be provided from versions/common.yml (nrFbOutputPluginVersion)
+        required: true
+        type: string
+      nr_fb_output_plugin_tag:
+        description: GitHub release tag for the newrelic-fluent-bit-output plugin. Must be provided from versions/common.yml (nrFbOutputPluginTag)
+        required: true
+        type: string
+      cleanup_on_failure:
+        description: 'Terminate test instances even when tests fail (default: false for manual runs to allow debugging). Set to true to always cleanup and save costs.'
+        required: false
+        default: false
+        type: boolean
 
 # So that only one test suite will be run simultaneously against a given GH release. This ensures that there will not
 # be multiple runners accessing the same Terraform state at the same time. Note that we need to set this lock here as well
@@ -137,12 +169,19 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Fetch package from GitHub pre-release
-        run: |
-          mkdir -p packages
-          gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: |
+            mkdir -p packages
+            gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
 
       - name: Sign package
         run: |
@@ -150,93 +189,196 @@ jobs:
           bash ./scripts/sign.sh
 
       - name: Upload signed asset
-        run:
-          gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: gh release upload ${{ inputs.pre_release_name }} packages/* --clobber
 
-  provision_and_execute_tests_linux:
-    name:  Provision instances and run tests for linux
-    needs: [ spin_up_test_executor_instances, sign_suse_packages, tear_down_suse ]
+  # Parallel provisioning by OS family - all 3 run simultaneously
+  provision_linux_apt:
+    name: Provision APT distros (debian, ubuntu)
+    needs: [ spin_up_test_executor_instances ]
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')}}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-apt PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
+
+  provision_linux_yum:
+    name: Provision YUM distros (amazonlinux, centos, rocky)
+    needs: [ spin_up_test_executor_instances ]
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')}}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-yum PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
+
+  provision_linux_sles:
+    name: Provision SLES distros
+    needs: [ spin_up_test_executor_instances, sign_suse_packages ]
     if: ${{ always() && !failure() && !cancelled()
       && (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped')
       && (needs.sign_suse_packages.result == 'success' || needs.sign_suse_packages.result == 'skipped')
-      && (needs.tear_down_suse.result == 'success' || needs.tear_down_suse.result == 'skipped')}}
+      && inputs.sles_matrix != '[]' }}
     uses: ./.github/workflows/run_task.yml
     with:
-      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-provision-sles PRE_RELEASE_NAME=${{ inputs.gh_release_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
     secrets: inherit
 
-#  provision_and_execute_tests_windows:
-#    name: Provision instances and run tests for windows
-#    needs: spin_up_test_executor_instances
-#    if: ${{ (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped') && ( inputs.windows_matrix != '[]' ) }}
-#    uses: ./.github/workflows/run_task.yml
-#    with:
-#      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }}"
-#    secrets: inherit
+  # Parallel test execution by OS family - each depends on its respective provision job
+  test_linux_apt_distros:
+    name: Test APT distros (debian, ubuntu)
+    needs: [ provision_linux_apt ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_apt.result == 'success' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-apt PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  test_linux_yum_distros:
+    name: Test YUM distros (amazonlinux, centos, rocky)
+    needs: [ provision_linux_yum ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_yum.result == 'success' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-yum PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  test_linux_sles_distros:
+    name: Test SLES distros
+    needs: [ provision_linux_sles ]
+    if: ${{ always() && !failure() && !cancelled() && needs.provision_linux_sles.result == 'success' && inputs.sles_matrix != '[]' }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-test-sles PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  merge_linux_test_results:
+    name: Merge Linux test results (apt, yum, sles)
+    needs: [ test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros ]
+    if: ${{ always() && !cancelled()
+      && (needs.test_linux_apt_distros.result == 'success' || needs.test_linux_apt_distros.result == 'skipped')
+      && (needs.test_linux_yum_distros.result == 'success' || needs.test_linux_yum_distros.result == 'skipped')
+      && (needs.test_linux_sles_distros.result == 'success' || needs.test_linux_sles_distros.result == 'skipped') }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-linux-merge-all PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.linux_test_report_name }}"
+    secrets: inherit
+
+  provision_and_execute_tests_windows:
+    name: Provision instances and run tests for windows
+    needs: spin_up_test_executor_instances
+    if: ${{ (needs.spin_up_test_executor_instances.result == 'success' || needs.spin_up_test_executor_instances.result == 'skipped') && ( inputs.windows_matrix != '[]' ) }}
+    uses: ./.github/workflows/run_task.yml
+    with:
+      container_make_target: "ansible/provision-and-execute-tests/${{ inputs.infra_agent_env }}-windows PRE_RELEASE_NAME=${{ inputs.gh_release_name }} TEST_REPORT_NAME=${{ inputs.windows_test_report_name }} NR_FB_OUTPUT_PLUGIN_VERSION=${{ inputs.nr_fb_output_plugin_version }} NR_FB_OUTPUT_PLUGIN_TAG=${{ inputs.nr_fb_output_plugin_tag }}"
+    secrets: inherit
 
   report_linux_test_results:
-    name: Report results linux
+    name: Report Linux test results
     runs-on: ubuntu-latest
-    needs: [ provision_and_execute_tests_linux ]
-    if : ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_linux.result == 'success')}}
+    needs: [ merge_linux_test_results ]
+    if : ${{ always() && !failure() && !cancelled() && (needs.merge_linux_test_results.result == 'success')}}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
-      - name: Download report from pre-release # not ok
-        run: |
-          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.linux_test_report_name }}
-
-      - name: Tests Report Details Linux # ok
-        uses: dorny/test-reporter@v1
+      - name: Download merged Linux report from pre-release
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
         with:
-          name: Tests Report Details  # Name of the check run which will be created
-          path: ${{ inputs.linux_test_report_name }} # Path to test results
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.linux_test_report_name }}
+
+      - name: Linux Tests Report Details
+        # commit sha from v1 branch (moving target) - verify with: git ls-remote https://github.com/dorny/test-reporter v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7
+        with:
+          name: Linux Tests Report Details
+          path: ${{ inputs.linux_test_report_name }}
           reporter: jest-junit
 
-      - name: Tests Report Summary Linux # ok
-        uses: EnricoMi/publish-unit-test-result-action@v2
+      - name: Linux Tests Report Summary
+        # commit sha from v2 tag (moving target) - verify with: git ls-remote https://github.com/EnricoMi/publish-unit-test-result-action v2
+        uses: EnricoMi/publish-unit-test-result-action@12fa20e14d449d310778f2d0af1e3b2f57dde2a7
         if: always()
         with:
           files: |
             ${{ inputs.linux_test_report_name }}
 
-#  report_windows_test_results:
-#    name: Report results windows
-#    runs-on: ubuntu-latest
-#    needs: [ provision_and_execute_tests_windows ]
-#    if: ${{ inputs.windows_matrix != '[]' }}
-#    env:
-#      GH_TOKEN: ${{ github.token }}
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v3
-#
-#      - name: Download report from pre-release # not ok
-#        run: |
-#          gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.windows_test_report_name }}
-#
-#      - name: Tests Report Details Windows # ok
-#        uses: dorny/test-reporter@v1
-#        with:
-#          name: Tests Report Details  # Name of the check run which will be created
-#          path: ${{ inputs.windows_test_report_name }} # Path to test results
-#          reporter: jest-junit
-#
-#      - name: Tests Report Summary Windows # ok
-#        uses: EnricoMi/publish-unit-test-result-action@v2
-#        if: always()
-#        with:
-#          files: |
-#            ${{ inputs.windows_test_report_name }}
+  report_windows_test_results:
+    name: Report Windows test results
+    runs-on: ubuntu-latest
+    needs: [ provision_and_execute_tests_windows ]
+    if: ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_windows.result == 'success') && (inputs.windows_matrix != '[]') }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout code
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
+
+      - name: Download Windows report from pre-release
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 10
+          command: gh release download ${{ inputs.gh_release_name }} --pattern ${{ inputs.windows_test_report_name }}
+
+      - name: Windows Tests Report Details
+        # commit sha from v1 branch (moving target) - verify with: git ls-remote https://github.com/dorny/test-reporter v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7
+        with:
+          name: Windows Tests Report Details
+          path: ${{ inputs.windows_test_report_name }}
+          reporter: jest-junit
+
+      - name: Windows Tests Report Summary
+        # commit sha from v2 tag (moving target) - verify with: git ls-remote https://github.com/EnricoMi/publish-unit-test-result-action v2
+        uses: EnricoMi/publish-unit-test-result-action@12fa20e14d449d310778f2d0af1e3b2f57dde2a7
+        if: always()
+        with:
+          files: |
+            ${{ inputs.windows_test_report_name }}
 
   tear_down_test_executor_instances:
     name: Tear down test executor instances
-#    if: always()
-#    needs: [ report_windows_test_results, report_linux_test_results ]
-    needs: [ report_linux_test_results ]
+    # Cleanup Strategy (configurable via cleanup_on_failure input):
+    #
+    # DEFAULT BEHAVIOR (cleanup_on_failure=true for automated runs):
+    #   - Always terminate instances to minimize AWS costs
+    #   - Recommended for CI/CD pipelines to prevent resource leaks
+    #
+    # DEBUGGING MODE (cleanup_on_failure=false for manual runs):
+    #   - Keep instances alive when tests fail for investigation
+    #   - Cleanup only when ALL tests pass/skip or provisioning fails
+    #   - Allows SSH access to debug failed test environments
+    #
+    # To keep instances alive on failure for debugging:
+    #   - Manual workflow_dispatch: Set cleanup_on_failure=false (default for manual runs)
+    #   - Automated workflow_call: Pass cleanup_on_failure=false explicitly
+    if: |
+      always() && (
+        inputs.cleanup_on_failure ||
+        (
+          (needs.merge_linux_test_results.result == 'success' || needs.merge_linux_test_results.result == 'skipped') &&
+          (needs.provision_and_execute_tests_windows.result == 'success' || needs.provision_and_execute_tests_windows.result == 'skipped')
+        ) ||
+        needs.spin_up_test_executor_instances.result == 'failure'
+      )
+    needs: [ spin_up_test_executor_instances, report_linux_test_results, report_windows_test_results, provision_and_execute_tests_windows, provision_linux_apt, provision_linux_yum, provision_linux_sles, test_linux_apt_distros, test_linux_yum_distros, test_linux_sles_distros, merge_linux_test_results ]
     uses: ./.github/workflows/run_task.yml
     with:
       container_make_target: "terraform/ec2-test-executors/clean PRE_RELEASE_NAME=${{ inputs.gh_release_name }}"

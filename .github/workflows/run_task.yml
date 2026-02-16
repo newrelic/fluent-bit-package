@@ -11,13 +11,15 @@ on:
 jobs:
   run_task:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       id-token: write
       contents: read
 
     steps:
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        # commit sha from v3 tag - verify with: git ls-remote https://github.com/aws-actions/configure-aws-credentials v3
+        uses: aws-actions/configure-aws-credentials@0d04879d366c9959065c153479c620d35e5c4097
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_NEW }}
           # https://github.com/aws-actions/configure-aws-credentials#credential-lifetime

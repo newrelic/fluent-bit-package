@@ -1,5 +1,11 @@
 name: Merge to main
 
+permissions:
+  contents: write
+  pull-requests: read
+  id-token: write
+  checks: write
+
 on:
   push:
     branches:
@@ -14,7 +20,8 @@ jobs:
       pr_number: "${{ steps.get_pr_number.outputs.result }}"
     steps:
       - name: Get PR number
-        uses: actions/github-script@v6
+        # commit sha from v6 tag (moving target) - verify with: git ls-remote https://github.com/actions/github-script v6
+        uses: actions/github-script@00f12e3e20659f42342b1c0226afda7f7c042325
         id: get_pr_number
         with:
           script: |
@@ -33,7 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to production
-        uses: newrelic/infrastructure-publish-action@v1
+        # commit sha from v1 tag - verify with: git ls-remote https://github.com/newrelic/infrastructure-publish-action v1
+        uses: newrelic/infrastructure-publish-action@26d9d8604b2cf2e7343dc287c958e8bbc1a3f750
         with:
           app_name: fluent-bit
           tag: ${{ needs.get_release_tag.outputs.tag }}
@@ -84,7 +92,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        # commit sha from v3 tag: https://github.com/actions/checkout/releases/tag/v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
       - name: Check if pre_release has artifacts, if so, upgrade to release
         id: promote_to_release
@@ -116,7 +125,8 @@ jobs:
 
       - name: Send release details to Slack workflow
         id: slack
-        uses: slackapi/slack-github-action@v1
+        # commit sha from v1 tag - verify with: git ls-remote https://github.com/slackapi/slack-github-action v1
+        uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3
         with:
           payload: |
             {

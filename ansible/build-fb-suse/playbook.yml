@@ -8,7 +8,7 @@
 # - Fluent Bit compilation: https://docs.fluentbit.io/manual/installation/sources/build-and-install
 # -ansible.builtin.fetch module: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/fetch_module.html
 - name: Install CrowdStrike Falcon
-  hosts: all
+  hosts: "*fluentbit-builder*"
   become: true
   gather_facts: no
   # The any_errors_fatal field doesn't work with free strategy.
@@ -16,9 +16,27 @@
   # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
+  vars:
+    ansible_aws_ssm_timeout: 900
+    ansible_aws_ssm_retries: 10
   tasks:
     - name: Wait for connection to be available
-      wait_for_connection:
+      block:
+        - name: Initial connection attempt
+          wait_for_connection:
+            delay: 5
+            timeout: 600
+            connect_timeout: 120
+      rescue:
+        - name: Reset connection on failure
+          meta: reset_connection
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 10
+            timeout: 900
+            connect_timeout: 180
+        - name: Verify recovered connection
+          ansible.builtin.ping:
 
     - name: Gather facts for first time
       ansible.builtin.setup:
@@ -33,13 +51,16 @@
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
 - name: Provision SUSE instances and compile Fluent Bit
-  hosts: all
+  # Target only hosts with 'fluentbit-builder' in their hostname
+  hosts: "*fluentbit-builder*" 
   # The any_errors_fatal field doesn't work with free strategy.
   # If there are spurious failures in the PLAY, it is good to run
   # the playbook again by removing free strategy.
   any_errors_fatal: true
   strategy: free
   vars:
+    ansible_aws_ssm_timeout: 900
+    ansible_aws_ssm_retries: 10
     home_path: /home/ssm-user
     bison_version: 3.7
     bison_path: "{{ home_path }}/bison-{{ bison_version }}"
@@ -55,7 +76,22 @@
     fluent_bit_package_name: "fluent-bit-{{ fluent_bit_version }}-1.{{ os_distro }}{{ os_version }}.{{ arch }}.rpm"
   tasks:
     - name: Wait for connection to be available
-      wait_for_connection:
+      block:
+        - name: Initial connection attempt
+          wait_for_connection:
+            delay: 5
+            timeout: 600
+            connect_timeout: 120
+      rescue:
+        - name: Reset connection on failure
+          meta: reset_connection
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 10
+            timeout: 900
+            connect_timeout: 180
+        - name: Verify recovered connection
+          ansible.builtin.ping:
 
     - name: Install dependencies
       community.general.zypper:
@@ -130,8 +166,8 @@
     - name: Build Fluent Bit {{ fluent_bit_version }}
       community.general.make:
         chdir: "{{ fluent_bit_path }}/build"
-      async: 1200 # timeout 20m
-      poll: 60 # poll every 60s
+      async: 1800 # timeout 30m
+      poll: 30 # poll every 30s
 
     - name: Create SUSE RPM package for Fluent Bit {{ fluent_bit_version }}
       command:
@@ -153,3 +189,7 @@
         src: "{{ fluent_bit_path }}/build/{{ fluent_bit_package_name }}"
         dest: "/tmp/fluent-bit-suse-packages/"
         flat: true
+      register: fetch_result
+      until: fetch_result is succeeded
+      retries: 5
+      delay: 15

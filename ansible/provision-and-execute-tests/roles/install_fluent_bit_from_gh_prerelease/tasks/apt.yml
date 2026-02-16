@@ -1,7 +1,33 @@
-- name: Install Fluent Bit package from URL
+# NOTE: REFACTOR REASONING
+# We moved away from passing the URL directly to the 'apt' module because high concurrency (forks=30)
+# caused a "thundering herd" effect, leading to network timeouts and truncated downloads (E:read errors).
+#
+# The 'apt' module lacks robust retry logic for remote URLs. By splitting this into two steps:
+# 1. We use 'get_url' to handle network flakes with retries/delays.
+# 2. We verify the file is fully downloaded to /tmp before asking 'apt' to install it.
+# This eliminates the installation failures caused by partial or corrupt package downloads.
+
+- name: Download Fluent Bit package
+  ansible.builtin.get_url:
+    url: "{{ fb_package_url }}"
+    dest: "/tmp/{{ fb_package_name }}"
+    mode: '0644'
+    timeout: 60       # Increased timeout to handle bandwidth contention
+    force: true       # Force download to overwrite potential corrupt/partial files from previous runs
+  register: download_result
+  until: download_result is succeeded
+  retries: 5          # Retry up to 5 times
+  delay: 10           # Wait 10s between retries
+  become: true
+
+- name: Install Fluent Bit from local file
   ansible.builtin.apt:
-    deb: "{{ fb_package_url }}"
+    deb: "/tmp/{{ fb_package_name }}"
     # We want our package to overwrite the one that comes with the Infra Agent, even if it implies downgrading it
     allow_downgrade: true
     state: present
+  register: install_result
+  until: install_result is succeeded
+  retries: 5          # Retry up to 5 times to handle dpkg lock contention
+  delay: 10           # Wait 10s between retries for locks to release
   become: true

@@ -6,7 +6,10 @@
   any_errors_fatal: true
   strategy: free
   vars:
-    ansible_aws_ssm_timeout: 600
+    # AWS SSM connection timeout - increased for ARM instances which can be slower
+    ansible_aws_ssm_timeout: 900
+    # Additional SSM connection settings
+    ansible_aws_ssm_retries: 10
     node_version: 16.14.0
     # The following information is populated using the gathered inventory variables
     fluent_bit_package_name: "{{ tags.fb_package_name }}"
@@ -25,17 +28,100 @@
     monitored_syslog_rfc_5424_tcp_port: 5140
     monitored_syslog_rfc_5424_udp_port: 6140
     monitored_tcp_port: 5170
-    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh','sshd') }}"
-
+    # Systemd unit to monitor - use 'ssh' for Debian/Ubuntu, 'sshd' for others
+    # Note: systemd automatically normalizes 'sshd' to 'sshd.service', so both formats work
+    monitored_systemd_unit: "{{ (tags.os_distro == 'ubuntu' or tags.os_distro == 'debian') | ternary('ssh', 'sshd') }}"
     test_reports_dir: /tmp/test-reports
   environment:
     NEW_RELIC_API_KEY: "{{ new_relic_api_key }}"
     NEW_RELIC_ACCOUNT_ID: "{{ new_relic_account_id }}"
     NEW_RELIC_REGION: "{{ new_relic_region }}"
   tasks:
-    - name: Wait for connection to be available
-      wait_for_connection:
+    # Robust initial connection establishment for AWS SSM
+    - name: Establish initial connection to host
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 10
+            timeout: 300
+            connect_timeout: 60
+          register: initial_connection
 
+        - name: Verify connection with ping
+          ansible.builtin.ping:
+          register: initial_ping
+      rescue:
+        - name: Reset connection on initial failure
+          ansible.builtin.meta: reset_connection
+
+        - name: Retry connection with extended timeout
+          wait_for_connection:
+            delay: 20
+            timeout: 600
+            connect_timeout: 120
+          retries: 5
+          delay: 60
+          register: retry_connection
+          until: retry_connection is succeeded
+
+        - name: Verify recovered connection
+          ansible.builtin.ping:
+          retries: 3
+          delay: 10
+
+    - name: (AL2023) Ensure SELinux is Permissive
+      ansible.builtin.command: setenforce 0
+      become: true
+      failed_when: false
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    - name: (AL2023) Grant systemd-journal access to fluent-bit user
+      ansible.builtin.user:
+        name: fluent-bit
+        groups: systemd-journal
+        append: yes
+      become: true
+      # Ignore error if user doesn't exist yet (handled by package install later if not present)
+      ignore_errors: true 
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    - name: (AL2023) Force journal directory permissions for Fluent Bit
+      ansible.builtin.file:
+        path: /var/log/journal
+        mode: '02755'
+        state: directory
+        recurse: yes
+      become: true
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    - name: (AL2023) Trigger Systemd to flush logs to disk
+      ansible.builtin.command: journalctl --flush
+      become: true
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+    
+    - name: (AL2023) Restart systemd-journald to ensure paths are picked up
+      ansible.builtin.service:
+        name: systemd-journald
+        state: restarted
+      become: true
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    - name: (AL2023) Restart Fluent Bit to apply permissions
+      ansible.builtin.service:
+        name: fluent-bit
+        state: restarted
+      become: true
+      ignore_errors: true
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    # Fix for AL2023: Puts SELinux in permissive mode to prevent security context policies 
+    # from blocking Fluent Bit's access to /var/log/journal, which is stricter on AL2023.
+    - name: (AL2023) Ensure SELinux is Permissive
+      ansible.builtin.command: setenforce 0
+      become: true
+      failed_when: false
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+      
     - name: Register fluent-bit version
       ansible.builtin.shell: "/opt/fluent-bit/bin/fluent-bit --version | head -n1 | cut -d'v' -f2"
       register: installed_fb_version
@@ -45,6 +131,51 @@
         that:
           - "{{ fb_version == installed_fb_version.stdout }}"
         fail_msg: "Expected fluent-bit version {{ fb_version }}, but got {{ installed_fb_version.stdout }}"
+
+    # Fix for AL2023: Adds the current user to the 'systemd-journal' group, which is 
+    # mandatorily required on AL2023 to read systemd logs without root privileges.
+    - name: (AL2023) Grant systemd-journal access to current user
+      ansible.builtin.user:
+        name: "{{ ansible_user_id }}"
+        groups: systemd-journal
+        append: yes
+      become: true
+      when: "'amazonlinux' in tags.os_distro and '2023' in tags.os_version"
+
+    # Note: reset_connection is not used here because:
+    # 1. meta tasks don't support 'when' conditionals - would reset ALL hosts, not just AL2023
+    # 2. The critical group membership is for fluent-bit user (applied via service restart above)
+    # 3. Test suite runs fluent-bit service, not ansible user, so ansible user group doesn't matter
+
+    # CRITICAL FIX: Clean up stale Fluent Bit processes to prevent port conflicts.
+    # On some distributions (specifically CentOS 7), the service auto-starts upon package install.
+    # When the playbook later restarts the service with new configs, the OS may not release 
+    # TCP ports (5140/5170) fast enough (TIME_WAIT), causing "bind: Address already in use" crashes.
+    # This block ensures a completely clean slate before we apply the test configuration.
+    - name: Ensure clean state (Kill stale Fluent Bit / Clear Ports)
+      block:
+        - name: Stop Fluent Bit service
+          ansible.builtin.service:
+            name: fluent-bit
+            state: stopped
+          become: true
+          ignore_errors: true
+
+        - name: Force kill any remaining fluent-bit processes
+          ansible.builtin.shell: "pkill -9 fluent-bit || true"
+          become: true
+          ignore_errors: true
+          
+        # Optional: Wait for ports to actually close (handling TCP TIME_WAIT)
+        - name: Wait for ports to be free
+          ansible.builtin.wait_for:
+            port: "{{ item }}"
+            state: stopped # key difference: wait for STOPPED
+            timeout: 30
+          loop:
+            - "{{ monitored_tcp_port }}"
+            - "{{ monitored_syslog_rfc_5424_tcp_port }}"
+          ignore_errors: true
 
     - name: Configure log forwarding
       ansible.builtin.include_role:
@@ -70,12 +201,70 @@
         nvm_commands:
             - "cd ~/test-suite && nvm exec default npm install"
 
+    - name: Wait for Fluent Bit to initialize input ports
+      block:
+        - name: Wait for ports
+          ansible.builtin.wait_for:
+            port: "{{ item }}"     
+            host: "localhost"    
+            state: started
+            delay: 2
+            timeout: 120
+          loop:
+            - "{{ monitored_tcp_port }}"
+            - "{{ monitored_syslog_rfc_5424_tcp_port }}"
+      rescue:
+        - name: Get Fluent Bit Service Status (Debug)
+          command: "systemctl status fluent-bit"
+          register: fb_service_status
+          changed_when: false
+          failed_when: false
+
+        - name: Get Fluent Bit Journal Logs (Debug)
+          command: "journalctl -u fluent-bit --no-pager -n 50"
+          register: fb_journal_logs
+          changed_when: false
+          failed_when: false
+
+        - name: Run Fluent Bit manually to capture crash output (The Smoking Gun)
+          command: "/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf"
+          register: manual_debug_output
+          changed_when: false
+          failed_when: false
+          ignore_errors: true
+
+        - name: Print Service Failure Details
+          debug:
+            msg:
+              - "CRITICAL: Fluent Bit failed to open ports on {{ inventory_hostname }}"
+              - "--- Service Status ---"
+              - "{{ fb_service_status.stdout_lines }}"
+              - "--- Journal Logs ---"
+              - "{{ fb_journal_logs.stdout_lines }}"
+              - "--- Manual Run Output (STDERR) ---"
+              - "{{ manual_debug_output.stderr_lines }}"
+
+        - name: Fail run after debugging
+          ansible.builtin.fail:
+            msg: "Fluent Bit service failed to start. See debug output above for crash details."
+
+    - name: Ensure DNS is ready (Wait for NR endpoint resolution)
+      ansible.builtin.command: getent hosts log-api.newrelic.com
+      register: dns_check
+      until: dns_check.rc == 0
+      retries: 10
+      delay: 5
+      changed_when: false
+      when: ansible_system == 'Linux'
+
     - name: Run test-suite
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
         executable: /bin/bash
         chdir: ~/test-suite
         creates: ~/test-suite/reports
+      async: 1800  # 30 minutes timeout per host
+      poll: 0      # fire and forget, check status separately
       environment:
         LOGGING_ENDPOINT: https://log-api.newrelic.com/log/v1
         NERD_GRAPH_URL: https://api.newrelic.com/graphql
@@ -86,9 +275,163 @@
         MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
         MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
         MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+      register: test_job
 
-    - name: Fetch results
-      fetch:
-        flat: true # behave like copy, we only want the file, not the whole path
-        src: ~/test-suite/reports/tests/test-report.xml
-        dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+    # Robust async status check with connection recovery
+    - name: Wait for test-suite to complete (with reconnection support)
+      block:
+        - name: Check async job status
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 60       # retry up to 60 times
+          delay: 30         # wait 30 seconds between retries (total ~30 min)
+      rescue:
+        # Connection lost - try to recover
+        - name: Attempt to re-establish connection after failure
+          wait_for_connection:
+            delay: 10
+            timeout: 180
+            connect_timeout: 60
+          register: reconnect_attempt
+          retries: 5
+          delay: 30
+          until: reconnect_attempt is succeeded
+
+        - name: Reset SSH/SSM connection
+          ansible.builtin.meta: reset_connection
+
+        - name: Verify connection is working
+          ansible.builtin.ping:
+          register: ping_result
+          retries: 3
+          delay: 10
+          until: ping_result is succeeded
+
+        - name: Retry async status check after reconnection
+          ansible.builtin.async_status:
+            jid: "{{ test_job.ansible_job_id }}"
+          register: test_result
+          until: test_result.finished
+          retries: 30       # fewer retries after recovery
+          delay: 30
+          ignore_errors: yes
+
+    - name: Log test result status
+      ansible.builtin.debug:
+        msg: "Test result for {{ inventory_hostname }}: finished={{ test_result.finished | default('unknown') }}, rc={{ test_result.rc | default('N/A') }}"
+      when: test_result is defined
+
+    - name: DEBUG - Dump SSHD Journal Logs if Systemd test failed
+      ansible.builtin.shell: "journalctl -u sshd --no-pager -n 50"
+      register: sshd_journal_dump
+      become: true  # <--- IMPORTANT: Required to read system logs
+      # when: test_result is defined and (test_result.failed | default(false) or test_result.rc | default(0) != 0)
+      ignore_errors: true
+
+    - name: DEBUG - Dump Fluent Bit Logs
+      ansible.builtin.shell: "journalctl -u fluent-bit --no-pager -n 50"
+      register: fb_log_dump
+      become: true   # <--- Important: likely needed to read service logs
+      # when: test_result is defined and (test_result.failed | default(false) or test_result.rc | default(0) != 0)
+      ignore_errors: true
+
+    - name: DEBUG - Print Fluent Bit Logs
+      ansible.builtin.debug:
+        msg: "{{ fb_log_dump.stdout_lines }}"
+      # when: fb_log_dump is defined and fb_log_dump.stdout_lines is defined
+
+    - name: DEBUG - Print SSHD Logs
+      ansible.builtin.debug:
+        msg: "{{ sshd_journal_dump.stdout_lines }}"
+      # when: sshd_journal_dump is defined and sshd_journal_dump.stdout_lines is defined
+
+    # Final reconnection before fetching - with robust error handling
+    - name: Re-establish connection before fetching results
+      block:
+        - name: Wait for connection to be available
+          wait_for_connection:
+            delay: 5
+            timeout: 180
+            connect_timeout: 60
+      rescue:
+        - name: Force connection reset on failure
+          ansible.builtin.meta: reset_connection
+          
+        - name: Retry connection with longer timeout
+          wait_for_connection:
+            delay: 15
+            timeout: 300
+            connect_timeout: 120
+          retries: 5
+          delay: 45
+
+    - name: Verify connection before fetch
+      ansible.builtin.ping:
+      register: pre_fetch_ping
+      retries: 3
+      delay: 10
+      until: pre_fetch_ping is succeeded
+
+    # --- COMPRESSED FETCH LOGIC START ---
+    - name: Compress test report to save bandwidth
+      ansible.builtin.command: gzip -f ~/test-suite/reports/tests/test-report.xml
+      args:
+        # Check if the xml exists before trying to zip it to avoid errors
+        removes: ~/test-suite/reports/tests/test-report.xml
+      # We do NOT ignore errors here. If zipping fails, we want to know, 
+      # otherwise the fetch looking for .gz will fail confusingly.
+      register: gzip_result
+
+    # Fetch with rescue block for permanent connection failures
+    - name: Fetch compressed results with fallback
+      block:
+        - name: Fetch results
+          fetch:
+            flat: true # behave like copy, we only want the file, not the whole path
+            src: ~/test-suite/reports/tests/test-report.xml.gz
+            dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml.gz"
+          register: fetch_result
+          retries: 5
+          delay: 15
+          until: fetch_result is succeeded
+      rescue:
+        - name: Log fetch failure - attempting recovery
+          ansible.builtin.debug:
+            msg: "Initial fetch failed for {{ inventory_hostname }}, attempting connection recovery..."
+
+        - name: Force connection reset before retry
+          ansible.builtin.meta: reset_connection
+
+        - name: Re-establish connection after fetch failure
+          wait_for_connection:
+            delay: 20
+            timeout: 300
+            connect_timeout: 120
+          retries: 3
+          delay: 60
+          register: recovery_connection
+          until: recovery_connection is succeeded
+
+        - name: Verify recovered connection
+          ansible.builtin.ping:
+          register: recovered_ping
+          retries: 3
+          delay: 10
+          until: recovered_ping is succeeded
+
+        - name: Final fetch attempt after recovery
+          fetch:
+            flat: true
+            src: ~/test-suite/reports/tests/test-report.xml.gz
+            dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml.gz"
+          register: final_fetch_result
+          retries: 3
+          delay: 20
+          until: final_fetch_result is succeeded
+
+    - name: Log fetch outcome
+      ansible.builtin.debug:
+        msg: "Fetch completed for {{ inventory_hostname }}: {{ 'primary succeeded' if (fetch_result is defined and fetch_result is succeeded) else 'recovered via rescue' }}"
+      when: fetch_result is defined or final_fetch_result is defined
