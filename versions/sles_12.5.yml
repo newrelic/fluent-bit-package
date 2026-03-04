@@ -1,5 +1,0 @@
-osDistro: sles
-osVersion: 12.5
-packages:
-  - arch: x86_64
-    ami: ami-09d3c4da338a294e0
