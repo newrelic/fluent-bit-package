@@ -122,6 +122,10 @@
         dest: "{{ home_path }}"
         remote_src: yes
         creates: "{{ bison_path }}"
+      register: bison_download
+      retries: 5
+      delay: 30
+      until: bison_download is succeeded
 
     - name: Configure Bison {{ bison_version }}
       command:
@@ -151,12 +155,20 @@
         dest: "{{ home_path }}"
         remote_src: yes
         creates: "{{ cmake_path }}"
+      register: cmake_download
+      retries: 5
+      delay: 30
+      until: cmake_download is succeeded
 
     - name: Checkout Fluent Bit {{ fluent_bit_version }}
       git:
         repo: 'https://github.com/fluent/fluent-bit.git'
         dest: "{{ fluent_bit_path }}"
         version: "v{{ fluent_bit_version }}"
+      register: git_checkout
+      retries: 5
+      delay: 30
+      until: git_checkout is succeeded
 
     - name: Configure Fluent Bit {{ fluent_bit_version }}
       command:

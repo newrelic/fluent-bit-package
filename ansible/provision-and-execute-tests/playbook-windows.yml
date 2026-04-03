@@ -190,6 +190,15 @@
         path: '{{ test_suite_folder }}\reports'
         state: absent
 
+    - name: Validate fb_version variable is set and valid
+      ansible.builtin.assert:
+        that:
+          - fb_version is defined
+          - fb_version | length > 0
+          - fb_version is match('^[0-9]+\.[0-9]+\.[0-9]+(?:-[\w.-]+)?$')
+        fail_msg: "fb_version must be set to a valid semantic version (e.g., 4.2.2 or 4.2.2-beta). Current value: {{ fb_version | default('UNDEFINED') }}"
+        success_msg: "fb_version is valid: {{ fb_version }}"
+
     - name: Run test-suite (async with timeout)
       ansible.windows.win_shell: 'npm run test'
       args:
@@ -207,6 +216,7 @@
         MONITORED_TCP_PORT: "{{ monitored_tcp_port }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINLOG: "{{ monitored_windows_log_name_using_winevtlog }}"
         MONITORED_WINDOWS_LOG_NAME_USING_WINEVTLOG: "{{ monitored_windows_log_name_using_winlog }}"
+        EXPECTED_FB_VERSION: "{{ fb_version }}"
       register: test_job
 
     # Robust async status check with connection recovery for Windows

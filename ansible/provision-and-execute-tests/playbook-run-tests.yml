@@ -257,6 +257,15 @@
       changed_when: false
       when: ansible_system == 'Linux'
 
+    - name: Validate fb_version variable is set and valid
+      ansible.builtin.assert:
+        that:
+          - fb_version is defined
+          - fb_version | length > 0
+          - fb_version is match('^[0-9]+\.[0-9]+\.[0-9]+(?:-[\w.-]+)?$')
+        fail_msg: "fb_version must be set to a valid semantic version (e.g., 4.2.2 or 4.2.2-beta). Current value: {{ fb_version | default('UNDEFINED') }}"
+        success_msg: "fb_version is valid: {{ fb_version }}"
+
     - name: Run test-suite
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
@@ -275,6 +284,7 @@
         MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
         MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
         MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+        EXPECTED_FB_VERSION: "{{ fb_version }}"
       register: test_job
 
     # Robust async status check with connection recovery
