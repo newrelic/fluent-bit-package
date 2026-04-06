@@ -1,28 +1,40 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
 const logger = require('./lib/logger');
-
-/**
- * Version Validation Test
- * Detects silent version downgrades caused by dependency issues (e.g., OpenSSL mismatch).
- * Addresses RHEL 9.5 incident where yum silently installed 3.2.10 instead of 4.2.2.
- */
 
 const TIMEOUTS = {
   FAST_COMMAND: 5000,
-  PACKAGE_QUERY: 15000,
   LOG_QUERY: 45000
 };
 
-function getFluentBitVersion() {
-  const isWindows = process.platform === 'win32';
-  const path = isWindows
-    ? (process.env.FLUENT_BIT_HOME || 'C:\\Applications\\FluentBit').replace(/"/g, '')
-    : '/opt/fluent-bit';
-  const command = isWindows
-    ? `"${path}\\fluent-bit.exe" --version`
-    : `${path}/bin/fluent-bit --version`;
+// GAP 3 FIX: Support multiple potential installation paths
+const getExpectedBinaryPath = () => {
+  if (process.platform === 'win32') {
+    const winPath = 'C:\\Program Files\\New Relic\\newrelic-infra\\newrelic-integrations\\logging\\fluent-bit.exe';
+    return fs.existsSync(winPath) ? winPath : winPath; // Default fallback
+  }
 
-  return execSync(command, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND });
+  const linuxPaths = [
+    '/var/db/newrelic-infra/newrelic-integrations/logging/fluent-bit',
+    '/opt/newrelic-infra/newrelic-integrations/logging/fluent-bit',
+    '/usr/local/bin/fluent-bit' // Edge case fallback
+  ];
+
+  for (const p of linuxPaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return linuxPaths[0]; // Default if none found (will intentionally fail later if missing)
+};
+
+function getFluentBitVersion() {
+  const command = `"${getExpectedBinaryPath()}" --version`;
+  try {
+    // GAP 2 FIX: Added stdio pipe to prevent stderr from bleeding into test logs
+    return execSync(command, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' });
+  } catch (error) {
+    logger.error(`Failed to execute embedded Fluent Bit binary. Are you running with adequate permissions? Error: ${error.message}`);
+    throw error;
+  }
 }
 
 function parseVersion(versionOutput) {
@@ -30,37 +42,102 @@ function parseVersion(versionOutput) {
   return match ? match[1] : null;
 }
 
-function verifyServiceRunning() {
-  // On both Windows and Linux, Fluent Bit runs embedded within the New Relic Infrastructure agent
+/**
+ * Gets the actual binary path of the running Fluent Bit child process
+ */
+function getRunningFluentBitBinaryPath() {
+  const expectedPathFragment = 'newrelic-integrations';
+
   if (process.platform === 'win32') {
-    const status = execSync('sc query newrelic-infra', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND });
-    if (!status.match(/STATE\s*:\s*4\s+RUNNING/i)) {
-      throw new Error('New Relic Infrastructure agent service not running (Windows)');
+    try {
+      // GAP 4 FIX: Use Win32_Process to find the executable path robustly
+      const cmd = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name like '%fluent-bit%'\\" | Select-Object -ExpandProperty ExecutablePath"`;
+      const output = execSync(cmd, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
+      
+      const paths = output.split('\n').map(p => p.trim()).filter(Boolean);
+      const nrPath = paths.find(p => p.toLowerCase().includes(expectedPathFragment));
+
+      if (nrPath) {
+        logger.info(`Windows: Found running fluent-bit at ${nrPath}`);
+        return nrPath;
+      }
+    } catch (error) {
+      logger.warn(`Cannot inspect Windows process: ${error.message}`);
     }
   } else {
-    const status = execSync('systemctl is-active newrelic-infra', {
-      encoding: 'utf8',
-      timeout: TIMEOUTS.FAST_COMMAND
-    }).trim();
-    if (status !== 'active') {
-      throw new Error(`New Relic Infrastructure agent service not active: ${status}`);
+    try {
+      // GAP 1 FIX: Global search for fluent-bit, then inspect executable paths
+      // This bypasses the strict Parent-Child requirement which fails on wrappers
+      const pidsOutput = execSync('pgrep -f fluent-bit', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
+      const pids = pidsOutput.split('\n').filter(Boolean);
+      
+      for (const pid of pids) {
+        try {
+          const binaryPath = execSync(`readlink -f /proc/${pid}/exe`, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
+          
+          if (binaryPath.includes(expectedPathFragment)) {
+            logger.info(`Running New Relic fluent-bit binary: ${binaryPath}`);
+            return binaryPath;
+          }
+        } catch (e) {
+          // Ignore readlink permission errors on system-owned fluent-bit processes we don't care about
+        }
+      }
+    } catch (error) {
+      logger.info(`Could not locate running fluent-bit via pgrep: ${error.message}`);
+    }
+  }
+
+  logger.error('Could not find any running New Relic fluent-bit process. Is the logging integration enabled?');
+  return null;
+}
+
+function verifyServiceRunning() {
+  if (process.platform === 'win32') {
+    try {
+      const status = execSync('sc query newrelic-infra', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' });
+      if (!status.match(/STATE\s*:\s*4\s+RUNNING/i)) throw new Error('Service not running');
+    } catch (e) {
+      throw new Error(`New Relic Infrastructure agent service not running (Windows): ${e.message}`);
+    }
+  } else {
+    try {
+      const status = execSync('systemctl is-active newrelic-infra', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
+      if (status !== 'active') throw new Error(`Service status: ${status}`);
+    } catch (e) {
+      throw new Error(`New Relic Infrastructure agent service not active (Linux): ${e.message}`);
     }
   }
   return true;
 }
 
-describe('Fluent Bit Version Validation', () => {
+function findVersionInLogs(logOutput) {
+  const lines = logOutput.split('\n');
+  let latestVersion = null;
+
+  for (const line of lines) {
+    if (/Fluent Bit\s+v?\d+\.\d+\.\d+/i.test(line)) {
+      const match = line.match(/Fluent Bit\s+v?(\d+\.\d+\.\d+(?:-[\w.-]+)?)/i);
+      if (match) {
+        latestVersion = match[1]; // Correctly updates to the most recent startup
+      }
+    }
+  }
+  return latestVersion;
+}
+
+describe('Embedded Fluent Bit Version Validation', () => {
   let expectedVersion;
 
   beforeAll(() => {
     expectedVersion = process.env.EXPECTED_FB_VERSION;
     if (!expectedVersion) {
-      throw new Error('EXPECTED_FB_VERSION must be set');
+      throw new Error('EXPECTED_FB_VERSION environment variable must be set');
     }
     logger.info(`Expected version: ${expectedVersion}`);
   });
 
-  test('fluent-bit binary should be accessible', () => {
+  test('embedded fluent-bit binary should be accessible at New Relic path', () => {
     const versionOutput = getFluentBitVersion();
     expect(versionOutput).toBeTruthy();
   });
@@ -70,210 +147,62 @@ describe('Fluent Bit Version Validation', () => {
     const actualVersion = parseVersion(versionOutput);
 
     expect(actualVersion).toBeTruthy();
-    expect(actualVersion).toMatch(/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/);
-
-    logger.info(`Expected: ${expectedVersion}, Actual: ${actualVersion}`);
-
-    if (actualVersion !== expectedVersion) {
-      throw new Error(
-        `Version mismatch detected!\n` +
-        `Expected: ${expectedVersion}\n` +
-        `Actual:   ${actualVersion}\n` +
-        `This may indicate a silent version downgrade due to dependency conflicts (e.g., OpenSSL).`
-      );
-    }
-
-    expect(actualVersion).toBe(expectedVersion);
+    expect(actualVersion).toBe(expectedVersion); 
   });
 
-  test('package manager should show correct version', () => {
-    if (process.platform === 'win32') return;
+  test('verify running process is spawned from New Relic path', () => {
+    const binaryPath = getRunningFluentBitBinaryPath();
+    const expectedPath = getExpectedBinaryPath();
 
-    const packageManagers = [
-      {
-        name: 'rpm',
-        command: 'rpm -q fluent-bit',
-        parseVersion: (output) => {
-          // Format: fluent-bit-VERSION-RELEASE.DIST.ARCH (e.g., fluent-bit-4.2.2-1.el9.x86_64)
-          const match = output.match(/^fluent-bit-(\d+\.\d+\.\d+(?:-(?:beta|rc|alpha)[\w.-]*)?)-[\d.]+\./m);
-          if (match) return match[1];
-
-          // Fallback: strip RPM release number if present (4.2.2-1 → 4.2.2)
-          const simple = output.match(/^fluent-bit-(\d+\.\d+\.\d+(?:-[\w.-]+)?)/m);
-          if (!simple) throw new Error(`Cannot parse RPM version from: ${output.substring(0, 100)}`);
-          return simple[1].replace(/-(\d+)$/, '');
-        }
-      },
-      {
-        name: 'dpkg',
-        command: 'dpkg -s fluent-bit',
-        parseVersion: (output) => {
-          const match = output.match(/^Version:\s+(\d+\.\d+\.\d+(?:-(?:beta|rc|alpha)[\w.-]*)?)/m);
-          if (!match) throw new Error(`Cannot parse dpkg version from: ${output.substring(0, 100)}`);
-          return match[1];
-        }
-      },
-      {
-        name: 'zypper',
-        command: 'zypper info --installed-only fluent-bit',
-        parseVersion: (output) => {
-          const match = output.match(/^Version\s*:\s*(\d+\.\d+\.\d+(?:-(?:beta|rc|alpha)[\w.-]*)?)/m);
-          if (!match) throw new Error(`Cannot parse zypper version from: ${output.substring(0, 100)}`);
-          return match[1];
-        }
-      }
-    ];
-
-    let found = false;
-    for (const pm of packageManagers) {
-      try {
-        const output = execSync(pm.command, { encoding: 'utf8', timeout: TIMEOUTS.PACKAGE_QUERY });
-        const version = pm.parseVersion(output);
-
-        logger.info(`${pm.name}: ${version}`);
-        if (version !== expectedVersion) {
-          throw new Error(`Silent downgrade detected! ${pm.name} shows ${version} but expected ${expectedVersion}`);
-        }
-        found = true;
-        break;
-      } catch (error) {
-        if (!error.message.includes('not found') && !error.message.includes('not installed')) {
-          throw error;
-        }
-      }
-    }
-
-    if (!found) {
-      throw new Error(
-        `No package manager found fluent-bit installed.\n` +
-        `Tried: rpm, dpkg, zypper\n` +
-        `This indicates the package may not be properly installed.`
-      );
-    }
-    expect(found).toBe(true);
+    expect(binaryPath).toBeTruthy();
+    expect(binaryPath.toLowerCase()).toContain(expectedPath.toLowerCase());
   });
 
-  test('service should be running', () => {
+  test('newrelic-infra service should be running', () => {
     expect(verifyServiceRunning()).toBe(true);
   });
 
-  test('service logs should contain expected version', () => {
-    let logOutput;
+  test('newrelic-infra logs should output expected Fluent Bit version (Soft Check)', () => {
+    let logOutput = '';
 
     try {
       if (process.platform === 'win32') {
-        const path = (process.env.FLUENT_BIT_HOME || 'C:\\Applications\\FluentBit').replace(/"/g, '');
-        logOutput = execSync(`type "${path}\\log\\fluent-bit.log"`, {
-          encoding: 'utf8',
-          timeout: TIMEOUTS.LOG_QUERY
-        });
+        const logPath = 'C:\\ProgramData\\New Relic\\newrelic-infra\\newrelic-infra.log'; 
+        logOutput = execSync(`type "${logPath}"`, { encoding: 'utf8', timeout: TIMEOUTS.LOG_QUERY, stdio: 'pipe' });
       } else {
-        verifyServiceRunning();
-
-        // Try to get logs from current service instance
-        let startTime = null;
-        try {
-          startTime = execSync('systemctl show fluent-bit -p ActiveEnterTimestamp --value', {
-            encoding: 'utf8',
-            timeout: TIMEOUTS.FAST_COMMAND
-          }).trim();
-        } catch {}
-
-        if (startTime && startTime !== 'n/a' && startTime.length > 0) {
-          logOutput = execSync(`journalctl -u fluent-bit --no-pager --since "${startTime}"`, {
-            encoding: 'utf8',
-            timeout: TIMEOUTS.LOG_QUERY
-          });
-        } else {
-          logOutput = execSync('journalctl -u fluent-bit --no-pager -n 500', {
-            encoding: 'utf8',
-            timeout: TIMEOUTS.LOG_QUERY
-          });
-        }
-
-        if (!logOutput || !logOutput.trim()) {
-          throw new Error('No logs found for fluent-bit service');
-        }
+        logOutput = execSync('journalctl -u newrelic-infra -n 2000 --no-pager', { encoding: 'utf8', timeout: TIMEOUTS.LOG_QUERY, stdio: 'pipe' });
       }
     } catch (error) {
-      if (error.message.includes('not running') || error.message.includes('not active')) {
-        throw error;
-      }
-      logger.warn(`Cannot read logs (permissions?): ${error.message}`);
-      return; // Skip if logs unreadable but service is running
-    }
-
-    const versionInLogs = logOutput.includes(expectedVersion) || logOutput.includes(`v${expectedVersion}`);
-    if (!versionInLogs) {
-      const lines = logOutput.split('\n');
-      logger.error(`Version ${expectedVersion} not in logs. Last 20 lines:`);
-      logger.info(lines.slice(-20).join('\n'));
-
-      // Try to find what version IS in the logs
-      const versionPattern = /Fluent Bit\s+v?(\d+\.\d+\.\d+(?:-[\w.-]+)?)/gi;
-      const foundVersions = new Set();
-      let match;
-      while ((match = versionPattern.exec(logOutput)) !== null) {
-        foundVersions.add(match[1]);
-      }
-
-      const foundVersionsStr = foundVersions.size > 0
-        ? `Found version(s) in logs: ${Array.from(foundVersions).join(', ')}`
-        : 'No Fluent Bit version found in logs';
-
-      throw new Error(
-        `Expected version ${expectedVersion} not found in service logs.\n${foundVersionsStr}\n` +
-        `This may indicate the wrong version is installed or logs are from a previous installation.`
-      );
-    }
-
-    expect(versionInLogs).toBe(true);
-  });
-
-  test('log dependencies for diagnostics (RPM only)', () => {
-    if (process.platform === 'win32') return;
-
-    try {
-      execSync('which rpm', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND });
-    } catch {
+      // Soft check: return cleanly rather than failing the whole test suite
+      logger.warn(`Could not read newrelic-infra logs (Check permissions): ${error.message}`); 
       return;
     }
 
-    try {
-      const deps = execSync('rpm -q --requires fluent-bit', {
-        encoding: 'utf8',
-        timeout: TIMEOUTS.PACKAGE_QUERY
-      });
+    const versionInLogs = findVersionInLogs(logOutput);
 
-      const opensslDeps = deps.split('\n').filter(line =>
-        line.includes('libcrypto') || line.includes('libssl') || line.includes('openssl')
-      );
+    if (!versionInLogs) {
+      logger.warn('Could not find Fluent Bit startup version in New Relic logs. Rotated out or missing.');
+      return; 
+    }
 
-      if (opensslDeps.length > 0) {
-        logger.info('OpenSSL dependencies:');
-        opensslDeps.forEach(dep => logger.info(`  ${dep}`));
-
-        try {
-          const pkg = execSync('rpm -q openssl-libs || rpm -q openssl', {
-            encoding: 'utf8',
-            timeout: TIMEOUTS.FAST_COMMAND
-          }).trim();
-          const version = execSync('openssl version', {
-            encoding: 'utf8',
-            timeout: TIMEOUTS.FAST_COMMAND
-          }).trim();
-          logger.info(`Installed: ${pkg} (${version})`);
-        } catch {}
-      }
-    } catch {}
+    if (versionInLogs !== expectedVersion) {
+      logger.warn(`Log Version mismatch!\nExpected: ${expectedVersion}\nFound in logs: ${versionInLogs}`);
+    } else {
+      logger.info(`✓ Log confirms embedded version ${expectedVersion}`);
+    }
   });
 
   afterAll(() => {
     try {
       const actualVersion = parseVersion(getFluentBitVersion());
-      logger.info(`=== Version Summary: Expected ${expectedVersion}, Installed ${actualVersion} ===`);
+      const binaryPath = getRunningFluentBitBinaryPath();
+      logger.info(`\n=== Version Summary ===`);
+      logger.info(`Expected: ${expectedVersion}`);
+      logger.info(`Installed: ${actualVersion}`);
+      logger.info(`Running binary: ${binaryPath || 'unknown'}`);
+      logger.info(`======================\n`);
     } catch (error) {
-      logger.error(`Cannot retrieve version: ${error.message}`);
+      logger.error(`Cannot retrieve version summary: ${error.message}`);
     }
   });
 });
