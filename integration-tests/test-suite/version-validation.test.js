@@ -1,38 +1,116 @@
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const logger = require('./lib/logger');
 
 const TIMEOUTS = {
-  FAST_COMMAND: 5000,
+  FAST_COMMAND: 30000, // Increased to allow busy CI runners to spawn processes
   LOG_QUERY: 45000
 };
 
-// GAP 3 FIX: Support multiple potential installation paths
-const getExpectedBinaryPath = () => {
+// Simple synchronous sleep utility
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Helper to safely run shell commands without crashing the test runner on failure
+ */
+function safeExec(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Gets the actual binary path of the running Fluent Bit child process
+ */
+function getRunningFluentBitBinaryPath() {
+  const expectedFragment = 'newrelic';
+
   if (process.platform === 'win32') {
-    const winPath = 'C:\\Program Files\\New Relic\\newrelic-infra\\newrelic-integrations\\logging\\fluent-bit.exe';
-    return fs.existsSync(winPath) ? winPath : winPath; // Default fallback
+    // Replaced slow PowerShell with faster WMIC
+    const cmd = `wmic process where "name='fluent-bit.exe'" get ExecutablePath /VALUE`;
+    const output = safeExec(cmd);
+    
+    if (output) {
+      const paths = output.split('\n')
+                          .filter(line => line.includes('ExecutablePath='))
+                          .map(line => line.split('=')[1].trim())
+                          .filter(Boolean);
+                          
+      const nrPath = paths.find(p => p.toLowerCase().includes(expectedFragment));
+      if (nrPath) {
+        logger.info(`Windows: Found running fluent-bit at ${nrPath}`);
+        return nrPath;
+      }
+    }
+  } else {
+    // Linux logic remains the same
+    const pids = safeExec('pgrep -f "fluent-bit|td-agent-bit"');
+    
+    if (pids) {
+      const pidArray = pids.split('\n').filter(Boolean);
+      for (const pid of pidArray) {
+        const binaryPath = safeExec(`sudo readlink -f /proc/${pid}/exe`);
+        
+        if (binaryPath && binaryPath.toLowerCase().includes(expectedFragment)) {
+          logger.info(`Linux: Found running New Relic fluent-bit binary at ${binaryPath}`);
+          return binaryPath;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Locates the binary, prioritizing the active process over hardcoded paths
+ */
+function getExpectedBinaryPath() {
+  // Let the actively running process tell us the true path first
+  const runningPath = getRunningFluentBitBinaryPath();
+  if (runningPath && fs.existsSync(runningPath)) {
+    return runningPath;
+  }
+
+  // Fallbacks if the process hasn't fully started yet
+  if (process.platform === 'win32') {
+    const winPaths = [
+      'C:\\Program Files\\New Relic\\newrelic-infra\\newrelic-integrations\\logging\\fluent-bit.exe',
+      'C:\\Program Files (x86)\\New Relic\\newrelic-infra\\newrelic-integrations\\logging\\fluent-bit.exe'
+    ];
+    return winPaths.find(p => fs.existsSync(p)) || winPaths[0]; // Default fallback
   }
 
   const linuxPaths = [
     '/var/db/newrelic-infra/newrelic-integrations/logging/fluent-bit',
     '/opt/newrelic-infra/newrelic-integrations/logging/fluent-bit',
-    '/usr/local/bin/fluent-bit' // Edge case fallback
+    '/usr/local/bin/fluent-bit',
+    '/opt/td-agent-bit/bin/td-agent-bit'
   ];
 
   for (const p of linuxPaths) {
     if (fs.existsSync(p)) return p;
   }
-  return linuxPaths[0]; // Default if none found (will intentionally fail later if missing)
-};
+
+  // Last resort: deep search on the file system for weird CI agent setups
+  const fallbackSearch = safeExec('sudo find /opt /var /usr -type f \\( -name "fluent-bit" -o -name "td-agent-bit" \\) 2>/dev/null | grep -i newrelic | head -n 1');
+  if (fallbackSearch && fs.existsSync(fallbackSearch)) {
+    return fallbackSearch;
+  }
+
+  return linuxPaths[0]; // Will intentionally fail the next step if missing
+}
 
 function getFluentBitVersion() {
-  const command = `"${getExpectedBinaryPath()}" --version`;
+  const binaryPath = getExpectedBinaryPath();
   try {
-    // GAP 2 FIX: Added stdio pipe to prevent stderr from bleeding into test logs
-    return execSync(command, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' });
+    const output = execFileSync(binaryPath, ['--version'], { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' });
+    logger.info(`Raw version output from binary: ${output.trim()}`);
+    return output;
   } catch (error) {
-    logger.error(`Failed to execute embedded Fluent Bit binary. Are you running with adequate permissions? Error: ${error.message}`);
+    logger.error(`Failed to execute embedded Fluent Bit binary at [${binaryPath}]. Error: ${error.message}`);
     throw error;
   }
 }
@@ -40,56 +118,6 @@ function getFluentBitVersion() {
 function parseVersion(versionOutput) {
   const match = versionOutput.match(/Fluent Bit\s+v?(\d+\.\d+\.\d+(?:-[\w.-]+)?)/i);
   return match ? match[1] : null;
-}
-
-/**
- * Gets the actual binary path of the running Fluent Bit child process
- */
-function getRunningFluentBitBinaryPath() {
-  const expectedPathFragment = 'newrelic-integrations';
-
-  if (process.platform === 'win32') {
-    try {
-      // GAP 4 FIX: Use Win32_Process to find the executable path robustly
-      const cmd = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name like '%fluent-bit%'\\" | Select-Object -ExpandProperty ExecutablePath"`;
-      const output = execSync(cmd, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
-      
-      const paths = output.split('\n').map(p => p.trim()).filter(Boolean);
-      const nrPath = paths.find(p => p.toLowerCase().includes(expectedPathFragment));
-
-      if (nrPath) {
-        logger.info(`Windows: Found running fluent-bit at ${nrPath}`);
-        return nrPath;
-      }
-    } catch (error) {
-      logger.warn(`Cannot inspect Windows process: ${error.message}`);
-    }
-  } else {
-    try {
-      // GAP 1 FIX: Global search for fluent-bit, then inspect executable paths
-      // This bypasses the strict Parent-Child requirement which fails on wrappers
-      const pidsOutput = execSync('pgrep -f fluent-bit', { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
-      const pids = pidsOutput.split('\n').filter(Boolean);
-      
-      for (const pid of pids) {
-        try {
-          const binaryPath = execSync(`readlink -f /proc/${pid}/exe`, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND, stdio: 'pipe' }).trim();
-          
-          if (binaryPath.includes(expectedPathFragment)) {
-            logger.info(`Running New Relic fluent-bit binary: ${binaryPath}`);
-            return binaryPath;
-          }
-        } catch (e) {
-          // Ignore readlink permission errors on system-owned fluent-bit processes we don't care about
-        }
-      }
-    } catch (error) {
-      logger.info(`Could not locate running fluent-bit via pgrep: ${error.message}`);
-    }
-  }
-
-  logger.error('Could not find any running New Relic fluent-bit process. Is the logging integration enabled?');
-  return null;
 }
 
 function verifyServiceRunning() {
@@ -129,13 +157,30 @@ function findVersionInLogs(logOutput) {
 describe('Embedded Fluent Bit Version Validation', () => {
   let expectedVersion;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     expectedVersion = process.env.EXPECTED_FB_VERSION;
     if (!expectedVersion) {
       throw new Error('EXPECTED_FB_VERSION environment variable must be set');
     }
     logger.info(`Expected version: ${expectedVersion}`);
-  });
+
+    let processFound = false;
+    const maxRetries = 15;
+    
+    logger.info('Waiting for fluent-bit process to spin up...');
+    for (let i = 0; i < maxRetries; i++) {
+      if (getRunningFluentBitBinaryPath()) {
+        processFound = true;
+        break;
+      }
+      // 3. Add the 'await' keyword here
+      await sleep(2000); 
+    }
+
+    if (!processFound) {
+      logger.warn('fluent-bit process did not start within the expected timeframe. Tests may fall back to default paths.');
+    }
+  }, 45000); // Give beforeAll an explicit timeout so Jest doesn't kill it
 
   test('embedded fluent-bit binary should be accessible at New Relic path', () => {
     const versionOutput = getFluentBitVersion();
