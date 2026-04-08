@@ -18,6 +18,17 @@ function safeExec(cmd) {
   }
 }
 
+// ADDED: debugExec function to capture and log hidden stderr messages from the OS
+function debugExec(cmd) {
+  try {
+    return execSync(cmd, { encoding: 'utf8', timeout: TIMEOUTS.FAST_COMMAND }).trim();
+  } catch (error) {
+    logger.error(`[DEBUG Exec] Cmd: ${cmd}`);
+    logger.error(`[DEBUG Exec] Stderr: ${error.stderr ? error.stderr.toString() : 'none'}`);
+    return error.stdout ? error.stdout.toString() : '';
+  }
+}
+
 // Ultra-fast log tailing bypassing heavy shell processes (like PowerShell)
 function tailFileFast(filePath, maxBytes = 1000000) {
   if (!fs.existsSync(filePath)) return '';
@@ -140,6 +151,9 @@ function verifyServiceRunning() {
 }
 
 function findVersionInLogs(logOutput) {
+  // ADDED: Guard clause to prevent TypeError: Cannot read properties of null
+  if (!logOutput) return null;
+
   const lines = logOutput.split('\n');
   let latestVersion = null;
 
@@ -237,13 +251,28 @@ describe('Embedded Fluent Bit Version Validation', () => {
     try {
       if (process.platform === 'win32') {
         const logPath = 'C:\\ProgramData\\New Relic\\newrelic-infra\\newrelic-infra.log'; 
-        logOutput = tailFileFast(logPath); // Bypassing shell/powershell completely 
+        logOutput = tailFileFast(logPath); 
       } else {
-        logOutput = safeExec('journalctl -u newrelic-infra -n 2000 -q --no-pager');
+        // UPDATED: Use debugExec with sudo to catch hidden permission errors
+        logOutput = debugExec('sudo journalctl -u newrelic-infra -n 2000 -q --no-pager') || '';
+        
+        // ADDED: Fallback for RHEL/SLES distros if journalctl comes up empty
+        if (!logOutput || logOutput.trim() === '') {
+            logger.warn('journalctl returned empty. Checking flat files (/var/log/messages & newrelic-infra.log)...');
+            logOutput = debugExec('sudo tail -n 2000 /var/log/newrelic-infra/newrelic-infra.log 2>/dev/null') || 
+                        debugExec('sudo grep "newrelic-infra" /var/log/messages | tail -n 2000 2>/dev/null') || '';
+        }
       }
     } catch (error) {
-      logger.warn(`Could not read newrelic-infra logs (Check permissions): ${error.message}`); 
+      logger.warn(`Could not read newrelic-infra logs: ${error.message}`); 
       return;
+    }
+
+    // ADDED: Surface what we found (or didn't find) to the CI logs
+    if (logOutput) {
+        logger.info(`[DEBUG] First 100 chars of retrieved log: ${logOutput.substring(0, 100).replace(/\n/g, ' ')}...`);
+    } else {
+        logger.error('[DEBUG] logOutput is STILL totally empty after checking journal and flat files.');
     }
 
     const versionInLogs = findVersionInLogs(logOutput);
