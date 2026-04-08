@@ -2,6 +2,6 @@ osDistro: ubuntu
 osVersion: jammy
 packages:
   - arch: amd64
-    ami: ami-0552845828225afdc
+    ami: ami-096a2911074929e0b
   - arch: arm64
-    ami: ami-0d7783ddfbcc9cc3c
+    ami: ami-0ead53d539a2c6a51

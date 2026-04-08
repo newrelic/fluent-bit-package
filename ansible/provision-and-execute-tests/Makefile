@@ -60,6 +60,11 @@ prerelease-linux-test-sles: dependencies prepare-inventory
 prerelease-linux-merge-all: dependencies
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-partial-results.yml -e combined_test_report_name=$(TEST_REPORT_NAME) -e pre_release_name=$(PRE_RELEASE_NAME)
 
+# Aggregate installation reports into a summary table
+.PHONY: prerelease-aggregate-installation-reports
+prerelease-aggregate-installation-reports: dependencies
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-aggregate-installation-reports.yml
+
 .PHONY: prerelease-windows
 prerelease-windows: dependencies prepare-inventory
 	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))
@@ -107,6 +112,10 @@ staging-linux-test-sles: dependencies prepare-inventory
 staging-linux-merge-all: dependencies
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-partial-results.yml -e combined_test_report_name=$(TEST_REPORT_NAME) -e pre_release_name=$(PRE_RELEASE_NAME)
 
+.PHONY: staging-aggregate-installation-reports
+staging-aggregate-installation-reports: dependencies
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-aggregate-installation-reports.yml
+
 .PHONY: staging-windows
 staging-windows: dependencies prepare-inventory
 	TEST_REPORT_NAME=$(TEST_REPORT_NAME) ansible-playbook $(ANSIBLE_FOLDER)/playbook-windows.yml -i $(ANSIBLE_INVENTORY) $(if $(NR_FB_OUTPUT_PLUGIN_VERSION),-e nr_fb_output_plugin_version=$(NR_FB_OUTPUT_PLUGIN_VERSION)) $(if $(NR_FB_OUTPUT_PLUGIN_TAG),-e plugin_tag=$(NR_FB_OUTPUT_PLUGIN_TAG))
@@ -153,6 +162,10 @@ production-linux-test-sles: dependencies prepare-inventory
 .PHONY: production-linux-merge-all
 production-linux-merge-all: dependencies
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-partial-results.yml -e combined_test_report_name=$(TEST_REPORT_NAME) -e pre_release_name=$(PRE_RELEASE_NAME)
+
+.PHONY: production-aggregate-installation-reports
+production-aggregate-installation-reports: dependencies
+	ansible-playbook $(ANSIBLE_FOLDER)/playbook-aggregate-installation-reports.yml
 
 .PHONY: production-windows
 production-windows: dependencies prepare-inventory

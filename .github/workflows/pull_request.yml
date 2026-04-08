@@ -5,6 +5,7 @@ permissions:
   packages: write
   id-token: write
   checks: write
+  pull-requests: write
 
 on: [pull_request]
 
@@ -51,13 +52,10 @@ jobs:
           pre_release_title="Temporary release to build and test artifacts from PR#${{ github.event.pull_request.number }}"
           pre_release_notes="Created by PR: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/pull/${{ github.event.pull_request.number }}"
 
-          # Releases created from a runner are always DRAFT
+          # Releases created from a runner are always DRAFT, so we create then edit
           echo "Creating release: $pre_release_tag"
-          gh release create "$pre_release_tag" --title "$pre_release_title" --notes "$pre_release_notes"
-          # We need the pre-release to NOT be a draft, otherwise it won't be visible to download packages from the Ansible-managed hosts
-          echo "Updating release to be a pre-release"
-          gh release edit "$pre_release_tag" --draft=false --prerelease
-
+          gh release create "$pre_release_tag" --title "$pre_release_title" --notes "$pre_release_notes" --prerelease
+          
       - name: Install python
         # commit sha from v4 tag - verify with: git ls-remote https://github.com/actions/setup-python v4
         uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c

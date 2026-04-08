@@ -257,6 +257,15 @@
       changed_when: false
       when: ansible_system == 'Linux'
 
+    - name: Validate fb_version variable is set and valid
+      ansible.builtin.assert:
+        that:
+          - fb_version is defined
+          - fb_version | length > 0
+          - fb_version is match('^[0-9]+\.[0-9]+\.[0-9]+(?:-[\w.-]+)?$')
+        fail_msg: "fb_version must be set to a valid semantic version (e.g., 4.2.2 or 4.2.2-beta). Current value: {{ fb_version | default('UNDEFINED') }}"
+        success_msg: "fb_version is valid: {{ fb_version }}"
+
     - name: Run test-suite
       ansible.builtin.shell: "source ~/.nvm/nvm.sh && npm run test"
       args:
@@ -275,6 +284,10 @@
         MONITORED_SYSLOG_RFC_5424_TCP_PORT: "{{ monitored_syslog_rfc_5424_tcp_port }}"
         MONITORED_SYSLOG_RFC_5424_UDP_PORT: "{{ monitored_syslog_rfc_5424_udp_port }}"
         MONITORED_SYSTEMD_UNIT: "{{ monitored_systemd_unit }}"
+        EXPECTED_FB_VERSION: "{{ fb_version }}"
+        OS_DISTRO: "{{ os_distro }}"
+        OS_VERSION: "{{ os_version }}"
+        OS_ARCH: "{{ arch }}"
       register: test_job
 
     # Robust async status check with connection recovery
@@ -435,3 +448,27 @@
       ansible.builtin.debug:
         msg: "Fetch completed for {{ inventory_hostname }}: {{ 'primary succeeded' if (fetch_result is defined and fetch_result is succeeded) else 'recovered via rescue' }}"
       when: fetch_result is defined or final_fetch_result is defined
+
+    # Fetch installation report JSON for aggregation
+    - name: Fetch installation report for aggregation
+      block:
+        - name: Check if installation report exists
+          ansible.builtin.stat:
+            path: /tmp/fluent-bit-installation-report.json
+          register: report_stat
+
+        - name: Fetch installation report
+          fetch:
+            flat: true
+            src: /tmp/fluent-bit-installation-report.json
+            dest: "{{ test_reports_dir }}/installation-report-{{ os_distro }}-{{ os_version }}-{{ arch }}.json"
+          when: report_stat.stat.exists
+          register: report_fetch_result
+          retries: 3
+          delay: 10
+          until: report_fetch_result is succeeded
+      rescue:
+        - name: Log installation report fetch failure
+          ansible.builtin.debug:
+            msg: "Could not fetch installation report for {{ inventory_hostname }}, continuing..."
+      ignore_errors: true

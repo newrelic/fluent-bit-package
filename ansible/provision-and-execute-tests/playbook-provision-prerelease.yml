@@ -50,15 +50,39 @@
 #        falcon_customer_id: "{{ lookup('env', 'CROWDSTRIKE_CUSTOMER_ID') }}"
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
-    - name: Install  newrelic-infra agent
-      ansible.builtin.include_role:
-        name: caos.ansible_roles.newrelic_cli
-      vars:
-        repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
-        recipe: "newrelic-infra"
-        region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
-        nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
-        nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+    - name: Install newrelic-infra agent with retry logic
+      block:
+        - name: Install newrelic-infra agent
+          ansible.builtin.include_role:
+            name: caos.ansible_roles.newrelic_cli
+          vars:
+            repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+            recipe: "newrelic-infra"
+            region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+            nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+            nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+      rescue:
+        - name: Log installation failure for observability
+          ansible.builtin.debug:
+            msg: "WARNING: newrelic-infra installation failed on {{ inventory_hostname }}. Retrying in 30s..."
+
+        - name: Wait before retry
+          ansible.builtin.pause:
+            seconds: 30
+
+        - name: Retry newrelic-infra agent installation
+          ansible.builtin.include_role:
+            name: caos.ansible_roles.newrelic_cli
+          vars:
+            repo_endpoint: "https://nr-downloads-main.s3.amazonaws.com/"
+            recipe: "newrelic-infra"
+            region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
+            nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
+            nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
+
+        - name: Log successful retry
+          ansible.builtin.debug:
+            msg: "SUCCESS: newrelic-infra installation completed after retry on {{ inventory_hostname }}"
 
 - name: Install fluent-bit from GH prerelease
   hosts: linux
