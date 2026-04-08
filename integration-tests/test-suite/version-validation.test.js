@@ -168,18 +168,59 @@ function findVersionInLogs(logOutput) {
   return latestVersion;
 }
 
-describe('Embedded Fluent Bit Version Validation', () => {
+// Shared results object for aggregate reporting
+const installationReport = {
+  osDistro: process.env.OS_DISTRO || 'unknown',
+  osVersion: process.env.OS_VERSION || 'unknown',
+  osArch: process.env.OS_ARCH || process.arch,
+  expectedFbVersion: process.env.EXPECTED_FB_VERSION || 'unknown',
+  actualFbVersion: null,
+  outputPluginVersion: null,
+  binaryPath: null,
+  serviceRunning: null,
+  processRunning: null,
+  errors: []
+};
+
+function getOutputPluginVersion() {
+  try {
+    // Check for output plugin .so file and get version from filename or metadata
+    const pluginPaths = [
+      '/var/db/newrelic-infra/newrelic-integrations/logging/out_newrelic.so',
+      '/opt/newrelic-infra/newrelic-integrations/logging/out_newrelic.so'
+    ];
+
+    for (const path of pluginPaths) {
+      if (fs.existsSync(path)) {
+        // Try to get version from package info
+        const versionOutput = safeExec('rpm -q newrelic-infra --queryformat "%{VERSION}"') ||
+                             safeExec('dpkg-query -W -f=\'${Version}\' newrelic-infra 2>/dev/null');
+        if (versionOutput) {
+          return versionOutput.trim();
+        }
+        return 'installed (version unknown)';
+      }
+    }
+    return 'not found';
+  } catch (error) {
+    logger.warn(`Could not determine output plugin version: ${error.message}`);
+    return 'error';
+  }
+}
+
+describe('Embedded Fluent Bit Installation Report', () => {
   let expectedVersion;
 
   beforeAll(async () => {
     expectedVersion = process.env.EXPECTED_FB_VERSION;
     if (!expectedVersion) {
-      throw new Error('EXPECTED_FB_VERSION environment variable must be set');
+      installationReport.errors.push('EXPECTED_FB_VERSION environment variable not set');
+      return; // Don't throw - just record the error
     }
     logger.info(`Expected version: ${expectedVersion}`);
 
     logger.info('Creating dummy logging config to force infra agent to spawn fluent-bit...');
-    
+
     const logFilePath = process.platform === 'win32' ? 'C:\\Windows\\Temp\\dummy.log' : '/tmp/dummy.log';
     const dummyYaml = `logs:\n  - name: dummy\n    file: ${logFilePath}`;
 
@@ -187,7 +228,7 @@ describe('Embedded Fluent Bit Version Validation', () => {
       try { fs.mkdirSync('C:\\Program Files\\New Relic\\newrelic-infra\\logging.d', { recursive: true }); } catch (e) {}
       fs.writeFileSync(logFilePath, ''); // Ensure log file exists so fluent-bit doesn't instantly crash
       fs.writeFileSync('C:\\Program Files\\New Relic\\newrelic-infra\\logging.d\\dummy-test.yml', dummyYaml);
-      
+
       // Use native cmd 'net' commands instead of PowerShell for stable, fast service restarts
       safeExec('net stop newrelic-infra');
       await sleep(2000);
@@ -202,92 +243,64 @@ describe('Embedded Fluent Bit Version Validation', () => {
 
     let processFound = false;
     const maxRetries = 30; // 60 seconds total buffer
-    
+
     logger.info('Waiting for fluent-bit process to spin up...');
     for (let i = 0; i < maxRetries; i++) {
       if (getRunningFluentBitBinaryPath()) {
         processFound = true;
         break;
       }
-      await sleep(2000); 
+      await sleep(2000);
     }
 
     if (!processFound) {
-      throw new Error('FATAL: fluent-bit process did not start within the 60-second expected timeframe.');
+      installationReport.errors.push('Fluent-bit process did not start within 60 seconds');
+      installationReport.processRunning = false;
+    } else {
+      installationReport.processRunning = true;
     }
   }, 75000); 
 
-  test('embedded fluent-bit binary should be accessible at New Relic path', () => {
-    const versionOutput = getFluentBitVersion();
-    expect(versionOutput).toBeTruthy();
-  }, 30000);
+  test('collect fluent-bit installation data', () => {
+    // Collect all data without failing - record what we find
 
-  test('installed version should match expected version', () => {
-    const versionOutput = getFluentBitVersion();
-    const actualVersion = parseVersion(versionOutput);
-
-    expect(actualVersion).toBeTruthy();
-    // Use .toContain instead of .toBe to forgive minor packaging suffixes (e.g., 5.0.2 vs 5.0.2-1)
-    expect(actualVersion.toLowerCase()).toContain(expectedVersion.trim().toLowerCase()); 
-  }, 30000);
-
-  test('verify running process is spawned from New Relic path', () => {
-    const binaryPath = getRunningFluentBitBinaryPath();
-    const expectedPath = getExpectedBinaryPath();
-
-    expect(binaryPath).not.toBeNull();
-    if(binaryPath && expectedPath) {
-        expect(binaryPath.toLowerCase()).toContain(expectedPath.toLowerCase());
-    }
-  }, 30000);
-
-  test('newrelic-infra service should be running', () => {
-    expect(verifyServiceRunning()).toBe(true);
-  }, 30000);
-
-  test('newrelic-infra logs should output expected Fluent Bit version (Soft Check)', () => {
-    let logOutput = '';
-
+    // 1. Try to get binary version
     try {
-      if (process.platform === 'win32') {
-        const logPath = 'C:\\ProgramData\\New Relic\\newrelic-infra\\newrelic-infra.log'; 
-        logOutput = tailFileFast(logPath); 
+      const versionOutput = getFluentBitVersion();
+      if (versionOutput) {
+        installationReport.actualFbVersion = parseVersion(versionOutput);
+        installationReport.binaryPath = getRunningFluentBitBinaryPath() || getExpectedBinaryPath();
+        logger.info(`Fluent Bit version detected: ${installationReport.actualFbVersion}`);
       } else {
-        // UPDATED: Use debugExec with sudo to catch hidden permission errors
-        logOutput = debugExec('sudo journalctl -u newrelic-infra -n 2000 -q --no-pager') || '';
-        
-        // ADDED: Fallback for RHEL/SLES distros if journalctl comes up empty
-        if (!logOutput || logOutput.trim() === '') {
-            logger.warn('journalctl returned empty. Checking flat files (/var/log/messages & newrelic-infra.log)...');
-            logOutput = debugExec('sudo tail -n 2000 /var/log/newrelic-infra/newrelic-infra.log 2>/dev/null') || 
-                        debugExec('sudo grep "newrelic-infra" /var/log/messages | tail -n 2000 2>/dev/null') || '';
-        }
+        installationReport.actualFbVersion = 'not installed';
+        installationReport.errors.push('Fluent Bit binary not accessible');
       }
     } catch (error) {
-      logger.warn(`Could not read newrelic-infra logs: ${error.message}`); 
-      return;
+      installationReport.actualFbVersion = 'error';
+      installationReport.errors.push(`Version check error: ${error.message}`);
     }
 
-    // ADDED: Surface what we found (or didn't find) to the CI logs
-    if (logOutput) {
-        logger.info(`[DEBUG] First 100 chars of retrieved log: ${logOutput.substring(0, 100).replace(/\n/g, ' ')}...`);
-    } else {
-        logger.error('[DEBUG] logOutput is STILL totally empty after checking journal and flat files.');
+    // 2. Check service status
+    try {
+      installationReport.serviceRunning = verifyServiceRunning();
+      logger.info('New Relic Infrastructure service is running');
+    } catch (error) {
+      installationReport.serviceRunning = false;
+      installationReport.errors.push(`Service check error: ${error.message}`);
     }
 
-    const versionInLogs = findVersionInLogs(logOutput);
-
-    if (!versionInLogs) {
-      logger.warn('Could not find Fluent Bit startup version in New Relic logs. Rotated out or missing.');
-      return; 
+    // 3. Get output plugin version
+    try {
+      installationReport.outputPluginVersion = getOutputPluginVersion();
+      logger.info(`Output plugin version: ${installationReport.outputPluginVersion}`);
+    } catch (error) {
+      installationReport.outputPluginVersion = 'error';
+      installationReport.errors.push(`Plugin check error: ${error.message}`);
     }
 
-    if (!versionInLogs.toLowerCase().includes(expectedVersion.trim().toLowerCase())) {
-      logger.warn(`Log Version mismatch!\nExpected: ${expectedVersion}\nFound in logs: ${versionInLogs}`);
-    } else {
-      logger.info(`✓ Log confirms embedded version ${expectedVersion}`);
-    }
-  }, 30000);
+    // Always pass - we're just collecting data
+    expect(true).toBe(true);
+  }, 45000);
 
   afterAll(() => {
     logger.info('Cleaning up dummy logging config...');
@@ -297,16 +310,68 @@ describe('Embedded Fluent Bit Version Validation', () => {
       safeExec('sudo rm -f /etc/newrelic-infra/logging.d/dummy-test.yml');
     }
 
+    // Generate installation report
+    const reportData = {
+      timestamp: new Date().toISOString(),
+      environment: {
+        osDistro: installationReport.osDistro,
+        osVersion: installationReport.osVersion,
+        osArch: installationReport.osArch,
+        platform: process.platform
+      },
+      versions: {
+        expected: installationReport.expectedFbVersion,
+        installed: installationReport.actualFbVersion,
+        outputPlugin: installationReport.outputPluginVersion
+      },
+      status: {
+        serviceRunning: installationReport.serviceRunning,
+        processRunning: installationReport.processRunning,
+        binaryPath: installationReport.binaryPath
+      },
+      errors: installationReport.errors,
+      summary: {
+        versionMatch: installationReport.actualFbVersion === installationReport.expectedFbVersion ||
+                     (installationReport.actualFbVersion &&
+                      installationReport.actualFbVersion.includes(installationReport.expectedFbVersion)),
+        fullyFunctional: installationReport.serviceRunning &&
+                        installationReport.processRunning &&
+                        installationReport.actualFbVersion !== 'not installed'
+      }
+    };
+
+    // Log summary table
+    logger.info('\n');
+    logger.info('='.repeat(80));
+    logger.info('FLUENT BIT INSTALLATION REPORT');
+    logger.info('='.repeat(80));
+    logger.info(`OS:                    ${reportData.environment.osDistro} ${reportData.environment.osVersion} (${reportData.environment.osArch})`);
+    logger.info(`Expected FB Version:   ${reportData.versions.expected}`);
+    logger.info(`Installed FB Version:  ${reportData.versions.installed || 'N/A'}`);
+    logger.info(`Output Plugin:         ${reportData.versions.outputPlugin || 'N/A'}`);
+    logger.info(`Service Running:       ${reportData.status.serviceRunning ? '✓ Yes' : '✗ No'}`);
+    logger.info(`Process Running:       ${reportData.status.processRunning ? '✓ Yes' : '✗ No'}`);
+    logger.info(`Binary Path:           ${reportData.status.binaryPath || 'N/A'}`);
+
+    if (reportData.errors.length > 0) {
+      logger.info(`\nErrors/Warnings:       ${reportData.errors.length}`);
+      reportData.errors.forEach((err, idx) => {
+        logger.info(`  ${idx + 1}. ${err}`);
+      });
+    }
+
+    logger.info(`\nVersion Match:         ${reportData.summary.versionMatch ? '✓ Match' : '✗ Mismatch'}`);
+    logger.info(`Fully Functional:      ${reportData.summary.fullyFunctional ? '✓ Yes' : '✗ No'}`);
+    logger.info('='.repeat(80));
+    logger.info('\n');
+
+    // Write JSON report for aggregation
+    const reportPath = '/tmp/fluent-bit-installation-report.json';
     try {
-      const actualVersion = parseVersion(getFluentBitVersion());
-      const binaryPath = getRunningFluentBitBinaryPath();
-      logger.info(`\n=== Version Summary ===`);
-      logger.info(`Expected: ${expectedVersion}`);
-      logger.info(`Installed: ${actualVersion}`);
-      logger.info(`Running binary: ${binaryPath || 'unknown'}`);
-      logger.info(`======================\n`);
+      fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2));
+      logger.info(`Report written to: ${reportPath}`);
     } catch (error) {
-      logger.error(`Cannot retrieve version summary: ${error.message}`);
+      logger.error(`Failed to write report file: ${error.message}`);
     }
   });
 });

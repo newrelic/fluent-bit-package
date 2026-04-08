@@ -1,0 +1,99 @@
+- name: Aggregate Fluent Bit Installation Reports
+  hosts: localhost
+  gather_facts: no
+  vars:
+    test_reports_dir: /tmp/test-reports
+    pre_release_name: "{{ lookup('env', 'PRE_RELEASE_NAME') | default('unknown', true) }}"
+  tasks:
+    - name: Check if test reports directory exists
+      ansible.builtin.stat:
+        path: "{{ test_reports_dir }}"
+      register: reports_dir_stat
+
+    - name: Fail if reports directory doesn't exist
+      ansible.builtin.fail:
+        msg: "Test reports directory {{ test_reports_dir }} does not exist"
+      when: not reports_dir_stat.stat.exists
+
+    - name: Find installation report JSON files
+      ansible.builtin.find:
+        paths: "{{ test_reports_dir }}"
+        patterns: 'installation-report-*.json'
+      register: installation_reports
+
+    - name: Log number of reports found
+      ansible.builtin.debug:
+        msg: "Found {{ installation_reports.files | length }} installation reports"
+
+    - name: Check if aggregate script exists
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../../integration-tests/aggregate-reports.js"
+      register: aggregate_script_stat
+
+    - name: Ensure Node.js is available
+      ansible.builtin.command: which node
+      register: node_check
+      failed_when: false
+      changed_when: false
+
+    - name: Run aggregation script
+      ansible.builtin.command: node {{ playbook_dir }}/../../integration-tests/aggregate-reports.js {{ test_reports_dir }}
+      register: aggregation_result
+      changed_when: false
+      failed_when: false  # Don't fail the whole playbook if aggregation fails
+      when:
+        - installation_reports.files | length > 0
+        - aggregate_script_stat.stat.exists
+        - node_check.rc == 0
+
+    - name: Display aggregation output
+      ansible.builtin.debug:
+        msg: "{{ aggregation_result.stdout_lines }}"
+      when:
+        - aggregation_result is defined
+        - aggregation_result.stdout_lines is defined
+
+    - name: Check if aggregate markdown report was created
+      ansible.builtin.stat:
+        path: "{{ test_reports_dir }}/fluent-bit-aggregate-report.md"
+      register: aggregate_md_stat
+
+    - name: Display aggregate markdown report
+      ansible.builtin.command: cat {{ test_reports_dir }}/fluent-bit-aggregate-report.md
+      register: aggregate_report_content
+      changed_when: false
+      when: aggregate_md_stat.stat.exists
+
+    - name: Print aggregate report to console
+      ansible.builtin.debug:
+        msg: "{{ aggregate_report_content.stdout_lines }}"
+      when:
+        - aggregate_report_content is defined
+        - aggregate_report_content.stdout_lines is defined
+
+    - name: Upload aggregate report to GitHub release (if configured)
+      ansible.builtin.command: gh release upload {{ pre_release_name }} {{ test_reports_dir }}/fluent-bit-aggregate-report.md --clobber
+      register: gh_upload
+      changed_when: false
+      failed_when: false
+      when:
+        - aggregate_md_stat.stat.exists
+        - pre_release_name != 'unknown'
+        - pre_release_name is not regex('^local-.*')
+
+    - name: Upload aggregate JSON to GitHub release (if configured)
+      ansible.builtin.command: gh release upload {{ pre_release_name }} {{ test_reports_dir }}/fluent-bit-aggregate-report.json --clobber
+      register: gh_upload_json
+      changed_when: false
+      failed_when: false
+      when:
+        - aggregate_md_stat.stat.exists
+        - pre_release_name != 'unknown'
+        - pre_release_name is not regex('^local-.*')
+
+    - name: Log upload status
+      ansible.builtin.debug:
+        msg:
+          - "Markdown report upload: {{ 'success' if (gh_upload is defined and gh_upload.rc == 0) else 'skipped or failed' }}"
+          - "JSON report upload: {{ 'success' if (gh_upload_json is defined and gh_upload_json.rc == 0) else 'skipped or failed' }}"
+      when: gh_upload is defined or gh_upload_json is defined
