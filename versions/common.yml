@@ -1,4 +1,4 @@
-fbVersion: 4.2.2
+fbVersion: 5.0.6
 
 # New Relic Fluent Bit Output Plugin Configuration
 # These values are used during E2E testing to download and test a specific version of the NR output plugin
