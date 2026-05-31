@@ -4,6 +4,7 @@ permissions:
   contents: read
   id-token: write
   checks: write
+  pull-requests: write
 
 on:
   # To be able to launch it from pull_request.yml programmatically
