@@ -2,7 +2,7 @@ name: Merge to main
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
   id-token: write
   checks: write
 
