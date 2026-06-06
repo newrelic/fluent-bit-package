@@ -1,0 +1,7 @@
+osDistro: ubuntu
+osVersion: resolute
+packages:
+  - arch: amd64
+    ami: ami-0fe18bc3cfa53a248
+  - arch: arm64
+    ami: ami-005e7d5b13cc4b72b
