@@ -1,5 +1,16 @@
 #!/bin/bash
 
+%{if os_distro == "ubuntu" && os_version == "resolute"}
+# Ubuntu 26.04 (resolute) ships sudo-rs (the Rust sudo) instead of classic sudo.
+# sudo-rs runs the command in its own PTY (use_pty) by default; when it tears that
+# PTY down, the per-command end-marker that the community.aws.aws_ssm connection
+# plugin waits for is swallowed, so every Ansible `become` task times out and the
+# host is reported UNREACHABLE (which hangs provision -> tests -> merge). Disabling
+# use_pty restores the marker. No-op on older Ubuntu (classic sudo).
+echo 'Defaults !use_pty' > /etc/sudoers.d/99-disable-use-pty
+chmod 440 /etc/sudoers.d/99-disable-use-pty
+%{endif}
+
 %{if os_distro == "centos" || os_distro == "rockylinux"}
 %{if os_version == 7}
 sudo sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
@@ -21,5 +32,7 @@ wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_${arc
 sudo dpkg -i amazon-ssm-agent.deb
 %{endif}
 
+%{if !(os_distro == "ubuntu" && os_version == "resolute")}
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
+%{endif}
