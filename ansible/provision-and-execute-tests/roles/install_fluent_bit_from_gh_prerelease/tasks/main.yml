@@ -10,7 +10,8 @@
     name: newrelic-infra
     state: stopped
   become: true
-  when: ansible_system == 'Linux'
+  # Skip where newrelic-infra isn't installed (e.g. resolute); default true elsewhere.
+  when: ansible_system == 'Linux' and (nria_available | default(true))
 
 - name: Stop newrelic-infra service (Windows)
   ansible.windows.win_service:
@@ -31,7 +32,7 @@
     name: newrelic-infra
     state: started
   become: true
-  when: ansible_system == 'Linux'
+  when: ansible_system == 'Linux' and (nria_available | default(true))
 
 - name: Start again newrelic-infra service with new Fluent Bit binary (Windows)
   ansible.windows.win_service:

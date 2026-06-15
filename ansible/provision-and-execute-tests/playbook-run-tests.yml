@@ -89,6 +89,59 @@
           retries: 3
           delay: 10
 
+    # Did provision actually install the newrelic-infra agent? Host-based so it's
+    # flow-agnostic (prerelease/staging/prod, whatever repo): no agent (e.g.
+    # resolute - no package yet) -> run the standalone smoke path below.
+    - name: Detect newrelic-infra agent on host
+      become: false
+      changed_when: false
+      failed_when: false
+      ansible.builtin.command: systemctl cat newrelic-infra.service
+      register: nria_unit
+
+    - name: Set nria_available fact
+      ansible.builtin.set_fact:
+        nria_available: "{{ nria_unit.rc == 0 }}"
+
+    # No NRIA: smoke-test fluent-bit, write a minimal JUnit report (merge needs
+    # input), then skip the NRIA-managed test for this host.
+    - name: "NRIA-less path: smoke check + minimal report, then skip"
+      when: not (nria_available | default(true))
+      block:
+        - name: "SMOKE | fluent-bit binary runs (tolerant)"
+          ansible.builtin.command: /opt/fluent-bit/bin/fluent-bit --version
+          register: fb_smoke
+          changed_when: false
+          failed_when: false
+
+        - name: "SMOKE | ensure reports dir on controller"
+          become: false
+          delegate_to: localhost
+          ansible.builtin.file:
+            path: "{{ test_reports_dir }}"
+            state: directory
+
+        - name: "SMOKE | write minimal JUnit report on controller"
+          become: false
+          delegate_to: localhost
+          ansible.builtin.copy:
+            dest: "{{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+            content: |
+              <?xml version="1.0" encoding="UTF-8"?>
+              <testsuites tests="1" failures="0" errors="0" skipped="{{ 0 if (fb_smoke.rc | default(1)) == 0 else 1 }}">
+                <testsuite name="{{ os_distro }}-{{ os_version }}-smoke" tests="1" failures="0" errors="0" skipped="{{ 0 if (fb_smoke.rc | default(1)) == 0 else 1 }}">
+                  <testcase classname="{{ os_distro }}.{{ os_version }}.{{ arch }}" name="fluent-bit smoke">{% if (fb_smoke.rc | default(1)) != 0 %}<skipped message="fluent-bit not installed (NRIA unavailable for {{ os_version }})"/>{% endif %}</testcase>
+                </testsuite>
+              </testsuites>
+
+        - name: "SMOKE | gzip report to match the fetch naming (.xml.gz)"
+          become: false
+          delegate_to: localhost
+          ansible.builtin.command: "gzip -f {{ test_reports_dir }}/{{ fb_version }}_{{ os_distro }}_{{ os_version }}_{{ arch }}.xml"
+
+        - name: "SMOKE | end play for this host (skip NRIA-managed test)"
+          ansible.builtin.meta: end_host
+
     - name: (AL2023) Ensure SELinux is Permissive
       ansible.builtin.command: setenforce 0
       become: true

@@ -11,6 +11,25 @@
   become: true
   gather_facts: no
   tasks:
+    # Ubuntu 26.04 (resolute) ships sudo-rs, whose use_pty default desyncs the
+    # aws_ssm marker on module become; write !use_pty via raw become first.
+    - name: "PRE | non-become connectivity"
+      become: false
+      when: tags.os_distro == 'ubuntu' and tags.os_version == 'resolute'
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 180
+
+    - name: "PRE | bootstrap disable sudo use_pty (raw become, idempotent)"
+      become: true
+      when: tags.os_distro == 'ubuntu' and tags.os_version == 'resolute'
+      timeout: 90
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      ansible.builtin.raw: |
+        test -f /etc/sudoers.d/99-disable-use-pty || { echo 'Defaults !use_pty' > /etc/sudoers.d/99-disable-use-pty && chmod 440 /etc/sudoers.d/99-disable-use-pty; }
+
     - name: Establish initial connection to host
       block:
         - name: Wait for connection to be available
@@ -39,6 +58,29 @@
     - name: Gather facts for first time
       ansible.builtin.setup:
     
+    # No newrelic-infra package for some codenames yet (e.g. resolute); probe the
+    # repo we install from (NRIA_REPO_ENDPOINT) and skip the install if it's absent.
+    - name: Probe NRIA availability in the configured repo
+      become: false
+      changed_when: false
+      failed_when: false
+      ansible.builtin.shell: |
+        . /etc/os-release
+        ep="$(printf '%s' "$NRIA_REPO_ENDPOINT" | sed 's:/*$::')"
+        base="$ep/infrastructure_agent/linux/apt/dists/$VERSION_CODENAME"
+        rel=$(curl -s -o /dev/null -w '%{http_code}' "$base/Release")
+        cnt=$(curl -s "$base/main/binary-amd64/Packages.gz" | gunzip 2>/dev/null | grep -c '^Package: newrelic-infra$')
+        echo "${rel:-000} ${cnt:-0}"
+      environment:
+        NRIA_REPO_ENDPOINT: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+      register: nria_probe
+
+    - name: Set nria_available fact
+      ansible.builtin.set_fact:
+        nria_available: >-
+          {{ not ((nria_probe.stdout | default('000 0')).split()[0] == '200'
+                  and ((nria_probe.stdout | default('000 0')).split()[1] | int) == 0) }}
+
     - name: Ensure 'which' command is installed
       ansible.builtin.package:
         name: which
@@ -55,6 +97,7 @@
 #        api_base_url: "https://api.laggar.gcw.crowdstrike.com"
 
     - name: Install newrelic-infra agent with retry logic
+      when: nria_available | default(true)
       block:
         - name: Install newrelic-infra agent
           ansible.builtin.include_role:
