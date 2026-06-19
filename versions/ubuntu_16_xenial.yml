@@ -1,0 +1,5 @@
+osDistro: ubuntu
+osVersion: xenial
+packages:
+  - arch: amd64
+    ami: ami-0b4636c5dbb9cc605
