@@ -85,7 +85,10 @@ module "ec2_instance" {
     )
   )
 
-  user_data = contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
+  # Ubuntu 26.04 (resolute) needs this user_data too: it ships sudo-rs, whose use_pty
+  # default breaks Ansible `become` over the SSM connection (details in the .tftpl).
+  # All other distros/versions are unchanged.
+  user_data = (contains(local.os_distros_requiring_user_data_script_for_ssm, each.value.osDistro) || (each.value.osDistro == "ubuntu" && each.value.osVersion == "resolute")) ? templatefile(local.user_data_script_for_ssm_path, { os_distro = each.value.osDistro, arch = each.value.arch, os_version = each.value.osVersion }) : null
 
   # Include fields from the strategy matrix into the EC2 instance tags. Thanks to this, we are able to know which Fluent
   # Bit version and for which OS version and arch is each EC2 instance meant to compile/test. This is later read in the

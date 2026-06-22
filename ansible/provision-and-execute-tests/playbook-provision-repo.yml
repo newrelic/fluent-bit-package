@@ -11,6 +11,25 @@
   become: true
   gather_facts: no
   tasks:
+    # Same sudo-rs use_pty fix as the prerelease playbook: write the !use_pty
+    # drop-in via a raw `become` before the first sudo task. Resolute only; safe to re-run.
+    - name: "PRE | non-become connectivity"
+      become: false
+      when: tags.os_distro == 'ubuntu' and tags.os_version == 'resolute'
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 180
+
+    - name: "PRE | bootstrap disable sudo use_pty (raw become, idempotent)"
+      become: true
+      when: tags.os_distro == 'ubuntu' and tags.os_version == 'resolute'
+      timeout: 90
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      ansible.builtin.raw: |
+        test -f /etc/sudoers.d/99-disable-use-pty || { echo 'Defaults !use_pty' > /etc/sudoers.d/99-disable-use-pty && chmod 440 /etc/sudoers.d/99-disable-use-pty; }
+
     - name: Establish initial connection to host
       block:
         - name: Wait for connection to be available
