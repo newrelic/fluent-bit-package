@@ -35,6 +35,8 @@ jobs:
       linux_and_windows_matrix: ${{ steps.set-matrices.outputs.linux_and_windows_matrix }}
       linux_and_windows_unique_target_package : ${{ steps.set-matrices.outputs.linux_and_windows_unique_target_package }}
       windows_matrix: ${{ steps.set-matrices.outputs.windows_matrix }}
+      apt_matrix: ${{ steps.set-matrices.outputs.apt_matrix }}
+      yum_matrix: ${{ steps.set-matrices.outputs.yum_matrix }}
     steps:
       - name: Checkout code
         # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
@@ -77,6 +79,8 @@ jobs:
           echo "linux_and_windows_unique_target_package=$(echo $filtered_json)" >> "$GITHUB_OUTPUT"
           echo "sles_matrix=$( cat versions/slesMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "apt_matrix=$( cat versions/aptMatrix.json )" >> "$GITHUB_OUTPUT"
+          echo "yum_matrix=$( cat versions/yumMatrix.json )" >> "$GITHUB_OUTPUT"
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
@@ -196,6 +200,8 @@ jobs:
       sles_matrix: ${{ needs.setup_environment.outputs.sles_matrix }}
       pre_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       windows_matrix: ${{ needs.setup_environment.outputs.windows_matrix }}
+      apt_matrix: ${{ needs.setup_environment.outputs.apt_matrix }}
+      yum_matrix: ${{ needs.setup_environment.outputs.yum_matrix }}
       nr_fb_output_plugin_version: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_version }}
       nr_fb_output_plugin_tag: ${{ needs.setup_environment.outputs.nr_fb_output_plugin_tag }}
       cleanup_on_failure: ${{ needs.setup_environment.outputs.always_cleanup_test_instances == 'true' }}  # Convert string to boolean - Read from versions/common.yml (alwaysCleanupTestInstances)

@@ -7,6 +7,8 @@ generateMatrices:
 	cat prodAndStagingMatrix.json | jq 'map(select(.osDistro == "sles"))' -c > slesMatrix.json
 	cat prodAndStagingMatrix.json | jq 'map(select(.osDistro != "sles"))' -c > linuxAndWindowsMatrix.json
 	cat prodAndStagingMatrix.json | jq 'map(select(.osDistro == "windows-server"))' -c > windowsMatrix.json
+	cat prodAndStagingMatrix.json | jq 'map(select(.osDistro == "debian" or .osDistro == "ubuntu"))' -c > aptMatrix.json
+	cat prodAndStagingMatrix.json | jq 'map(select(.osDistro == "amazonlinux" or .osDistro == "centos" or .osDistro == "rockylinux"))' -c > yumMatrix.json
 	# used to generate proper schemas in schema.linux.py
 	cat strategyMatrix.json | jq 'map(select(.isStaging == false))' -c > stagingMatrix.json
 	cat strategyMatrix.json | jq 'map(select(.isProduction == false))' -c > productionMatrix.json
