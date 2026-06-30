@@ -25,6 +25,8 @@
     deb: "/tmp/{{ fb_package_name }}"
     # We want our package to overwrite the one that comes with the Infra Agent, even if it implies downgrading it
     allow_downgrade: true
+    # Refresh apt index so deps resolve (arm64 resolute: libpq5).
+    update_cache: true
     state: present
   register: install_result
   until: install_result is succeeded
