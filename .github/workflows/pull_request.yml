@@ -27,6 +27,7 @@ jobs:
   setup_environment:
     runs-on: ubuntu-latest
     outputs:
+      can_manage_prerelease: ${{ steps.release_access.outputs.can_manage_prerelease }}
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
       nr_fb_output_plugin_version: ${{ steps.set_vars.outputs.nr_fb_output_plugin_version }}
       nr_fb_output_plugin_tag: ${{ steps.set_vars.outputs.nr_fb_output_plugin_tag }}
@@ -42,7 +43,18 @@ jobs:
         # commit sha from v3 tag - verify with: git ls-remote https://github.com/actions/checkout v3
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
 
+      - name: Check whether this PR can manage pre-release assets
+        id: release_access
+        run: |
+          if [[ "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+            echo "can_manage_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_manage_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping pre-release creation for forked pull request."
+          fi
+
       - name: (Re)create pre-release
+        if: ${{ steps.release_access.outputs.can_manage_prerelease == 'true' }}
         run: |
           pre_release_exists=$(gh release view $PRE_RELEASE_NAME &>/dev/null && echo "true" || echo "false")
           if [[ $pre_release_exists == "true" ]]; then
@@ -69,7 +81,7 @@ jobs:
 
       # Creation of linux_and_windows_unique_target_package is necessary due to the upgrade of actions/upload-artifact from v3 to v4.
       # The v4 action throws an error when package names are duplicated, which is the case for Windows packages.
-      - name: Compute and upload matrices
+      - name: Compute matrices
         id: set-matrices
         run: |
           make versions/generateMatrices
@@ -81,6 +93,10 @@ jobs:
           echo "windows_matrix=$( cat versions/windowsMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "apt_matrix=$( cat versions/aptMatrix.json )" >> "$GITHUB_OUTPUT"
           echo "yum_matrix=$( cat versions/yumMatrix.json )" >> "$GITHUB_OUTPUT"
+
+      - name: Upload matrices to pre-release
+        if: ${{ steps.release_access.outputs.can_manage_prerelease == 'true' }}
+        run: |
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/linuxAndWindowsMatrix.json --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} versions/slesMatrix.json --repo newrelic/fluent-bit-package
 
@@ -104,9 +120,13 @@ jobs:
           always_cleanup_test_instances=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].alwaysCleanupTestInstances // true')
           echo "always_cleanup_test_instances=${always_cleanup_test_instances}" >> $GITHUB_OUTPUT
 
-      - name: Compute and upload schemas
+      - name: Compute schemas
         run: |
           make schemas/generateSchemas;
+
+      - name: Upload schemas to pre-release
+        if: ${{ steps.release_access.outputs.can_manage_prerelease == 'true' }}
+        run: |
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml --repo newrelic/fluent-bit-package
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-production.yaml --repo newrelic/fluent-bit-package
 
@@ -116,7 +136,7 @@ jobs:
   download_official_packages:
     needs: [setup_environment]
     runs-on: ubuntu-latest
-    if: ${{ needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
+    if: ${{ needs.setup_environment.outputs.can_manage_prerelease == 'true' && needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
     strategy:
       fail-fast: true
       matrix:
@@ -174,8 +194,9 @@ jobs:
           overwrite: true
 
   upload_official_packages_to_prerelease:
-    needs: [ download_official_packages ]
+    needs: [ setup_environment, download_official_packages ]
     runs-on: ubuntu-latest
+    if: ${{ needs.setup_environment.outputs.can_manage_prerelease == 'true' }}
 
     steps:
       - name: Download all artifacts from shared filesystem
@@ -191,6 +212,7 @@ jobs:
 
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
+    if: ${{ needs.setup_environment.outputs.can_manage_prerelease == 'true' }}
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
     uses: ./.github/workflows/run_prerelease.yml
     with:
@@ -210,6 +232,7 @@ jobs:
   publish_linux_to_staging:
     name: Publish linux packages to staging
     needs: [ setup_environment, run_e2e_tests_prerelease ]
+    if: ${{ needs.setup_environment.outputs.can_manage_prerelease == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Publish linux packages to staging
@@ -236,6 +259,7 @@ jobs:
 
   run_e2e_tests_staging:
     needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    if: ${{ needs.setup_environment.outputs.can_manage_prerelease == 'true' }}
 #    if: |
 #      always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
