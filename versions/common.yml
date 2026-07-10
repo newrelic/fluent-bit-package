@@ -1,8 +1,8 @@
-fbVersion: 5.0.6
+fbVersion: 5.0.8
 
 # New Relic Fluent Bit Output Plugin Configuration
 # These values are used during E2E testing to download and test a specific version of the NR output plugin
-nrFbOutputPluginVersion: 3.4.0
+nrFbOutputPluginVersion: 3.7.0
 # Optional: Override the GitHub release tag (defaults to v{nrFbOutputPluginVersion} if not set)
 # Use this for custom/beta releases where the tag differs from the standard v{version} format
 # Example for beta: nrFbOutputPluginTag: newrelic-fluent-bit-output-3.3.1-beta-rhel8-test
