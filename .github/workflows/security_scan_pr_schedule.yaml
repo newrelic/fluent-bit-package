@@ -29,6 +29,8 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: fs
+          scanners: 'vuln,misconfig'
+          skip-dirs: 'node_modules,**/node_modules'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           format: 'template'

@@ -31,3 +31,36 @@ updates:
     commit-message:
       prefix: "build"
       include: "scope"
+
+  - package-ecosystem: "pip"
+    directory: "/versions"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "build"
+      include: "scope"
+
+  - package-ecosystem: "terraform"
+    directories:
+      - "/terraform/ec2-test-executors"
+      - "/terraform/ec2-instances-creator"
+      - "/terraform/ec2-suse-builders"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "11:00"
+      timezone: "Asia/Kolkata"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "terraform"
+    commit-message:
+      prefix: "build"
+      include: "scope"
