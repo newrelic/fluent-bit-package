@@ -214,7 +214,7 @@ jobs:
     steps:
       - name: Publish linux packages to staging
         # commit sha from v1 tag - verify with: git ls-remote https://github.com/newrelic/infrastructure-publish-action v1
-        uses: newrelic/infrastructure-publish-action@26d9d8604b2cf2e7343dc287c958e8bbc1a3f750
+        uses: newrelic/infrastructure-publish-action@c5af37f49a92d3c04d5fa74a0745b21933556c4e
         with:
           app_name: fluent-bit
           tag: ${{ env.PRE_RELEASE_NAME }}
