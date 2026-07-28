@@ -157,7 +157,7 @@ jobs:
 
       - name: Download report from pre-release
         # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
         with:
           timeout_minutes: 5
           max_attempts: 3
