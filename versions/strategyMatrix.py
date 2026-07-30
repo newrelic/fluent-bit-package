@@ -136,13 +136,7 @@ def sles_package_details(pkg):
 
 def windows_package_details(data):
     windows_target_arch = {"win32": "386", "win64": "amd64"}[data["arch"]]
-    # TEMPORARY (NR-531052): windows-server-2025 shares the same upstream package as
-    # windows-server-2019/2022, so it never looks "missing" and never gets a real test run.
-    # Force a distinct, never-yet-published target name just for this one-off validation so it
-    # gets built/tested for real, while still downloading the real, unmodified 5.0.8 upstream
-    # package (packageUrl below is untouched). Revert this suffix once validated.
-    test_suffix = "-test2025" if data.get("osVersion") == 2025 else ""
-    target_package_name = f"fb-windows-{data['fbVersion']}{test_suffix}-{windows_target_arch}.zip"
+    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
     return {
         "packageUrl": f"http://packages.fluentbit.io/windows/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         "targetPackageName": target_package_name,
