@@ -1,5 +1,6 @@
 osDistro: sles
 osVersion: 12.5
+# Fluent Bit 4.x introduced the simdutf library which requires AVX2/GCC 5+, and GCC 4.8 on SLES 12.5 can't compile it
 packages:
   - arch: x86_64
-    ami: ami-09e4a5ed1b412cf53
+    ami: ami-09d3c4da338a294e0
