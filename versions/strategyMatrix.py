@@ -80,11 +80,12 @@ WINDOWS_DISTRO = "windows-server"
 
 
 def deb_package_details(pkg):
-    # TEMPORARY (NR-531052 follow-up): force debian only (not ubuntu) to look "missing" so this
-    # AMI-only PR gets at least one real Linux report for the merge step to merge, without
-    # forcing every distro to test at once. Only the target/NR-repackaged name is suffixed;
-    # packageUrl (real upstream download) is untouched. Revert before merging.
-    test_suffix = "-test-ami-fix" if pkg["osDistro"] == "debian" else ""
+    # TEMPORARY (NR-531052 follow-up): force debian bookworm/trixie only (not bullseye, which has
+    # an unrelated, pre-existing newrelic-infra install issue on this pipeline, and not ubuntu) to
+    # look "missing" so this AMI-only PR gets at least one real Linux report for the merge step to
+    # merge, without forcing every distro to test at once. Only the target/NR-repackaged name is
+    # suffixed; packageUrl (real upstream download) is untouched. Revert before merging.
+    test_suffix = "-test-ami-fix" if pkg["osDistro"] == "debian" and pkg["osVersion"] in ("bookworm", "trixie") else ""
     target_package_name = f"fluent-bit_{pkg['fbVersion']}{test_suffix}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
         "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
