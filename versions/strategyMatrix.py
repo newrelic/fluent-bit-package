@@ -80,7 +80,13 @@ WINDOWS_DISTRO = "windows-server"
 
 
 def deb_package_details(pkg):
-    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
+    # TEMPORARY (NR-531052 follow-up): force debian bookworm/trixie only (not bullseye, which has
+    # an unrelated, pre-existing newrelic-infra install issue on this pipeline, and not ubuntu) to
+    # look "missing" so this AMI-only PR gets at least one real Linux report for the merge step to
+    # merge, without forcing every distro to test at once. Only the target/NR-repackaged name is
+    # suffixed; packageUrl (real upstream download) is untouched. Revert before merging.
+    test_suffix = "-test-ami-fix" if pkg["osDistro"] == "debian" and pkg["osVersion"] in ("bookworm", "trixie") else ""
+    target_package_name = f"fluent-bit_{pkg['fbVersion']}{test_suffix}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
         "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
         "targetPackageName": target_package_name,
@@ -136,7 +142,12 @@ def sles_package_details(pkg):
 
 def windows_package_details(data):
     windows_target_arch = {"win32": "386", "win64": "amd64"}[data["arch"]]
-    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
+    # TEMPORARY (NR-531052 follow-up): force windows-server-2019/2022 to look "missing" so this
+    # AMI-only PR actually gets a real E2E run instead of being skipped (same package/version is
+    # already published, so it never looks new). Only the target/NR-repackaged name is suffixed;
+    # packageUrl (real upstream download) is untouched. Revert this once the AMI fix is validated.
+    test_suffix = "-test-ami-fix" if data.get("osVersion") in (2019, 2022) else ""
+    target_package_name = f"fb-windows-{data['fbVersion']}{test_suffix}-{windows_target_arch}.zip"
     return {
         "packageUrl": f"http://packages.fluentbit.io/windows/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         "targetPackageName": target_package_name,
