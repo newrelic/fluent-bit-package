@@ -80,7 +80,10 @@ WINDOWS_DISTRO = "windows-server"
 
 
 def deb_package_details(pkg):
-    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
+    # TEMPORARY (NR-531052 follow-up): force this package to look "missing" so this AMI-only PR
+    # exercises the real Linux E2E path too, not just Windows. Only the target/NR-repackaged name
+    # is suffixed; packageUrl (real upstream download) is untouched. Revert before merging.
+    target_package_name = f"fluent-bit_{pkg['fbVersion']}-test-ami-fix_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
         "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
         "targetPackageName": target_package_name,
@@ -97,7 +100,10 @@ def rpm_package_details(pkg):
     rpm_os_family = {"amazonlinux": "amazonlinux", "centos": "el", "rockylinux": "el"}[pkg["osDistro"]]
     pkg_arch = "arm64" if pkg["arch"] == "aarch64" else "x86_64"
     repo_arch = pkg["arch"]
-    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"
+    # TEMPORARY (NR-531052 follow-up): force this package to look "missing" so this AMI-only PR
+    # exercises the real Linux E2E path too, not just Windows. Only the target/NR-repackaged name
+    # is suffixed; packageUrl (real upstream download) is untouched. Revert before merging.
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-test-ami-fix-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"
     package_manager_type = "yum"
     upload_dest = (
         "{dest_prefix}linux/"
@@ -116,7 +122,10 @@ def rpm_package_details(pkg):
 
 
 def sles_package_details(pkg):
-    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
+    # TEMPORARY (NR-531052 follow-up): force this package to look "missing" so this AMI-only PR
+    # exercises the real Linux E2E path too, not just Windows. SLES packages are self-compiled
+    # (no upstream packageUrl to preserve here). Revert before merging.
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-test-ami-fix-1.{pkg['osDistro']}{pkg['osVersion']}.{pkg['arch']}.rpm"
     package_manager_type = "zypp"
     upload_dest = (
         "{dest_prefix}linux/"
