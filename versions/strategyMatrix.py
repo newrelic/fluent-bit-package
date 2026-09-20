@@ -80,8 +80,7 @@ WINDOWS_DISTRO = "windows-server"
 
 
 def deb_package_details(pkg):
-    # TEMP: makes this package look "new" so CI actually tests it instead of skipping. Revert later.
-    target_package_name = f"fluent-bit_{pkg['fbVersion']}-test-ami-fix_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
+    target_package_name = f"fluent-bit_{pkg['fbVersion']}_{pkg['osDistro']}-{pkg['osVersion']}_{pkg['arch']}.deb"
     return {
         "packageUrl": f"https://packages.fluentbit.io/{pkg['osDistro']}/{pkg['osVersion']}/fluent-bit_{pkg['fbVersion']}_{pkg['arch']}.deb",
         "targetPackageName": target_package_name,
@@ -98,8 +97,7 @@ def rpm_package_details(pkg):
     rpm_os_family = {"amazonlinux": "amazonlinux", "centos": "el", "rockylinux": "el"}[pkg["osDistro"]]
     pkg_arch = "arm64" if pkg["arch"] == "aarch64" else "x86_64"
     repo_arch = pkg["arch"]
-    # TEMP: makes this package look "new" so CI actually tests it instead of skipping. Revert later.
-    target_package_name = f"fluent-bit-{pkg['fbVersion']}-test-ami-fix-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"
+    target_package_name = f"fluent-bit-{pkg['fbVersion']}-1.{pkg['osDistro']}-{pkg['osVersion']}.{pkg_arch}.rpm"
     package_manager_type = "yum"
     upload_dest = (
         "{dest_prefix}linux/"
@@ -138,8 +136,7 @@ def sles_package_details(pkg):
 
 def windows_package_details(data):
     windows_target_arch = {"win32": "386", "win64": "amd64"}[data["arch"]]
-    # TEMP: makes this package look "new" so CI actually tests it instead of skipping. Revert later.
-    target_package_name = f"fb-windows-{data['fbVersion']}-test-ami-fix-{windows_target_arch}.zip"
+    target_package_name = f"fb-windows-{data['fbVersion']}-{windows_target_arch}.zip"
     return {
         "packageUrl": f"http://packages.fluentbit.io/windows/fluent-bit-{data['fbVersion']}-{data['arch']}.zip",
         "targetPackageName": target_package_name,
