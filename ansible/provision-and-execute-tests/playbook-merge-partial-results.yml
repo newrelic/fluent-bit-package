@@ -11,15 +11,6 @@
   roles:
     - andrewrothstein.gh
   tasks:
-    - name: Ensure libxml2-utils is installed (for xmllint)
-      ansible.builtin.apt:
-        name: libxml2-utils
-        state: present
-        update_cache: yes
-      become: true
-      # Ensure this only runs on Debian/Ubuntu runners where 'apt' exists
-      when: ansible_os_family == 'Debian'
-
     - name: Create test reports directory
       ansible.builtin.file:
         path: "{{ test_reports_dir }}"
@@ -71,7 +62,7 @@
       when: found_reports.matched == 0
 
     - name: Validate XML files are not empty or corrupt
-      ansible.builtin.shell: "xmllint --noout {{ item.path }}"
+      ansible.builtin.shell: "python3 -c \"import xml.etree.ElementTree as ET; ET.parse('{{ item.path }}')\""
       loop: "{{ found_reports.files }}"
       loop_control:
         label: "{{ item.path | basename }}"
