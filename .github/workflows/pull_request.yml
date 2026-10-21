@@ -115,7 +115,7 @@ jobs:
   # If these are not available, they are downloaded from the official Fluent Bit repository and repackaged to be used by the NRIA.
   download_official_packages:
     needs: [setup_environment]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     if: ${{ needs.setup_environment.outputs.linux_and_windows_unique_target_package != '[]' }}
     strategy:
       fail-fast: true

@@ -20,8 +20,8 @@ echo "===> Importing GPG private key from GHA secrets..."
 printf %s ${GPG_PRIVATE_KEY_BASE64} | base64 -d | gpg --batch --import -
 
 echo "===> Importing GPG signature, needed to verify signature"
-gpg --export -a ${GPG_MAIL} > /tmp/RPM-GPG-KEY-${GPG_MAIL}
-rpm --import /tmp/RPM-GPG-KEY-${GPG_MAIL}
+curl -fsSL https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra-sha256.gpg -o /tmp/RPM-GPG-KEY-${GPG_MAIL}
+sudo rpm --import /tmp/RPM-GPG-KEY-${GPG_MAIL}
 
 cd packages
 
