@@ -3,6 +3,16 @@ set -e
 #
 #
 #
+# TEST ONLY debug (runs before ~/.rpmmacros is written, so no secrets are printed)
+echo "===> DEBUG rpm environment"
+rpm --version || true
+id || true
+grep -rn "__gpg_sign_cmd\|__plaintext_filename\|__signature_filename" /usr/lib/rpm/macros /usr/lib/rpm/macros.d 2>/dev/null | cut -c1-300 || true
+rpm --eval '%{__gpg_sign_cmd}' || true
+rpm --eval '%{_gpg_path} %{_gpgbin}' || true
+dpkg -l | grep -iE "^ii +(rpm|gnupg|gpg|sequoia|librpm)" | cut -c1-120 || true
+echo "===> END DEBUG"
+
 # Sign RPM's & DEB's in /packages to GH Release Assets
 #
 #
