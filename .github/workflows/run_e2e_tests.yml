@@ -145,7 +145,7 @@ jobs:
 
   report_test_results:
     name: Report results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: merge_test_results
     if: ${{ always() && !failure() && !cancelled() && needs.merge_test_results.result == 'success' }}
     env:
