@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Configure AWS Credentials
         # commit sha from v3 tag - verify with: git ls-remote https://github.com/aws-actions/configure-aws-credentials v3
-        uses: aws-actions/configure-aws-credentials@0d04879d366c9959065c153479c620d35e5c4097
+        uses: aws-actions/configure-aws-credentials@50ac8dd1e1b10d09dac7b8727528b91bed831ac0
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_NEW }}
           # https://github.com/aws-actions/configure-aws-credentials#credential-lifetime
