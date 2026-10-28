@@ -180,7 +180,7 @@ jobs:
 
   sign_suse_packages:
     needs: [ build_suse_packages ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ inputs.sles_matrix != '[]' }}
     strategy:
       fail-fast: true
@@ -304,7 +304,7 @@ jobs:
 
   report_linux_test_results:
     name: Report Linux test results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ merge_linux_test_results ]
     if : ${{ always() && !failure() && !cancelled() && (needs.merge_linux_test_results.result == 'success')}}
     env:
@@ -341,7 +341,7 @@ jobs:
 
   report_windows_test_results:
     name: Report Windows test results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [ provision_and_execute_tests_windows ]
     if: ${{ always() && !failure() && !cancelled() && (needs.provision_and_execute_tests_windows.result == 'success') && (inputs.windows_matrix != '[]') }}
     env:
