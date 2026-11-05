@@ -3,13 +3,13 @@ name: Publish target config
 # Single source of truth for where (v1 or v2 layout) packages are published.
 # The publish action stays infrastructure-publish-action@v1 (pinned SHA); only the repository folder changes.
 #
-# The target is selected per environment by a repository secret (v1 | v2), defaulting to v1 when unset:
+# The target is selected per environment by a repository variable (v1 | v2), defaulting to v1 when unset:
 #   staging    -> PUBLISH_VERSION_STAGING
 #   production -> PUBLISH_VERSION_PRODUCTION
 #   v1 -> buckets nr-downloads-ohai-staging / nr-downloads-main, repository path  infrastructure_agent/
 #   v2 -> the SAME buckets, region and lock buckets as v1,        repository path  infrastructure_agent_v2/
 #
-# Rollback: set the environment's repository secret back to v1 (or delete it). No code change needed.
+# Rollback: set the environment's repository variable back to v1 (or delete it). No code change needed.
 # Before switching to v2, sync infrastructure_agent/ into infrastructure_agent_v2/ in the bucket so the apt/yum
 # mirror has the existing repository to build on.
 
@@ -20,13 +20,6 @@ on:
         description: 'Environment to publish to: staging | production'
         required: true
         type: string
-    secrets:
-      PUBLISH_VERSION_STAGING:
-        description: 'v1 | v2 for staging. Optional: v1 is used when empty'
-        required: false
-      PUBLISH_VERSION_PRODUCTION:
-        description: 'v1 | v2 for production. Optional: v1 is used when empty'
-        required: false
     outputs:
       publish_version:
         description: 'Selected publish layout: v1 (infrastructure_agent) | v2 (infrastructure_agent_v2)'
@@ -78,8 +71,8 @@ jobs:
         id: resolve
         env:
           TARGET_ENV: ${{ inputs.ENV }}
-          VERSION_STAGING: ${{ secrets.PUBLISH_VERSION_STAGING }}
-          VERSION_PRODUCTION: ${{ secrets.PUBLISH_VERSION_PRODUCTION }}
+          VERSION_STAGING: ${{ vars.PUBLISH_VERSION_STAGING }}
+          VERSION_PRODUCTION: ${{ vars.PUBLISH_VERSION_PRODUCTION }}
         run: |
           version="v1"
           case "${TARGET_ENV}" in
@@ -89,7 +82,7 @@ jobs:
 
           case "${version}" in
             v1|v2) ;;
-            *) echo "::error::The PUBLISH_VERSION secret for ${TARGET_ENV} must be v1 or v2, got '${version}'"; exit 1 ;;
+            *) echo "::error::The PUBLISH_VERSION variable for ${TARGET_ENV} must be v1 or v2, got '${version}'"; exit 1 ;;
           esac
 
           # v1 and v2 share buckets, region and lock buckets; only the repository folder differs

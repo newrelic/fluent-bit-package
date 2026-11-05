@@ -39,9 +39,6 @@ jobs:
     uses: ./.github/workflows/run_publish_config.yml
     with:
       ENV: production
-    secrets:
-      PUBLISH_VERSION_STAGING: ${{ secrets.PUBLISH_VERSION_STAGING }}
-      PUBLISH_VERSION_PRODUCTION: ${{ secrets.PUBLISH_VERSION_PRODUCTION }}
 
   publish_linux_to_prod:
     name: Publish linux packages to production

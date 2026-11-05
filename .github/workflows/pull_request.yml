@@ -219,9 +219,6 @@ jobs:
     uses: ./.github/workflows/run_publish_config.yml
     with:
       ENV: staging
-    secrets:
-      PUBLISH_VERSION_STAGING: ${{ secrets.PUBLISH_VERSION_STAGING }}
-      PUBLISH_VERSION_PRODUCTION: ${{ secrets.PUBLISH_VERSION_PRODUCTION }}
 
   # Only used to build the production schema/matrix paths; nothing is published to production from this workflow
   publish_config_production:
@@ -229,9 +226,6 @@ jobs:
     uses: ./.github/workflows/run_publish_config.yml
     with:
       ENV: production
-    secrets:
-      PUBLISH_VERSION_STAGING: ${{ secrets.PUBLISH_VERSION_STAGING }}
-      PUBLISH_VERSION_PRODUCTION: ${{ secrets.PUBLISH_VERSION_PRODUCTION }}
 
   publish_linux_to_staging:
     name: Publish linux packages to staging
