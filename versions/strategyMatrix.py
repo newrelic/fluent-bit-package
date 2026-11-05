@@ -67,14 +67,16 @@ This script file takes care of computing the following attributes for each suppo
        (Linux packages) or Logging S3 bucket (Windows packages)
 """
 
-# Repository folder inside the bucket: infrastructure_agent (v1, default) | infrastructure_agent_v2 (v2)
-REPO_PATH = os.environ.get("REPO_PATH", "infrastructure_agent")
+# Repository folder inside each bucket: infrastructure_agent (v1, default) | infrastructure_agent_v2 (v2).
+# Staging and production are switched independently, so each environment has its own value.
+STAGING_REPO_PATH = os.environ.get("STAGING_REPO_PATH", "infrastructure_agent")
+PRODUCTION_REPO_PATH = os.environ.get("PRODUCTION_REPO_PATH", "infrastructure_agent")
 
 NR_PROD_REPO_URL = (
-    f"https://nr-downloads-main.s3.amazonaws.com/{REPO_PATH}/linux"
+    f"https://nr-downloads-main.s3.amazonaws.com/{PRODUCTION_REPO_PATH}/linux"
 )
 NR_STG_REPO_URL = (
-    f"https://nr-downloads-ohai-staging.s3.amazonaws.com/{REPO_PATH}/linux"
+    f"https://nr-downloads-ohai-staging.s3.amazonaws.com/{STAGING_REPO_PATH}/linux"
 )
 
 DEB_DISTROS = ["debian", "ubuntu"]
@@ -92,7 +94,7 @@ def deb_package_details(pkg):
         "pkgArch": f"{pkg['arch']}",
         "packageManagerType": "apt",
         "uploadDest": "{dest_prefix}linux/apt/",
-        "srcRepo": "{access_point_host}/" + REPO_PATH + "/linux/apt",
+        "srcRepo": "{access_point_host}/{repo_path}/linux/apt",
     }
 
 
