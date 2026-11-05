@@ -25,6 +25,7 @@ jobs:
   # Empties the GH pre-release
   # Generates strategy matrices that can be used by other jobs to run the build or testing of all supported packages
   setup_environment:
+    needs: [ publish_config, publish_config_production ]
     runs-on: ubuntu-24.04
     outputs:
       pre_release_name: ${{ steps.set_vars.outputs.pre_release_name }}
@@ -71,6 +72,9 @@ jobs:
       # The v4 action throws an error when package names are duplicated, which is the case for Windows packages.
       - name: Compute and upload matrices
         id: set-matrices
+        env:
+          STAGING_REPO_PATH: ${{ needs.publish_config.outputs.repo_path }}
+          PRODUCTION_REPO_PATH: ${{ needs.publish_config_production.outputs.repo_path }}
         run: |
           make versions/generateMatrices
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
@@ -105,6 +109,9 @@ jobs:
           echo "always_cleanup_test_instances=${always_cleanup_test_instances}" >> $GITHUB_OUTPUT
 
       - name: Compute and upload schemas
+        env:
+          STAGING_REPO_PATH: ${{ needs.publish_config.outputs.repo_path }}
+          PRODUCTION_REPO_PATH: ${{ needs.publish_config_production.outputs.repo_path }}
         run: |
           make schemas/generateSchemas;
           gh release upload ${{ env.PRE_RELEASE_NAME }} schemas/generated-linux-schema-staging.yaml --repo newrelic/fluent-bit-package
@@ -207,9 +214,22 @@ jobs:
       cleanup_on_failure: ${{ needs.setup_environment.outputs.always_cleanup_test_instances == 'true' }}  # Convert string to boolean - Read from versions/common.yml (alwaysCleanupTestInstances)
     secrets: inherit
 
+  publish_config:
+    name: Resolve staging publish target
+    uses: ./.github/workflows/run_publish_config.yml
+    with:
+      ENV: staging
+
+  # Only used to build the production schema/matrix paths; nothing is published to production from this workflow
+  publish_config_production:
+    name: Resolve production publish target
+    uses: ./.github/workflows/run_publish_config.yml
+    with:
+      ENV: production
+
   publish_linux_to_staging:
     name: Publish linux packages to staging
-    needs: [ setup_environment, run_e2e_tests_prerelease ]
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_config ]
     runs-on: ubuntu-24.04
     steps:
       - name: Publish linux packages to staging
@@ -221,26 +241,28 @@ jobs:
           repo_name: "newrelic/fluent-bit-package"
           schema: "custom"
           schema_url: "https://github.com/newrelic/fluent-bit-package/releases/download/${{ env.PRE_RELEASE_NAME }}/generated-linux-schema-staging.yaml"
-          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
-          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
-          aws_s3_bucket_name: "nr-downloads-ohai-staging"
-          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
-          access_point_host: "staging"
+          aws_access_key_id: ${{ (needs.publish_config.outputs.is_v2 == 'true' && secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING_V2) || secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+          aws_secret_access_key: ${{ (needs.publish_config.outputs.is_v2 == 'true' && secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING_V2) || secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+          aws_s3_bucket_name: ${{ needs.publish_config.outputs.aws_s3_bucket_name }}
+          aws_s3_lock_bucket_name: ${{ needs.publish_config.outputs.aws_s3_lock_bucket_name }}
+          access_point_host: ${{ needs.publish_config.outputs.access_point_host }}
+          dest_prefix: ${{ needs.publish_config.outputs.dest_prefix }}
           run_id: ${{ github.run_id }}
-          aws_region: "us-east-1"
-          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
-          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          aws_region: ${{ needs.publish_config.outputs.aws_region }}
+          aws_role_session_name: ${{ (needs.publish_config.outputs.is_v2 == 'true' && secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING_V2) || secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+          aws_role_arn: ${{ (needs.publish_config.outputs.is_v2 == 'true' && secrets.OHAI_AWS_ROLE_ARN_STAGING_V2) || secrets.OHAI_AWS_ROLE_ARN_STAGING }}
           # used for signing package stuff
           gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
           gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
 
   run_e2e_tests_staging:
-    needs: [ setup_environment, run_e2e_tests_prerelease, publish_linux_to_staging ]
+    needs: [ setup_environment, run_e2e_tests_prerelease, publish_config, publish_linux_to_staging ]
 #    if: |
 #      always() && !failure() && !cancelled()
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
+      repo_endpoint: ${{ needs.publish_config.outputs.repo_endpoint }}
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
       infra_agent_env: staging
