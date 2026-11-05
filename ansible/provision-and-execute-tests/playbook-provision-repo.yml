@@ -10,7 +10,8 @@
     ansible_aws_ssm_retries: 15    # Increased from 10
     # NRIA_REPO_ENDPOINT is the bucket root (v1) or the bucket root + repository folder (v2: .../infrastructure_agent_v2/)
     nria_repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
-    nria_repo_root: "{{ nria_repo_endpoint | regex_search('^https?://[^/]+/') }}"
+    nria_repo_root: "{{ (nria_repo_endpoint | regex_search('^https?://[^/]+') | default('', true)) ~ '/' }}"
+    fb_version: "{{ tags.fb_version }}"
     nria_repo_path: "{{ (nria_repo_endpoint | regex_replace('^https?://[^/]+/?', '') | trim('/')) | default('infrastructure_agent', true) }}"
   become: true
   gather_facts: no
@@ -130,48 +131,48 @@
 
     # The newrelic-cli recipes always install from <endpoint>infrastructure_agent/, so for any other repository
     # folder (v2: infrastructure_agent_v2) the repository definition written by the recipe is pointed at the folder
-    # under test and the agent is refreshed from it. A missing or invalid repository fails here.
-    - name: Install newrelic-infra from the {{ nria_repo_path }} repository
+    # under test and newrelic-infra and fluent-bit are installed from it. fluent-bit is pinned to the version under
+    # test; playbook-run-tests.yml then asserts the installed version. A repo definition that is not rewritten fails here.
+    - name: Install newrelic-infra and fluent-bit from the {{ nria_repo_path }} repository
       when: nria_repo_path != 'infrastructure_agent'
+      vars:
+        nria_repo_files:
+          - { family: Debian, path: /etc/apt/sources.list.d/newrelic-infra.list }
+          - { family: RedHat, path: /etc/yum.repos.d/newrelic-infra.repo }
+          - { family: Suse, path: /etc/zypp/repos.d/newrelic-infra.repo }
+        fb_pinned_package: "{{ 'fluent-bit=' ~ fb_version if ansible_os_family == 'Debian' else 'fluent-bit-' ~ fb_version }}"
       block:
-        - name: Point the apt source at {{ nria_repo_path }}
-          when: ansible_os_family == 'Debian'
+        - name: Point the repo definition at {{ nria_repo_path }}
+          when: item.family == ansible_os_family
           ansible.builtin.replace:
-            path: /etc/apt/sources.list.d/newrelic-infra.list
+            path: "{{ item.path }}"
             regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
             replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
+          loop: "{{ nria_repo_files }}"
+          loop_control:
+            label: "{{ item.path }}"
+          register: repo_rewrite
+          # replace reports ok when the regexp does not match, which would silently keep installing from v1
+          failed_when: repo_rewrite is not skipped and not (repo_rewrite.changed | default(false))
 
-        - name: Refresh apt metadata and install newrelic-infra from {{ nria_repo_path }}
+        - name: Refresh apt metadata
           when: ansible_os_family == 'Debian'
           ansible.builtin.apt:
-            name: newrelic-infra
-            state: latest
             update_cache: true
 
-        - name: Point the yum repo at {{ nria_repo_path }}
+        - name: Refresh yum/dnf metadata
           when: ansible_os_family == 'RedHat'
-          ansible.builtin.replace:
-            path: /etc/yum.repos.d/newrelic-infra.repo
-            regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
+          ansible.builtin.shell: "command -v dnf >/dev/null && dnf clean expire-cache || yum clean expire-cache"
+          changed_when: false
 
-        - name: Refresh yum metadata and install newrelic-infra from {{ nria_repo_path }}
-          when: ansible_os_family == 'RedHat'
-          ansible.builtin.yum:
-            name: newrelic-infra
-            state: latest
-            update_cache: true
-
-        - name: Point the zypper repo at {{ nria_repo_path }}
+        - name: Refresh zypper metadata (import the new repository key)
           when: ansible_os_family == 'Suse'
-          ansible.builtin.replace:
-            path: /etc/zypp/repos.d/newrelic-infra.repo
-            regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
+          ansible.builtin.command: zypper --non-interactive --gpg-auto-import-keys refresh
+          changed_when: false
 
-        - name: Refresh zypper metadata and install newrelic-infra from {{ nria_repo_path }}
-          when: ansible_os_family == 'Suse'
-          ansible.builtin.shell: >-
-            zypper --non-interactive --gpg-auto-import-keys refresh &&
-            zypper --non-interactive install newrelic-infra
-          changed_when: true
+        - name: Install newrelic-infra and fluent-bit {{ fb_version }} from {{ nria_repo_path }}
+          ansible.builtin.package:
+            name:
+              - newrelic-infra
+              - "{{ fb_pinned_package }}"
+            state: present
