@@ -44,8 +44,11 @@ on:
         description: 'AWS region of the publish bucket (us-east-1, shared by v1 and v2)'
         value: ${{ jobs.config.outputs.aws_region }}
       access_point_host:
-        description: 'access_point_host for the publish action: staging | production (v1), explicit bucket URL (v2)'
+        description: 'access_point_host for the publish action: staging | production (same for v1 and v2)'
         value: ${{ jobs.config.outputs.access_point_host }}
+      repo_endpoint:
+        description: 'Repository endpoint the E2E tests install from'
+        value: ${{ jobs.config.outputs.repo_endpoint }}
       repo_path:
         description: 'Repository folder inside the bucket: infrastructure_agent (v1) | infrastructure_agent_v2 (v2)'
         value: ${{ jobs.config.outputs.repo_path }}
@@ -67,6 +70,7 @@ jobs:
       aws_s3_lock_bucket_name: ${{ steps.resolve.outputs.aws_s3_lock_bucket_name }}
       aws_region: ${{ steps.resolve.outputs.aws_region }}
       access_point_host: ${{ steps.resolve.outputs.access_point_host }}
+      repo_endpoint: ${{ steps.resolve.outputs.repo_endpoint }}
       repo_path: ${{ steps.resolve.outputs.repo_path }}
       dest_prefix: ${{ steps.resolve.outputs.dest_prefix }}
     steps:
@@ -110,14 +114,14 @@ jobs:
               ;;
           esac
 
-          # access_point_host is written into the apt mirror source and the generated .repo files. The
-          # "staging"/"production" aliases resolve to the v1 repository, so v2 must use an explicit bucket URL.
-          # NOTE: for production this makes the v2 .repo baseurl point at the raw S3 bucket instead of the
-          # download.newrelic.com CDN used by v1.
+          # access_point_host keeps the "staging"/"production" aliases for v2 too, so the hosts are the same as v1
+          # (production: download.newrelic.com in the .repo baseurl, the raw bucket for the apt mirror). Only the
+          # repository folder differs: it comes from dest_prefix and the srcRepo schema template.
           is_v2="false"
+          repo_endpoint="https://${bucket}.s3.amazonaws.com/"
           if [ "${version}" = "v2" ]; then
             is_v2="true"
-            access_point_host="https://${bucket}.s3.amazonaws.com"
+            repo_endpoint="https://${bucket}.s3.amazonaws.com/${repo_path}/"
           fi
 
           {
@@ -127,6 +131,7 @@ jobs:
             echo "aws_s3_lock_bucket_name=${lock_bucket}"
             echo "aws_region=${region}"
             echo "access_point_host=${access_point_host}"
+            echo "repo_endpoint=${repo_endpoint}"
             echo "repo_path=${repo_path}"
             echo "dest_prefix=${repo_path}/"
           } >> "${GITHUB_OUTPUT}"

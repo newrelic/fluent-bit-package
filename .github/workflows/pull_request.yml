@@ -268,7 +268,7 @@ jobs:
     name: Run E2E tests for all supported packages installing NRIA+FB from staging
     uses: ./.github/workflows/run_e2e_tests.yml
     with:
-      repo_path: ${{ needs.publish_config.outputs.repo_path }}
+      repo_endpoint: ${{ needs.publish_config.outputs.repo_endpoint }}
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
       infra_agent_version: latest
       infra_agent_env: staging

@@ -8,9 +8,10 @@
     # AWS SSM already sends protocol-level keepalives, so explicit keepalive not needed
     ansible_aws_ssm_timeout: 900   # 15 minutes (reasonable for 3-5 min operation with buffer)
     ansible_aws_ssm_retries: 15    # Increased from 10
-    # Bucket root and repository folder (infrastructure_agent | infrastructure_agent_v2) the agent is installed from
+    # NRIA_REPO_ENDPOINT is the bucket root (v1) or the bucket root + repository folder (v2: .../infrastructure_agent_v2/)
     nria_repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
-    nria_repo_path: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_PATH') | default('infrastructure_agent', true) }}"
+    nria_repo_root: "{{ nria_repo_endpoint | regex_search('^https?://[^/]+/') }}"
+    nria_repo_path: "{{ (nria_repo_endpoint | regex_replace('^https?://[^/]+/?', '') | trim('/')) | default('infrastructure_agent', true) }}"
   become: true
   gather_facts: no
   tasks:
@@ -82,7 +83,7 @@
           ansible.builtin.include_role:
             name: caos.ansible_roles.newrelic_cli
           vars:
-            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
@@ -115,7 +116,7 @@
           ansible.builtin.include_role:
             name: caos.ansible_roles.newrelic_cli
           vars:
-            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
@@ -138,7 +139,7 @@
           ansible.builtin.replace:
             path: /etc/apt/sources.list.d/newrelic-infra.list
             regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_endpoint }}{{ nria_repo_path }}/linux"
+            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
 
         - name: Refresh apt metadata and install newrelic-infra from {{ nria_repo_path }}
           when: ansible_os_family == 'Debian'
@@ -152,7 +153,7 @@
           ansible.builtin.replace:
             path: /etc/yum.repos.d/newrelic-infra.repo
             regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_endpoint }}{{ nria_repo_path }}/linux"
+            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
 
         - name: Refresh yum metadata and install newrelic-infra from {{ nria_repo_path }}
           when: ansible_os_family == 'RedHat'
@@ -166,7 +167,7 @@
           ansible.builtin.replace:
             path: /etc/zypp/repos.d/newrelic-infra.repo
             regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_endpoint }}{{ nria_repo_path }}/linux"
+            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
 
         - name: Refresh zypper metadata and install newrelic-infra from {{ nria_repo_path }}
           when: ansible_os_family == 'Suse'
