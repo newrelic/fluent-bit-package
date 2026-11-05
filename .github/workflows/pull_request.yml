@@ -217,6 +217,9 @@ jobs:
     uses: ./.github/workflows/run_publish_config.yml
     with:
       ENV: staging
+    secrets:
+      PUBLISH_VERSION_STAGING: ${{ secrets.PUBLISH_VERSION_STAGING }}
+      PUBLISH_VERSION_PRODUCTION: ${{ secrets.PUBLISH_VERSION_PRODUCTION }}
 
   publish_linux_to_staging:
     name: Publish linux packages to staging
