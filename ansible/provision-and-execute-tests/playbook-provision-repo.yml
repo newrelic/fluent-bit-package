@@ -128,32 +128,39 @@
           ansible.builtin.debug:
             msg: "SUCCESS: Agent installation completed after connection recovery on {{ inventory_hostname }}"
           when: retry_result is succeeded
-
-    # The newrelic-cli recipes always install from <endpoint>infrastructure_agent/, so for any other repository
-    # folder (v2: infrastructure_agent_v2) the repository definition written by the recipe is pointed at the folder
-    # under test and newrelic-infra and fluent-bit are installed from it. fluent-bit is pinned to the version under
-    # test; playbook-run-tests.yml then asserts the installed version. A repo definition that is not rewritten fails here.
+    # The newrelic-cli recipes always install from <endpoint>infrastructure_agent/, so the first install above comes
+    # from v1. For any other repository folder (v2: infrastructure_agent_v2) the repository definition written by the
+    # recipe is pointed at the folder under test, then newrelic-infra is force-reinstalled and fluent-bit is installed
+    # (pinned to the version under test) from it. playbook-run-tests.yml then asserts the installed fluent-bit version
+    # and that both packages came from that folder.
     - name: Install newrelic-infra and fluent-bit from the {{ nria_repo_path }} repository
       when: nria_repo_path != 'infrastructure_agent'
       vars:
-        nria_repo_files:
-          - { family: Debian, path: /etc/apt/sources.list.d/newrelic-infra.list }
-          - { family: RedHat, path: /etc/yum.repos.d/newrelic-infra.repo }
-          - { family: Suse, path: /etc/zypp/repos.d/newrelic-infra.repo }
-        fb_pinned_package: "{{ 'fluent-bit=' ~ fb_version if ansible_os_family == 'Debian' else 'fluent-bit-' ~ fb_version }}"
+        nria_repo_file: "{{ {'Debian': '/etc/apt/sources.list.d/newrelic-infra.list', 'RedHat': '/etc/yum.repos.d/newrelic-infra.repo', 'Suse': '/etc/zypp/repos.d/newrelic-infra.repo'}[ansible_os_family] }}"
+        nria_v2_url: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
       block:
         - name: Point the repo definition at {{ nria_repo_path }}
-          when: item.family == ansible_os_family
           ansible.builtin.replace:
-            path: "{{ item.path }}"
+            path: "{{ nria_repo_file }}"
             regexp: 'https?://[^/\s]+/infrastructure_agent/linux'
-            replace: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
-          loop: "{{ nria_repo_files }}"
-          loop_control:
-            label: "{{ item.path }}"
-          register: repo_rewrite
-          # replace reports ok when the regexp does not match, which would silently keep installing from v1
-          failed_when: repo_rewrite is not skipped and not (repo_rewrite.changed | default(false))
+            replace: "{{ nria_v2_url }}"
+
+        # ansible.builtin.replace reports ok when the regexp matches nothing, which would silently keep installing from v1
+        - name: Read the repo definition
+          ansible.builtin.slurp:
+            src: "{{ nria_repo_file }}"
+          register: nria_repo_definition
+
+        - name: Assert the repo definition points at {{ nria_repo_path }} only
+          ansible.builtin.assert:
+            that:
+              - nria_v2_url in (nria_repo_definition.content | b64decode)
+              - (nria_repo_definition.content | b64decode) is not search('/infrastructure_agent/linux')
+            fail_msg: >-
+              {{ inventory_hostname }}: {{ nria_repo_file }} was not rewritten to {{ nria_v2_url }}. The newrelic-cli
+              recipe probably changed the repository URL it writes, so the regexp
+              'https?://[^/\s]+/infrastructure_agent/linux' no longer matches. Current content:
+              {{ nria_repo_definition.content | b64decode }}
 
         - name: Refresh apt metadata
           when: ansible_os_family == 'Debian'
@@ -170,9 +177,62 @@
           ansible.builtin.command: zypper --non-interactive --gpg-auto-import-keys refresh
           changed_when: false
 
-        - name: Install newrelic-infra and fluent-bit {{ fb_version }} from {{ nria_repo_path }}
-          ansible.builtin.package:
-            name:
-              - newrelic-infra
-              - "{{ fb_pinned_package }}"
+        # newrelic-infra is already installed (from v1) at the same version, so a plain install would be a no-op:
+        # force a reinstall, which can only fetch it from the repository rewritten above.
+        - name: Reinstall newrelic-infra from {{ nria_repo_path }}
+          ansible.builtin.command: >-
+            {{ {'Debian': 'apt-get install -y --reinstall -o Dpkg::Options::=--force-confold newrelic-infra',
+                'RedHat': ansible_pkg_mgr ~ ' -y reinstall newrelic-infra',
+                'Suse': 'zypper --non-interactive install --force newrelic-infra'}[ansible_os_family] }}
+          environment:
+            DEBIAN_FRONTEND: noninteractive
+          register: nria_reinstall
+          until: nria_reinstall is succeeded
+          retries: 5          # Retry to handle package manager lock contention
+          delay: 10
+
+        # Same as roles/install_fluent_bit_from_gh_prerelease: we want our package to overwrite the one that comes with
+        # the Infra Agent, even if it implies downgrading it.
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (apt)
+          when: ansible_pkg_mgr == 'apt'
+          ansible.builtin.apt:
+            name: "fluent-bit={{ fb_version }}"
+            allow_downgrade: true
             state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (dnf)
+          when: ansible_pkg_mgr == 'dnf'
+          ansible.builtin.dnf:
+            name: "fluent-bit-{{ fb_version }}"
+            allow_downgrade: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (yum)
+          when: ansible_pkg_mgr == 'yum'
+          ansible.builtin.yum:
+            name: "fluent-bit-{{ fb_version }}"
+            allow_downgrade: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (zypper)
+          when: ansible_pkg_mgr == 'zypper'
+          community.general.zypper:
+            name: "fluent-bit={{ fb_version }}"
+            oldpackage: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
