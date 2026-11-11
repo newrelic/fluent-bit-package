@@ -205,9 +205,11 @@ jobs:
             gh release download ${{ inputs.pre_release_name }} --pattern ${{ matrix.targetPackageName }} --dir packages
 
       - name: Sign package
-        run: |
-          sudo apt-get install -y debsigs
-          bash ./scripts/sign.sh
+        # No debsigs install here: this job only ever handles SLES .rpm packages (sles_matrix),
+        # and sign.sh signs those with plain `rpm --addsign` -- debsigs is only used in sign.sh's
+        # .deb loop, which never runs here. Skipping it also sidesteps a recurring DNS failure
+        # resolving azure.archive.ubuntu.com for an apt package this job never actually needs.
+        run: bash ./scripts/sign.sh
 
       - name: Upload signed asset
         # commit sha from v3 tag - verify with: git ls-remote https://github.com/nick-fields/retry v3
