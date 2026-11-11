@@ -1,5 +1,5 @@
 osDistro: sles
-osVersion: 16.0
+osVersion: "16.0"
 packages:
   - arch: x86_64
     ami: ami-04c81635606c22655
