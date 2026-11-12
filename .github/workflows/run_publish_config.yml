@@ -40,7 +40,7 @@ on:
         description: 'access_point_host for the publish action: staging | production (same for v1 and v2)'
         value: ${{ jobs.config.outputs.access_point_host }}
       repo_endpoint:
-        description: 'Repository endpoint the E2E tests install from'
+        description: 'Repository endpoint the E2E tests install from (staging: bucket URL incl. the v2 folder; production: https://download.newrelic.com/, whose old path the ELB maps to v2)'
         value: ${{ jobs.config.outputs.repo_endpoint }}
       repo_path:
         description: 'Repository folder inside the bucket: infrastructure_agent (v1) | infrastructure_agent_v2 (v2)'
@@ -95,11 +95,17 @@ jobs:
               bucket="nr-downloads-ohai-staging"
               lock_bucket="onhost-ci-lock-staging"
               access_point_host="staging"
+              endpoint_host="https://${bucket}.s3.amazonaws.com"
+              public_path_is_mapped="false"
               ;;
             production)
               bucket="nr-downloads-main"
               lock_bucket="onhost-ci-lock"
               access_point_host="production"
+              # Users install through the public host (no bucket name). For calls to it the ELB maps
+              # /infrastructure_agent/ to the v2 folder, so the E2E tests keep the old path for v1 and v2
+              endpoint_host="https://download.newrelic.com"
+              public_path_is_mapped="true"
               ;;
             *)
               echo "::error::ENV must be staging or production, got '${TARGET_ENV}'"
@@ -111,10 +117,11 @@ jobs:
           # (production: download.newrelic.com in the .repo baseurl, the raw bucket for the apt mirror). Only the
           # repository folder differs: it comes from dest_prefix and the srcRepo schema template.
           is_v2="false"
-          repo_endpoint="https://${bucket}.s3.amazonaws.com/"
+          repo_endpoint="${endpoint_host}/"
           if [ "${version}" = "v2" ]; then
             is_v2="true"
-            repo_endpoint="https://${bucket}.s3.amazonaws.com/${repo_path}/"
+            # Bucket URLs are not mapped, so name the v2 folder. The public host serves v2 under the old path.
+            [ "${public_path_is_mapped}" = "true" ] || repo_endpoint="${endpoint_host}/${repo_path}/"
           fi
 
           {
