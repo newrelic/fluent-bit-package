@@ -86,6 +86,7 @@
           vars:
             repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
+            repo_folder: "{{ nria_repo_path }}" # needs a newrelic-infra recipe/role that supports it, ignored otherwise
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
             nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -119,6 +120,7 @@
           vars:
             repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
+            repo_folder: "{{ nria_repo_path }}" # needs a newrelic-infra recipe/role that supports it, ignored otherwise
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
             nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -128,17 +130,33 @@
           ansible.builtin.debug:
             msg: "SUCCESS: Agent installation completed after connection recovery on {{ inventory_hostname }}"
           when: retry_result is succeeded
-    # The newrelic-cli recipes always install from <endpoint>infrastructure_agent/, so the first install above comes
-    # from v1. For any other repository folder (v2: infrastructure_agent_v2) the repository definition written by the
-    # recipe is pointed at the folder under test, then newrelic-infra is force-reinstalled and fluent-bit is installed
-    # (pinned to the version under test) from it. playbook-run-tests.yml then asserts the installed fluent-bit version
-    # and that both packages came from that folder.
+    # For any repository folder other than infrastructure_agent (v2: infrastructure_agent_v2), newrelic-infra should
+    # already have been installed from it by the recipe (repo_folder above). Recipes that do not support that yet
+    # install from infrastructure_agent (v1): then the repository definition written by the recipe is pointed at the
+    # folder under test and newrelic-infra is force-reinstalled. fluent-bit is installed (pinned to the version under
+    # test) from the folder under test either way. playbook-run-tests.yml then asserts the installed fluent-bit
+    # version and that both packages came from that folder.
     - name: Install newrelic-infra and fluent-bit from the {{ nria_repo_path }} repository
       when: nria_repo_path != 'infrastructure_agent'
       vars:
         nria_repo_file: "{{ {'Debian': '/etc/apt/sources.list.d/newrelic-infra.list', 'RedHat': '/etc/yum.repos.d/newrelic-infra.repo', 'Suse': '/etc/zypp/repos.d/newrelic-infra.repo'}[ansible_os_family] }}"
         nria_v2_url: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
       block:
+        - name: Read the repo definition written by the newrelic-cli recipe
+          ansible.builtin.slurp:
+            src: "{{ nria_repo_file }}"
+          register: nria_repo_from_recipe
+
+        - name: Check whether the recipe installed newrelic-infra directly from {{ nria_repo_path }}
+          ansible.builtin.set_fact:
+            nria_installed_from_v2: "{{ nria_v2_url in (nria_repo_from_recipe.content | b64decode) }}"
+
+        - name: Report where the recipe installed newrelic-infra from
+          ansible.builtin.debug:
+            msg: >-
+              {{ ('newrelic-infra was installed directly from ' ~ nria_v2_url) if (nria_installed_from_v2 | bool)
+                 else 'WARNING: the newrelic-cli recipe installed newrelic-infra from infrastructure_agent (v1), it does not support NEW_RELIC_INFRA_REPO_FOLDER yet. Falling back to rewriting the repo definition and reinstalling.' }}
+
         - name: Point the repo definition at {{ nria_repo_path }}
           ansible.builtin.replace:
             path: "{{ nria_repo_file }}"
@@ -177,9 +195,10 @@
           ansible.builtin.command: zypper --non-interactive --gpg-auto-import-keys refresh
           changed_when: false
 
-        # newrelic-infra is already installed (from v1) at the same version, so a plain install would be a no-op:
-        # force a reinstall, which can only fetch it from the repository rewritten above.
+        # Only needed when the recipe installed from v1: newrelic-infra is already installed at the same version, so a
+        # plain install would be a no-op. Force a reinstall, which can only fetch it from the repository rewritten above.
         - name: Reinstall newrelic-infra from {{ nria_repo_path }}
+          when: not (nria_installed_from_v2 | bool)
           ansible.builtin.command: >-
             {{ {'Debian': 'apt-get install -y --reinstall -o Dpkg::Options::=--force-confold newrelic-infra',
                 'RedHat': ansible_pkg_mgr ~ ' -y reinstall newrelic-infra',
