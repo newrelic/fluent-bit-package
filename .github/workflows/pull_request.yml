@@ -75,6 +75,7 @@ jobs:
         env:
           STAGING_REPO_PATH: ${{ needs.publish_config.outputs.repo_path }}
           PRODUCTION_REPO_PATH: ${{ needs.publish_config_production.outputs.repo_path }}
+          FORCE_STAGING_FB_VERSION: "5.1.5" # re-publish and re-test this version in staging, remove once verified
         run: |
           make versions/generateMatrices
           echo "linux_and_windows_matrix=$( cat versions/linuxAndWindowsMatrix.json )" >> "$GITHUB_OUTPUT"
