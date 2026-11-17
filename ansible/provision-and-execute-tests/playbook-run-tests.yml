@@ -132,6 +132,48 @@
           - "{{ fb_version == installed_fb_version.stdout }}"
         fail_msg: "Expected fluent-bit version {{ fb_version }}, but got {{ installed_fb_version.stdout }}"
 
+    # Only when playbook-provision-repo.yml pointed the NR repo definition at infrastructure_agent_v2/ (staging or
+    # production run with the v2 layout): newrelic-infra and fluent-bit must both have been installed from there.
+    - name: Check whether the NR repo definition points at v2
+      ansible.builtin.shell: >-
+        grep -l '/infrastructure_agent_v2/linux'
+        /etc/apt/sources.list.d/newrelic-infra.list /etc/yum.repos.d/newrelic-infra.repo /etc/zypp/repos.d/newrelic-infra.repo
+        2>/dev/null || true
+      register: nr_repo_v2
+      changed_when: false
+
+    - name: Find where the installed newrelic-infra and fluent-bit came from (apt)
+      when: nr_repo_v2.stdout | length > 0 and os_distro in ['debian', 'ubuntu']
+      ansible.builtin.shell: |
+        for p in newrelic-infra fluent-bit; do
+          echo "== $p"
+          apt-cache policy "$p" | awk '/\*\*\*/{f=1; next} f && /^ +[0-9]+ /{print; next} f{exit}'
+        done
+      register: pkg_sources
+      changed_when: false
+
+    - name: Assert newrelic-infra and fluent-bit were installed from v2 only (apt)
+      when: nr_repo_v2.stdout | length > 0 and os_distro in ['debian', 'ubuntu']
+      ansible.builtin.assert:
+        that:
+          - pkg_sources.stdout.count('/infrastructure_agent_v2/linux') >= 2
+          - pkg_sources.stdout is not search('/infrastructure_agent/linux')
+        fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both be installed from infrastructure_agent_v2, apt reports: {{ pkg_sources.stdout }}"
+
+    - name: Find which repository the installed newrelic-infra and fluent-bit came from (yum/dnf)
+      when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
+      ansible.builtin.shell: "$(command -v dnf || command -v yum) -q info installed newrelic-infra fluent-bit | grep -i '^From repo'"
+      register: pkg_sources
+      changed_when: false
+
+    - name: Assert newrelic-infra and fluent-bit were installed from the v2 repository (yum/dnf)
+      when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
+      ansible.builtin.assert:
+        that:
+          - pkg_sources.stdout_lines | length == 2
+          - pkg_sources.stdout_lines | select('search', ':\\s*newrelic-infra\\s*$') | list | length == 2
+        fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both come from the newrelic-infra repository (infrastructure_agent_v2 only), reported: {{ pkg_sources.stdout }}"
+
     # Fix for AL2023: Adds the current user to the 'systemd-journal' group, which is 
     # mandatorily required on AL2023 to read systemd logs without root privileges.
     - name: (AL2023) Grant systemd-journal access to current user
