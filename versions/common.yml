@@ -1,4 +1,5 @@
-fbVersion: 5.1.5
+fbVersion: 5.2.0  # TEMPORARY: bumped only to unblock CI's empty-matrix bug (5.1.5 is already fully published).
+                   # Must be reverted to 5.1.5 before merge -- a real version bump has its own separate process.
 
 # New Relic Fluent Bit Output Plugin Configuration
 # These values are used during E2E testing to download and test a specific version of the NR output plugin
