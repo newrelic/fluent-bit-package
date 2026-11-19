@@ -192,6 +192,13 @@ jobs:
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
+    # upload_official_packages_to_prerelease legitimately skips when there are no new linux/windows
+    # packages to download (e.g. an SLES-only change set). Without this, the default "needs" gating
+    # (success() only) would skip this job too, and with it every SLES-specific job in run_prerelease.yml
+    # -- that workflow is only ever invoked from here, so those jobs never even get evaluated.
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.setup_environment.result == 'success' || needs.setup_environment.result == 'skipped')
+      && (needs.upload_official_packages_to_prerelease.result == 'success' || needs.upload_official_packages_to_prerelease.result == 'skipped') }}
     uses: ./.github/workflows/run_prerelease.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
