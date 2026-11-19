@@ -8,6 +8,11 @@
     # AWS SSM already sends protocol-level keepalives, so explicit keepalive not needed
     ansible_aws_ssm_timeout: 900   # 15 minutes (reasonable for 3-5 min operation with buffer)
     ansible_aws_ssm_retries: 15    # Increased from 10
+    # NRIA_REPO_ENDPOINT is the bucket root (v1) or the bucket root + repository folder (v2: .../infrastructure_agent_v2/)
+    nria_repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+    nria_repo_root: "{{ (nria_repo_endpoint | regex_search('^https?://[^/]+') | default('', true)) ~ '/' }}"
+    fb_version: "{{ tags.fb_version }}"
+    nria_repo_path: "{{ (nria_repo_endpoint | regex_replace('^https?://[^/]+/?', '') | trim('/')) | default('infrastructure_agent', true) }}"
   become: true
   gather_facts: no
   tasks:
@@ -79,8 +84,9 @@
           ansible.builtin.include_role:
             name: caos.ansible_roles.newrelic_cli
           vars:
-            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
+            repo_folder: "{{ nria_repo_path }}" # install from this folder of the repository (v2: infrastructure_agent_v2)
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
             nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -112,8 +118,9 @@
           ansible.builtin.include_role:
             name: caos.ansible_roles.newrelic_cli
           vars:
-            repo_endpoint: "{{ lookup('ansible.builtin.env', 'NRIA_REPO_ENDPOINT') }}"
+            repo_endpoint: "{{ nria_repo_root }}"
             recipe: "newrelic-infra"
+            repo_folder: "{{ nria_repo_path }}" # install from this folder of the repository (v2: infrastructure_agent_v2)
             region: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_REGION') }}" # US | EU | STAGING
             nr_api_key: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_API_KEY') }}"
             nr_account_id: "{{ lookup('ansible.builtin.env', 'NEW_RELIC_ACCOUNT_ID') }}"
@@ -123,3 +130,74 @@
           ansible.builtin.debug:
             msg: "SUCCESS: Agent installation completed after connection recovery on {{ inventory_hostname }}"
           when: retry_result is succeeded
+    # For any repository folder other than infrastructure_agent (v2: infrastructure_agent_v2) the newrelic-cli recipe
+    # installs newrelic-infra straight from it (repo_folder above). Fail if it did not, so that the test never passes
+    # with an agent downloaded from v1. fluent-bit is then installed (pinned to the version under test) from the same
+    # folder. playbook-run-tests.yml asserts the installed fluent-bit version and that both packages came from it.
+    - name: Install newrelic-infra and fluent-bit from the {{ nria_repo_path }} repository
+      when: nria_repo_path != 'infrastructure_agent'
+      vars:
+        nria_repo_file: "{{ {'Debian': '/etc/apt/sources.list.d/newrelic-infra.list', 'RedHat': '/etc/yum.repos.d/newrelic-infra.repo', 'Suse': '/etc/zypp/repos.d/newrelic-infra.repo'}[ansible_os_family] }}"
+        nria_v2_url: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
+      block:
+        - name: Read the repo definition written by the newrelic-cli recipe
+          ansible.builtin.slurp:
+            src: "{{ nria_repo_file }}"
+          register: nria_repo_definition
+
+        - name: Assert newrelic-infra was installed directly from {{ nria_repo_path }}
+          ansible.builtin.assert:
+            that:
+              - nria_v2_url in (nria_repo_definition.content | b64decode)
+              - (nria_repo_definition.content | b64decode) is not search('/infrastructure_agent/linux')
+            fail_msg: >-
+              {{ inventory_hostname }}: the newrelic-cli recipe did not install newrelic-infra from {{ nria_v2_url }},
+              {{ nria_repo_file }} contains: {{ nria_repo_definition.content | b64decode }}
+              The recipe has to support NEW_RELIC_INFRA_REPO_FOLDER (open-install-library v0.115.11 or later, served by the
+              recipe service) and the caos newrelic_cli role has to pass repo_folder.
+
+        # Same as roles/install_fluent_bit_from_gh_prerelease: we want our package to overwrite the one that comes with
+        # the Infra Agent, even if it implies downgrading it.
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (apt)
+          when: ansible_pkg_mgr == 'apt'
+          ansible.builtin.apt:
+            name: "fluent-bit={{ fb_version }}"
+            allow_downgrade: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (dnf)
+          when: ansible_pkg_mgr == 'dnf'
+          ansible.builtin.dnf:
+            name: "fluent-bit-{{ fb_version }}"
+            allow_downgrade: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (yum)
+          when: ansible_pkg_mgr == 'yum'
+          ansible.builtin.yum:
+            name: "fluent-bit-{{ fb_version }}"
+            allow_downgrade: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
+
+        - name: Install fluent-bit {{ fb_version }} from {{ nria_repo_path }} (zypper)
+          when: ansible_pkg_mgr == 'zypper'
+          community.general.zypper:
+            name: "fluent-bit={{ fb_version }}"
+            oldpackage: true
+            state: present
+          register: fb_install
+          until: fb_install is succeeded
+          retries: 5
+          delay: 10
