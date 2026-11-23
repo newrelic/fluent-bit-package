@@ -63,7 +63,7 @@ module "ec2_instance" {
   # | Builder   | arm64 / aarch64  | c6g.large     |
   # | Tester    | x86_64 / amd64   | t3.medium* |
   # | Tester    | arm64 / aarch64  | t4g.medium* |
-  # *SLES Testers fallback to t3.small/t4g.small
+  # *SLES Testers fallback to t3.small (x86) / m6g.medium (arm)
   # -----------------------------------------------------------------------
   instance_type = (
     # 1. Builders (High Performance)
@@ -73,8 +73,10 @@ module "ec2_instance" {
 
     # 2. SLES Exception (Marketplace Restriction)
     # Must explicitly force SLES to small because its AMI blocks t3.medium
+    # SLES aarch64 testers use m6g.medium (non-burstable, 4GB) like the other arm testers: on t4g.small
+    # the SLES 16 aarch64 host never brought up Fluent Bit's ports and then dropped off SSM mid-run.
     length(regexall("(?i)sles", each.value.osDistro)) > 0 ? (
-      contains(["x86_64", "amd64"], each.value.arch) ? "t3.small" : "t4g.small"
+      contains(["x86_64", "amd64"], each.value.arch) ? "t3.small" : "m6g.medium"
     ) :
 
     # 3. Default Testers (Windows, Ubuntu, Debian, CentOS, AmazonLinux)
