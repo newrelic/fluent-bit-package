@@ -281,6 +281,32 @@
           ansible.builtin.debug:
             msg: "{{ (agent_diag.stdout_lines | default([])) + (agent_diag.stderr_lines | default([])) }}"
 
+        # The logging.d files are written after the agent's last start, so restart it with debug logging
+        # to see what its log forwarder does with them (and whether Fluent Bit comes up on a fresh start).
+        - name: Restart infra agent with debug logging and capture log forwarder activity (Debug)
+          ansible.builtin.shell: |
+            grep -q '^log:' /etc/newrelic-infra.yml || printf '\nlog:\n  level: debug\n' >> /etc/newrelic-infra.yml
+            T=$(date '+%Y-%m-%d %H:%M:%S')
+            systemctl restart newrelic-infra
+            sleep 45
+            echo "--- after restart: processes ---"; ps -eo pid,ppid,etime,args 2>&1 | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
+            echo "--- after restart: listening 5170/5140 ---"; ss -ltn 2>&1 | grep -E ':(5170|5140)\b' || echo "none"
+            echo "--- generated fluent-bit configs (any location, last 10 min) ---"; find / -xdev -type f -mmin -10 \( -iname '*fluent*' -o -iname '*logging*' \) 2>/dev/null | head -n 20
+            echo "--- agent journal since restart: log forwarder / fluent-bit / logging lines ---"
+            journalctl -u newrelic-infra --since "$T" --no-pager 2>&1 | grep -i -E 'fluent|log.?forward|logging|ffi|\.so|plugin.*(load|init)|cannot|unsupported|arch|error|warn' | grep -v 'Agent plugin' | head -n 80
+            echo "--- agent journal since restart: total lines ---"; journalctl -u newrelic-infra --since "$T" --no-pager 2>&1 | wc -l
+          become: true
+          args:
+            executable: /bin/bash
+          register: agent_debug
+          changed_when: false
+          failed_when: false
+          timeout: 120
+
+        - name: Print infra agent debug capture
+          ansible.builtin.debug:
+            msg: "{{ (agent_debug.stdout_lines | default([])) + (agent_debug.stderr_lines | default([])) }}"
+
         # Fluent Bit runs in the foreground until killed, so this must be bounded: unbounded it
         # kept the job alive until the workflow was cancelled (~2h).
         - name: Run Fluent Bit manually to capture crash output (The Smoking Gun)
