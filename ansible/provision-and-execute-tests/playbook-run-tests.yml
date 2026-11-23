@@ -215,34 +215,66 @@
             - "{{ monitored_syslog_rfc_5424_tcp_port }}"
       rescue:
         - name: Get Fluent Bit Service Status (Debug)
-          command: "systemctl status fluent-bit"
+          command: "systemctl status fluent-bit --no-pager"
           register: fb_service_status
           changed_when: false
           failed_when: false
 
+        # Print each piece as soon as it is collected: if a later task hangs or the host becomes
+        # unreachable, what was already gathered is still in the log.
+        - name: Print Fluent Bit service status
+          ansible.builtin.debug:
+            msg: "{{ (fb_service_status.stdout_lines | default([])) + (fb_service_status.stderr_lines | default([])) }}"
+
         - name: Get Fluent Bit Journal Logs (Debug)
-          command: "journalctl -u fluent-bit --no-pager -n 50"
+          command: "journalctl -u fluent-bit --no-pager -n 100"
+          become: true
           register: fb_journal_logs
           changed_when: false
           failed_when: false
 
+        - name: Print Fluent Bit journal logs
+          ansible.builtin.debug:
+            msg: "{{ (fb_journal_logs.stdout_lines | default([])) + (fb_journal_logs.stderr_lines | default([])) }}"
+
+        - name: Collect host diagnostics (Debug)
+          ansible.builtin.shell: |
+            echo "--- uname/arch ---"; uname -a
+            echo "--- os-release ---"; cat /etc/os-release
+            echo "--- memory ---"; free -m
+            echo "--- fluent-bit binary ---"; file /opt/fluent-bit/bin/fluent-bit; /opt/fluent-bit/bin/fluent-bit --version 2>&1 | head -n 2
+            echo "--- fluent-bit ldd ---"; ldd /opt/fluent-bit/bin/fluent-bit 2>&1 | head -n 30
+            echo "--- infra agent ---"; systemctl is-active newrelic-infra; grep -i fluent_bit /etc/newrelic-infra.yml 2>&1
+            echo "--- NR output plugin ---"; ls -l /tmp/out_newrelic.so* 2>&1; file /tmp/out_newrelic.so* 2>&1
+            echo "--- listening ports ---"; ss -ltnp 2>&1 | head -n 20
+            echo "--- kernel log (tail) ---"; dmesg 2>&1 | tail -n 30
+            echo "--- selinux/apparmor ---"; (getenforce 2>&1; aa-status 2>&1 | head -n 3) || true
+          become: true
+          args:
+            executable: /bin/bash
+          register: host_diag
+          changed_when: false
+          failed_when: false
+
+        - name: Print host diagnostics
+          ansible.builtin.debug:
+            msg: "{{ (host_diag.stdout_lines | default([])) + (host_diag.stderr_lines | default([])) }}"
+
+        # Fluent Bit runs in the foreground until killed, so this must be bounded: unbounded it
+        # kept the job alive until the workflow was cancelled (~2h).
         - name: Run Fluent Bit manually to capture crash output (The Smoking Gun)
-          command: "/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf"
+          ansible.builtin.shell: "timeout 20 /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.conf 2>&1 | head -n 200"
           register: manual_debug_output
           changed_when: false
           failed_when: false
           ignore_errors: true
+          timeout: 60
 
-        - name: Print Service Failure Details
-          debug:
+        - name: Print Fluent Bit manual run output
+          ansible.builtin.debug:
             msg:
               - "CRITICAL: Fluent Bit failed to open ports on {{ inventory_hostname }}"
-              - "--- Service Status ---"
-              - "{{ fb_service_status.stdout_lines }}"
-              - "--- Journal Logs ---"
-              - "{{ fb_journal_logs.stdout_lines }}"
-              - "--- Manual Run Output (STDERR) ---"
-              - "{{ manual_debug_output.stderr_lines }}"
+              - "{{ (manual_debug_output.stdout_lines | default([])) + (manual_debug_output.stderr_lines | default([])) }}"
 
         - name: Fail run after debugging
           ansible.builtin.fail:
