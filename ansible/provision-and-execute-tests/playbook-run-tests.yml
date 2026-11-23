@@ -260,6 +260,27 @@
           ansible.builtin.debug:
             msg: "{{ (host_diag.stdout_lines | default([])) + (host_diag.stderr_lines | default([])) }}"
 
+        - name: Collect infra agent diagnostics (Debug)
+          ansible.builtin.shell: |
+            echo "--- infra agent version ---"; (rpm -q newrelic-infra; /usr/bin/newrelic-infra --version) 2>&1 | head -n 5
+            echo "--- infra agent / fluent-bit processes ---"; ps -eo pid,ppid,etime,stat,args 2>&1 | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
+            echo "--- infra agent journal ---"; journalctl -u newrelic-infra --no-pager -n 150 2>&1
+            echo "--- infra agent log file (fluent/log related) ---"; grep -i -E 'fluent|logging|log forward|plugin|dlopen|\.so' /var/log/newrelic-infra/newrelic-infra.log 2>&1 | tail -n 60
+            echo "--- infra agent config ---"; sed -E 's/(license_key:).*/\1 <redacted>/' /etc/newrelic-infra.yml 2>&1
+            echo "--- logging.d ---"; ls -la /etc/newrelic-infra/logging.d 2>&1
+            echo "--- generated fluent-bit configs ---"; find / -xdev \( -name 'fluent-bit*.conf' -o -name 'fluent-bit*.yaml' -o -name 'fluent-bit*.yml' -o -name 'parsers*.conf' \) -mmin -120 2>/dev/null | head -n 20
+            echo "--- SELinux denials ---"; (ausearch -m avc -ts recent 2>&1 || journalctl -k --no-pager -g avc -n 30 2>&1) | tail -n 30
+          become: true
+          args:
+            executable: /bin/bash
+          register: agent_diag
+          changed_when: false
+          failed_when: false
+
+        - name: Print infra agent diagnostics
+          ansible.builtin.debug:
+            msg: "{{ (agent_diag.stdout_lines | default([])) + (agent_diag.stderr_lines | default([])) }}"
+
         # Fluent Bit runs in the foreground until killed, so this must be bounded: unbounded it
         # kept the job alive until the workflow was cancelled (~2h).
         - name: Run Fluent Bit manually to capture crash output (The Smoking Gun)
