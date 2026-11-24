@@ -203,22 +203,25 @@
 
     # TEMPORARY, diagnostic/validation only: newrelic-infra 2.1.1 sles16.0 arm64 RPM does not ship
     # parsers.conf (sles_160_arm64.yml has the logging files commented out), so the agent's
-    # IsLogForwarderAvailable() fails and Fluent Bit is never started. Record whether the file is there
-    # and, if not, place it so we can prove the e2e passes once the agent packaging is fixed.
+    # IsLogForwarderAvailable() fails and Fluent Bit is never started. Place the agent's own
+    # assets/examples/logging/parsers.conf (the file the amd64 RPM ships; it defines rfc5424 etc., which
+    # the generated syslog inputs need -- Fluent Bit's own parsers.conf names them syslog-rfc5424) so we
+    # can prove the e2e passes once the agent packaging is fixed. Remove with the agent fix.
     - name: (SLES aarch64) Check agent parsers.conf and work around the missing file
       when: tags.os_distro == 'sles' and tags.arch == 'aarch64'
       become: true
       ansible.builtin.shell: |
         P=/var/db/newrelic-infra/newrelic-integrations/logging/parsers.conf
         echo "--- before: agent parsers.conf ---"; ls -la "$P" 2>&1
-        echo "--- logging dir ---"; ls -la "$(dirname "$P")" 2>&1
         if [ ! -e "$P" ]; then
-          echo "MISSING: copying /etc/fluent-bit/parsers.conf (workaround)"
-          mkdir -p "$(dirname "$P")" && cp /etc/fluent-bit/parsers.conf "$P"
+          echo "MISSING: downloading agent 2.1.1 assets/examples/logging/parsers.conf (workaround)"
+          mkdir -p "$(dirname "$P")"
+          curl -fsSL --retry 5 --retry-delay 5 -o "$P" \
+            https://raw.githubusercontent.com/newrelic/infrastructure-agent/2.1.1/assets/examples/logging/parsers.conf
           systemctl restart newrelic-infra
           sleep 20
         fi
-        echo "--- after: agent parsers.conf ---"; ls -la "$P" 2>&1
+        echo "--- after: agent parsers.conf ---"; ls -la "$P" 2>&1; grep -E '^\s*Name' "$P" 2>&1
         echo "--- processes ---"; ps -eo pid,ppid,args | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
       args:
         executable: /bin/bash
