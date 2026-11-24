@@ -201,6 +201,36 @@
         nvm_commands:
             - "cd ~/test-suite && nvm exec default npm install"
 
+    # TEMPORARY, diagnostic/validation only: newrelic-infra 2.1.1 sles16.0 arm64 RPM does not ship
+    # parsers.conf (sles_160_arm64.yml has the logging files commented out), so the agent's
+    # IsLogForwarderAvailable() fails and Fluent Bit is never started. Record whether the file is there
+    # and, if not, place it so we can prove the e2e passes once the agent packaging is fixed.
+    - name: (SLES aarch64) Check agent parsers.conf and work around the missing file
+      when: tags.os_distro == 'sles' and tags.arch == 'aarch64'
+      become: true
+      ansible.builtin.shell: |
+        P=/var/db/newrelic-infra/newrelic-integrations/logging/parsers.conf
+        echo "--- before: agent parsers.conf ---"; ls -la "$P" 2>&1
+        echo "--- logging dir ---"; ls -la "$(dirname "$P")" 2>&1
+        if [ ! -e "$P" ]; then
+          echo "MISSING: copying /etc/fluent-bit/parsers.conf (workaround)"
+          mkdir -p "$(dirname "$P")" && cp /etc/fluent-bit/parsers.conf "$P"
+          systemctl restart newrelic-infra
+          sleep 20
+        fi
+        echo "--- after: agent parsers.conf ---"; ls -la "$P" 2>&1
+        echo "--- processes ---"; ps -eo pid,ppid,args | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
+      args:
+        executable: /bin/bash
+      register: sles_arm_parsers
+      changed_when: false
+      failed_when: false
+
+    - name: (SLES aarch64) Print parsers.conf check
+      when: tags.os_distro == 'sles' and tags.arch == 'aarch64'
+      ansible.builtin.debug:
+        msg: "{{ (sles_arm_parsers.stdout_lines | default([])) + (sles_arm_parsers.stderr_lines | default([])) }}"
+
     - name: Wait for Fluent Bit to initialize input ports
       block:
         - name: Wait for ports
