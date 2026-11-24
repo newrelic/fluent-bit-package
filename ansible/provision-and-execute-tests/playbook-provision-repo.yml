@@ -138,7 +138,9 @@
       when: nria_repo_path != 'infrastructure_agent'
       vars:
         nria_repo_file: "{{ {'Debian': '/etc/apt/sources.list.d/newrelic-infra.list', 'RedHat': '/etc/yum.repos.d/newrelic-infra.repo', 'Suse': '/etc/zypp/repos.d/newrelic-infra.repo'}[ansible_os_family] }}"
-        nria_v2_url: "{{ nria_repo_root }}{{ nria_repo_path }}/linux"
+        # Only the path is compared: apt files carry the host the CLI was given (S3 REST endpoint) while the .repo files
+        # published to the bucket carry the S3 website endpoint, so the host differs between package managers.
+        nria_v2_url: "/{{ nria_repo_path }}/linux"
       block:
         - name: Read the repo definition written by the newrelic-cli recipe
           ansible.builtin.slurp:
