@@ -160,6 +160,27 @@
           - pkg_sources.stdout is not search('/infrastructure_agent/linux')
         fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both be installed from infrastructure_agent_v2, apt reports: {{ pkg_sources.stdout }}"
 
+    # TEMPORARY diagnostic (AL2023 "From repo" assert): show what dnf reports for each package. Remove once understood.
+    - name: "TEMP | dnf details for newrelic-infra and fluent-bit (yum/dnf)"
+      when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
+      ansible.builtin.shell: |
+        PM="$(command -v dnf || command -v yum)"
+        echo "== package manager: $PM"; "$PM" --version 2>&1 | head -3
+        for p in newrelic-infra fluent-bit; do
+          echo "== rpm -q $p"; rpm -q "$p" 2>&1
+          echo "== info installed $p"; "$PM" -q info installed "$p" 2>&1 | head -40
+        done
+        echo "== repolist"; "$PM" -q repolist 2>&1 | head -20
+        echo "== history"; "$PM" -q history list 2>&1 | head -15
+      register: dnf_diag
+      changed_when: false
+      failed_when: false
+
+    - name: "TEMP | print dnf details"
+      when: dnf_diag is not skipped
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ dnf_diag.stdout_lines | default([]) }}"
+
     - name: Find which repository the installed newrelic-infra and fluent-bit came from (yum/dnf)
       when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
       ansible.builtin.shell: "$(command -v dnf || command -v yum) -q info installed newrelic-infra fluent-bit | grep -i '^From repo'"
