@@ -90,8 +90,11 @@ jobs:
         id: set_vars
         run: |
           echo "pre_release_name=$PRE_RELEASE_NAME" >> $GITHUB_OUTPUT
-          nr_fb_output_plugin_version=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginVersion')
-          nr_fb_output_plugin_tag=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].nrFbOutputPluginTag // empty')
+          # The Linux/Windows matrix is empty when SLES is the only new target, so fall back to the SLES matrix:
+          # every entry carries the same common.yml settings.
+          config=$(jq -s 'add | .[0] // {}' versions/linuxAndWindowsMatrix.json versions/slesMatrix.json)
+          nr_fb_output_plugin_version=$(echo "$config" | jq -r '.nrFbOutputPluginVersion')
+          nr_fb_output_plugin_tag=$(echo "$config" | jq -r '.nrFbOutputPluginTag // empty')
           # Default to v{version} if tag is not set
           if [ -z "$nr_fb_output_plugin_tag" ] || [ "$nr_fb_output_plugin_tag" == "null" ]; then
             nr_fb_output_plugin_tag="v${nr_fb_output_plugin_version}"
@@ -101,7 +104,7 @@ jobs:
 
           # Extract cleanup setting from common.yml (defaults to true if not found)
           # Note: This outputs a string "true" or "false", which must be converted to boolean in workflow call
-          always_cleanup_test_instances=$(cat versions/linuxAndWindowsMatrix.json | jq -r '.[0].alwaysCleanupTestInstances // true')
+          always_cleanup_test_instances=$(echo "$config" | jq -r '.alwaysCleanupTestInstances // true')
           echo "always_cleanup_test_instances=${always_cleanup_test_instances}" >> $GITHUB_OUTPUT
 
       - name: Compute and upload schemas
@@ -192,6 +195,13 @@ jobs:
   run_e2e_tests_prerelease:
     needs: [ setup_environment,upload_official_packages_to_prerelease ]
 #    name: Run E2E tests by installing NRIA from Production and installing Fluent Bit from the PR pre-release
+    # upload_official_packages_to_prerelease legitimately skips when there are no new linux/windows
+    # packages to download (e.g. an SLES-only change set). Without this, the default "needs" gating
+    # (success() only) would skip this job too, and with it every SLES-specific job in run_prerelease.yml
+    # -- that workflow is only ever invoked from here, so those jobs never even get evaluated.
+    if: ${{ always() && !failure() && !cancelled()
+      && (needs.setup_environment.result == 'success' || needs.setup_environment.result == 'skipped')
+      && (needs.upload_official_packages_to_prerelease.result == 'success' || needs.upload_official_packages_to_prerelease.result == 'skipped') }}
     uses: ./.github/workflows/run_prerelease.yml
     with:
       gh_release_name: ${{ needs.setup_environment.outputs.pre_release_name }}
