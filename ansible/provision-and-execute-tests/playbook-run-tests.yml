@@ -160,39 +160,41 @@
           - pkg_sources.stdout is not search('/infrastructure_agent/linux')
         fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both be installed from infrastructure_agent_v2, apt reports: {{ pkg_sources.stdout }}"
 
-    # TEMPORARY diagnostic (AL2023 "From repo" assert): show what dnf reports for each package. Remove once understood.
-    - name: "TEMP | dnf details for newrelic-infra and fluent-bit (yum/dnf)"
+    # dnf records the repository a package came from ("From repo"). On AL2023 that line is missing for newrelic-infra,
+    # so there we also accept a package whose installed build is offered by the newrelic-infra repository.
+    - name: Find which repository the installed newrelic-infra and fluent-bit came from (yum/dnf)
       when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
       ansible.builtin.shell: |
         PM="$(command -v dnf || command -v yum)"
-        echo "== package manager: $PM"; "$PM" --version 2>&1 | head -3
+        sep=''
+        printf '{'
         for p in newrelic-infra fluent-bit; do
-          echo "== rpm -q $p"; rpm -q "$p" 2>&1
-          echo "== info installed $p"; "$PM" -q info installed "$p" 2>&1 | head -40
+          repo="$("$PM" -q info installed "$p" 2>/dev/null | awk -F: '/^From repo/ {gsub(/[[:space:]]/, "", $2); print $2}')"
+          in_repo=false
+          if [ -z "$repo" ]; then
+            nevra="$(rpm -q --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$p" 2>/dev/null)"
+            if "$PM" -q repoquery --disablerepo='*' --enablerepo=newrelic-infra --qf '%{name}-%{version}-%{release}.%{arch}' "$p" 2>/dev/null | grep -qxF "$nevra"; then
+              in_repo=true
+            fi
+          fi
+          printf '%s"%s":{"repo":"%s","in_repo":%s}' "$sep" "$p" "$repo" "$in_repo"
+          sep=','
         done
-        echo "== repolist"; "$PM" -q repolist 2>&1 | head -20
-        echo "== history"; "$PM" -q history list 2>&1 | head -15
-      register: dnf_diag
-      changed_when: false
-      failed_when: false
-
-    - name: "TEMP | print dnf details"
-      when: dnf_diag is not skipped
-      ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ dnf_diag.stdout_lines | default([]) }}"
-
-    - name: Find which repository the installed newrelic-infra and fluent-bit came from (yum/dnf)
-      when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
-      ansible.builtin.shell: "$(command -v dnf || command -v yum) -q info installed newrelic-infra fluent-bit | grep -i '^From repo'"
+        printf '}\n'
       register: pkg_sources
       changed_when: false
 
     - name: Assert newrelic-infra and fluent-bit were installed from the v2 repository (yum/dnf)
       when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
+      vars:
+        pkg_origin: "{{ pkg_sources.stdout | from_json }}"
+        is_al2023: "{{ os_distro == 'amazonlinux' and '2023' in os_version }}"
       ansible.builtin.assert:
         that:
-          - pkg_sources.stdout_lines | length == 2
-          - pkg_sources.stdout_lines | select('search', ':\\s*newrelic-infra\\s*$') | list | length == 2
+          - pkg_origin['fluent-bit'].repo == 'newrelic-infra'
+          - >-
+            pkg_origin['newrelic-infra'].repo == 'newrelic-infra'
+            or (is_al2023 | bool and pkg_origin['newrelic-infra'].repo == '' and pkg_origin['newrelic-infra'].in_repo)
         fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both come from the newrelic-infra repository (infrastructure_agent_v2 only), reported: {{ pkg_sources.stdout }}"
 
     # Fix for AL2023: Adds the current user to the 'systemd-journal' group, which is 
