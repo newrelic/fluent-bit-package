@@ -1,1 +1,6 @@
 ansible_shell_type: powershell
+# Same SSM settings as the Linux provision playbooks. The win32 hosts have been losing their SSM session
+# during long tasks ("TerminateSession: Session is not in a valid state"), which fails the whole prerelease
+# stage and skips the staging publish.
+ansible_aws_ssm_timeout: 900
+ansible_aws_ssm_retries: 10
