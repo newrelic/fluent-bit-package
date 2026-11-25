@@ -164,6 +164,7 @@
     # so there we also accept a package whose installed build is offered by the newrelic-infra repository.
     - name: Find which repository the installed newrelic-infra and fluent-bit came from (yum/dnf)
       when: nr_repo_v2.stdout | length > 0 and os_distro in ['amazonlinux', 'centos', 'rockylinux']
+      become: true
       ansible.builtin.shell: |
         PM="$(command -v dnf || command -v yum)"
         sep=''
@@ -173,7 +174,7 @@
           in_repo=false
           if [ -z "$repo" ]; then
             nevra="$(rpm -q --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "$p" 2>/dev/null)"
-            if "$PM" -q repoquery --disablerepo='*' --enablerepo=newrelic-infra --qf '%{name}-%{version}-%{release}.%{arch}' "$p" 2>/dev/null | grep -qxF "$nevra"; then
+            if "$PM" -q repoquery --disablerepo='*' --enablerepo=newrelic-infra --qf '%{name}-%{version}-%{release}.%{arch}' "$p" | grep -qxF "$nevra"; then
               in_repo=true
             fi
           fi
@@ -195,7 +196,7 @@
           - >-
             pkg_origin['newrelic-infra'].repo == 'newrelic-infra'
             or (is_al2023 | bool and pkg_origin['newrelic-infra'].repo == '' and pkg_origin['newrelic-infra'].in_repo)
-        fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both come from the newrelic-infra repository (infrastructure_agent_v2 only), reported: {{ pkg_sources.stdout }}"
+        fail_msg: "{{ inventory_hostname }}: newrelic-infra and fluent-bit must both come from the newrelic-infra repository (infrastructure_agent_v2 only), reported: {{ pkg_sources.stdout }} {{ pkg_sources.stderr | default('') }}"
 
     # Fix for AL2023: Adds the current user to the 'systemd-journal' group, which is 
     # mandatorily required on AL2023 to read systemd logs without root privileges.
