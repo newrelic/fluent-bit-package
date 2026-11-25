@@ -3,7 +3,7 @@ import yaml
 import os
 
 
-def process_matrix(file_path):
+def process_matrix(file_path, repo_path):
     with open(file_path) as matrix:  # Using with is a good practice as it automatically closes the file
         matrix_data = json.load(matrix)
 
@@ -22,7 +22,8 @@ def process_matrix(file_path):
                 ]
             }
             if "srcRepo" in item:
-                schema_object['uploads'][0]['src_repo'] = item['srcRepo']
+                # {repo_path} is resolved here, per environment. {access_point_host} is left for the publish action.
+                schema_object['uploads'][0]['src_repo'] = item['srcRepo'].replace('{repo_path}', repo_path)
             schema_object_array.append(schema_object)
 
     return schema_object_array
@@ -30,11 +31,12 @@ def process_matrix(file_path):
 
 if __name__ == '__main__':
     nria_env = os.environ.get('NRIA_ENV')
+    repo_path = os.environ.get('REPO_PATH', 'infrastructure_agent')
     schema_object_array = []
 
     if nria_env == 'staging':
-        schema_object_array = process_matrix('../versions/stagingMatrix.json')
+        schema_object_array = process_matrix('../versions/stagingMatrix.json', repo_path)
     elif nria_env == 'production':
-        schema_object_array = process_matrix('../versions/productionMatrix.json')
+        schema_object_array = process_matrix('../versions/productionMatrix.json', repo_path)
 
     print(yaml.dump(schema_object_array))

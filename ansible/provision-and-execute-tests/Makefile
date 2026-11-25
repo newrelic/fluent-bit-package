@@ -67,26 +67,26 @@ prerelease-windows: dependencies prepare-inventory
 
 .PHONY: staging
 staging: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-ohai-staging.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
 # Staging parallel targets
 .PHONY: staging-linux-provision
 staging-linux-provision: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-ohai-staging.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 
 .PHONY: staging-linux-provision-apt
 staging-linux-provision-apt: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*debian*,*ubuntu*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-ohai-staging.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*debian*,*ubuntu*'
 
 .PHONY: staging-linux-provision-yum
 staging-linux-provision-yum: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*amazonlinux*,*centos*,*rockylinux*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-ohai-staging.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*amazonlinux*,*centos*,*rockylinux*'
 
 .PHONY: staging-linux-provision-sles
 staging-linux-provision-sles: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-ohai-staging.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*sles*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-ohai-staging.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*sles*'
 
 .PHONY: staging-linux-test-apt
 staging-linux-test-apt: dependencies prepare-inventory
@@ -114,26 +114,26 @@ staging-windows: dependencies prepare-inventory
 
 .PHONY: production
 production: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-main.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-run-tests.yml -i $(ANSIBLE_INVENTORY)
 	ansible-playbook $(ANSIBLE_FOLDER)/playbook-merge-results.yml -i $(ANSIBLE_INVENTORY)
 
 # Production parallel targets
 .PHONY: production-linux-provision
 production-linux-provision: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-main.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY)
 
 .PHONY: production-linux-provision-apt
 production-linux-provision-apt: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*debian*,*ubuntu*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-main.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*debian*,*ubuntu*'
 
 .PHONY: production-linux-provision-yum
 production-linux-provision-yum: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*amazonlinux*,*centos*,*rockylinux*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-main.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*amazonlinux*,*centos*,*rockylinux*'
 
 .PHONY: production-linux-provision-sles
 production-linux-provision-sles: dependencies prepare-inventory
-	NRIA_REPO_ENDPOINT="https://nr-downloads-main.s3.amazonaws.com/" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*sles*'
+	NRIA_REPO_ENDPOINT="$(or $(REPO_ENDPOINT),https://nr-downloads-main.s3.amazonaws.com/)" ansible-playbook $(ANSIBLE_FOLDER)/playbook-provision-repo.yml -i $(ANSIBLE_INVENTORY) --limit '*sles*'
 
 .PHONY: production-linux-test-apt
 production-linux-test-apt: dependencies prepare-inventory

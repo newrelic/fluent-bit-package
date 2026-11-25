@@ -67,11 +67,20 @@ This script file takes care of computing the following attributes for each suppo
        (Linux packages) or Logging S3 bucket (Windows packages)
 """
 
+# Repository folder inside each bucket: infrastructure_agent (v1, default) | infrastructure_agent_v2 (v2).
+# Staging and production are switched independently, so each environment has its own value.
+STAGING_REPO_PATH = os.environ.get("STAGING_REPO_PATH", "infrastructure_agent")
+PRODUCTION_REPO_PATH = os.environ.get("PRODUCTION_REPO_PATH", "infrastructure_agent")
+
+# Treat packages of this Fluent Bit version as missing from staging even if already published there, so that they are
+# rebuilt, published and E2E tested again (e.g. to re-test an already published version against the v2 layout).
+FORCE_STAGING_FB_VERSION = os.environ.get("FORCE_STAGING_FB_VERSION", "")
+
 NR_PROD_REPO_URL = (
-    "https://nr-downloads-main.s3.amazonaws.com/infrastructure_agent/linux"
+    f"https://nr-downloads-main.s3.amazonaws.com/{PRODUCTION_REPO_PATH}/linux"
 )
 NR_STG_REPO_URL = (
-    "https://nr-downloads-ohai-staging.s3.amazonaws.com/infrastructure_agent/linux"
+    f"https://nr-downloads-ohai-staging.s3.amazonaws.com/{STAGING_REPO_PATH}/linux"
 )
 
 DEB_DISTROS = ["debian", "ubuntu"]
@@ -89,7 +98,7 @@ def deb_package_details(pkg):
         "pkgArch": f"{pkg['arch']}",
         "packageManagerType": "apt",
         "uploadDest": "{dest_prefix}linux/apt/",
-        "srcRepo": "{access_point_host}/infrastructure_agent/linux/apt",
+        "srcRepo": "{access_point_host}/{repo_path}/linux/apt",
     }
 
 
@@ -211,7 +220,7 @@ def add_availability_flags(matrix):
         if "nrStagingPackageUrl" in pkg:
             url = pkg["nrStagingPackageUrl"]
             response = requests.head(url)
-            pkg["isStaging"] = True if response.status_code == 200 else False
+            pkg["isStaging"] = response.status_code == 200 and str(pkg["fbVersion"]) != FORCE_STAGING_FB_VERSION
 
 
 if __name__ == "__main__":
