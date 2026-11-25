@@ -201,39 +201,6 @@
         nvm_commands:
             - "cd ~/test-suite && nvm exec default npm install"
 
-    # TEMPORARY, diagnostic/validation only: newrelic-infra 2.1.1 sles16.0 arm64 RPM does not ship
-    # parsers.conf (sles_160_arm64.yml has the logging files commented out), so the agent's
-    # IsLogForwarderAvailable() fails and Fluent Bit is never started. Place the agent's own
-    # assets/examples/logging/parsers.conf (the file the amd64 RPM ships; it defines rfc5424 etc., which
-    # the generated syslog inputs need -- Fluent Bit's own parsers.conf names them syslog-rfc5424) so we
-    # can prove the e2e passes once the agent packaging is fixed. Remove with the agent fix.
-    - name: (SLES aarch64) Check agent parsers.conf and work around the missing file
-      when: tags.os_distro == 'sles' and tags.arch == 'aarch64'
-      become: true
-      ansible.builtin.shell: |
-        P=/var/db/newrelic-infra/newrelic-integrations/logging/parsers.conf
-        echo "--- before: agent parsers.conf ---"; ls -la "$P" 2>&1
-        if [ ! -e "$P" ]; then
-          echo "MISSING: downloading agent 2.1.1 assets/examples/logging/parsers.conf (workaround)"
-          mkdir -p "$(dirname "$P")"
-          curl -fsSL --retry 5 --retry-delay 5 -o "$P" \
-            https://raw.githubusercontent.com/newrelic/infrastructure-agent/2.1.1/assets/examples/logging/parsers.conf
-          systemctl restart newrelic-infra
-          sleep 20
-        fi
-        echo "--- after: agent parsers.conf ---"; ls -la "$P" 2>&1; grep -E '^\s*Name' "$P" 2>&1
-        echo "--- processes ---"; ps -eo pid,ppid,args | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
-      args:
-        executable: /bin/bash
-      register: sles_arm_parsers
-      changed_when: false
-      failed_when: false
-
-    - name: (SLES aarch64) Print parsers.conf check
-      when: tags.os_distro == 'sles' and tags.arch == 'aarch64'
-      ansible.builtin.debug:
-        msg: "{{ (sles_arm_parsers.stdout_lines | default([])) + (sles_arm_parsers.stderr_lines | default([])) }}"
-
     - name: Wait for Fluent Bit to initialize input ports
       block:
         - name: Wait for ports
@@ -313,32 +280,6 @@
         - name: Print infra agent diagnostics
           ansible.builtin.debug:
             msg: "{{ (agent_diag.stdout_lines | default([])) + (agent_diag.stderr_lines | default([])) }}"
-
-        # The logging.d files are written after the agent's last start, so restart it with debug logging
-        # to see what its log forwarder does with them (and whether Fluent Bit comes up on a fresh start).
-        - name: Restart infra agent with debug logging and capture log forwarder activity (Debug)
-          ansible.builtin.shell: |
-            grep -q '^log:' /etc/newrelic-infra.yml || printf '\nlog:\n  level: debug\n' >> /etc/newrelic-infra.yml
-            T=$(date '+%Y-%m-%d %H:%M:%S')
-            systemctl restart newrelic-infra
-            sleep 45
-            echo "--- after restart: processes ---"; ps -eo pid,ppid,etime,args 2>&1 | grep -E 'newrelic-infra|fluent-bit' | grep -v grep
-            echo "--- after restart: listening 5170/5140 ---"; ss -ltn 2>&1 | grep -E ':(5170|5140)\b' || echo "none"
-            echo "--- generated fluent-bit configs (any location, last 10 min) ---"; find / -xdev -type f -mmin -10 \( -iname '*fluent*' -o -iname '*logging*' \) 2>/dev/null | head -n 20
-            echo "--- agent journal since restart: log forwarder / fluent-bit / logging lines ---"
-            journalctl -u newrelic-infra --since "$T" --no-pager 2>&1 | grep -i -E 'fluent|log.?forward|logging|ffi|\.so|plugin.*(load|init)|cannot|unsupported|arch|error|warn' | grep -v 'Agent plugin' | head -n 80
-            echo "--- agent journal since restart: total lines ---"; journalctl -u newrelic-infra --since "$T" --no-pager 2>&1 | wc -l
-          become: true
-          args:
-            executable: /bin/bash
-          register: agent_debug
-          changed_when: false
-          failed_when: false
-          timeout: 120
-
-        - name: Print infra agent debug capture
-          ansible.builtin.debug:
-            msg: "{{ (agent_debug.stdout_lines | default([])) + (agent_debug.stderr_lines | default([])) }}"
 
         # Fluent Bit runs in the foreground until killed, so this must be bounded: unbounded it
         # kept the job alive until the workflow was cancelled (~2h).

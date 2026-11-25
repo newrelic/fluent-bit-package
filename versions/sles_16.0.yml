@@ -3,5 +3,5 @@ osVersion: "16.0"
 packages:
   - arch: x86_64
     ami: ami-04c81635606c22655
-  - arch: aarch64
-    ami: ami-0e844dfdd5583a9aa
+  # aarch64 (ami-0e844dfdd5583a9aa) is added back once the infra agent's sles_160_arm64 RPM ships the log
+  # forwarding files (NR-655118); until then its e2e cannot pass.
